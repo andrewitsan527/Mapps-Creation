@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  --surface: #eef1f4;
+  --panel: #ffffff;
+  --ink: #141a1f;
+  --muted: #5c6770;
+  --line: #d5dce3;
+  --accent: #0f6b5c;
+  --accent-soft: #e6f3f0;
+  --accent-strong: #0b5247;
+  --warn: #a16207;
+  --warn-soft: #fef6e7;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --sidebar: #12181e;
+  --sidebar-ink: #e8eef2;
+  --sidebar-muted: #8b97a3;
+  --sidebar-hover: #1c252e;
+  --sidebar-active: #24313c;
+  --background: var(--surface);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+}
+
+body {
+  background: #eef1f4;
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.font-serif {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+}
+
+/* Dense ERP tables */
+.erp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.erp-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.erp-table td {
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.erp-table tr:hover td {
+  background: #f7fafb;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.badge-ok {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.badge-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.badge-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.badge-muted {
+  background: #eef1f4;
+  color: var(--muted);
+}
+
+/* Tighter page grids used across ERP */
+.erp-grid {
+  display: grid;
+  gap: 0.5rem;
+}

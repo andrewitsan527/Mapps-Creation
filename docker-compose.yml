@@ -1,0 +1,37 @@
+# Used on AWS Linux (Docker CLI) or any machine with Docker.
+# Local Windows: use your installed PostgreSQL + pgAdmin instead — no Docker Desktop needed.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: mapps
+      POSTGRES_PASSWORD: mapps
+      POSTGRES_DB: mapps
+    volumes:
+      - mapps_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mapps -d mapps"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://mapps:mapps@db:5432/mapps?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production}
+      WHATSAPP_PROVIDER: stub
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mapps_pg:

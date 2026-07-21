@@ -1,0 +1,784 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  SALES
+  STORE
+  QC
+  ACCOUNTS
+  DISPATCH
+}
+
+enum PartyType {
+  CLIENT
+  MILL
+  WEAVER
+  GREY_SUPPLIER
+  AGENT
+  OTHER
+}
+
+enum ProgramStatus {
+  DRAFT
+  SENT_TO_MILL
+  IN_PROCESS
+  RETURNED
+  CLOSED
+  CANCELLED
+}
+
+enum DefectType {
+  NONE
+  MILL
+  WEAVER
+  DYEING
+  MINOR
+}
+
+enum LotOrigin {
+  PROGRAM
+  SALES_RETURN
+}
+
+enum GoodsReturnStatus {
+  PENDING_QC
+  IN_STOCK
+  CLOSED
+}
+
+/// Mill return / RF — defected goods to be sent back to mill (1-day SLA from QC).
+enum MillReturnStatus {
+  OPEN
+  SENT
+  CLOSED
+}
+
+enum DefectSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum QualityGrade {
+  A
+  B
+  C
+  REJECT
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  RESERVE
+  RELEASE
+  ADJUST
+  RETURN
+}
+
+enum PaymentDirection {
+  RECEIPT
+  PAYMENT
+}
+
+enum PaymentCategory {
+  CUSTOMER_RECEIPT
+  MILL_PAYMENT
+  WEAVER_PAYMENT
+  GREY_SUPPLIER_PAYMENT
+  AGENT_COMMISSION
+  OTHER
+}
+
+enum BillStatus {
+  DRAFT
+  ISSUED
+  CONVERTED
+  CANCELLED
+}
+
+enum BillType {
+  PROVISIONAL
+  SALE
+}
+
+enum DispatchStatus {
+  DRAFT
+  DISPATCHED
+  CANCELLED
+}
+
+enum WhatsAppStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  STUB
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         UserRole  @default(SALES)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  qualityChecks QualityCheck[] @relation("QcInspector")
+  auditLogs     AuditTrail[]
+  sessions      Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Party {
+  id            String    @id @default(cuid())
+  name          String
+  type          PartyType
+  gstin         String?
+  phone         String?
+  whatsapp      String?
+  email         String?
+  address       String?
+  paymentTermsDays Int    @default(30)
+  interestRatePct  Decimal @default(28.5)
+  active        Boolean   @default(true)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  greyPurchasesAsSupplier GreyPurchaseOrder[] @relation("GreySupplier")
+  programsAsMill          MillProgram[]       @relation("ProgramMill")
+  programsAsWeaver        MillProgram[]       @relation("ProgramWeaver")
+  lotsAsMill              Lot[]               @relation("LotMill")
+  lotsAsWeaver            Lot[]               @relation("LotWeaver")
+  saleBills               SaleBill[]
+  dispatches              Dispatch[]
+  payments                Payment[]
+  accountNotes            AccountNote[]
+  commissionsAsAgent      CommissionEntry[]   @relation("CommissionAgent")
+  commissionsRelated      CommissionEntry[]   @relation("CommissionRelated")
+  salesReturns            SalesReturn[]
+  /// When this party is an AGENT — parties/mills/weavers they cover
+  agentLinks              AgentLink[]         @relation("AgentSide")
+  /// When this party is linked FROM an agent
+  linkedFromAgents        AgentLink[]         @relation("RelatedSide")
+  millMarkas              MillMarka[]
+  millReturns             MillReturn[] @relation("MillReturnMill")
+
+  @@index([type, name])
+  @@index([active, type])
+}
+
+/// Valid physical marka labels issued by a connected mill.
+model MillMarka {
+  id        String   @id @default(cuid())
+  millId    String
+  mill      Party    @relation(fields: [millId], references: [id], onDelete: Cascade)
+  code      String
+  label     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lots         Lot[]
+  salesReturns SalesReturn[]
+
+  @@unique([millId, code])
+  @@index([millId, active])
+}
+
+/// Agent ↔ party / mill / weaver (and other) relationships. Many per side.
+model AgentLink {
+  id             String   @id @default(cuid())
+  agentId        String
+  agent          Party    @relation("AgentSide", fields: [agentId], references: [id], onDelete: Cascade)
+  relatedPartyId String
+  relatedParty   Party    @relation("RelatedSide", fields: [relatedPartyId], references: [id], onDelete: Cascade)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([agentId, relatedPartyId])
+  @@index([agentId])
+  @@index([relatedPartyId])
+}
+
+model FabricType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String?  @unique
+  defaultUnit String   @default("m")
+  notes       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  programs MillProgram[]
+  lots     Lot[]
+}
+
+model ColorFamily {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shades Shade[]
+}
+
+model Shade {
+  id            String      @id @default(cuid())
+  colorFamilyId String
+  colorFamily   ColorFamily @relation(fields: [colorFamilyId], references: [id], onDelete: Cascade)
+  code          String
+  name          String
+  hex           String?
+  swatchUrl     String?
+  sortOrder     Int         @default(0)
+  active        Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  programs MillProgram[]
+  lots     Lot[]
+
+  @@unique([colorFamilyId, code])
+  @@index([name])
+}
+
+model FinishType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  programs MillProgram[]
+  lots     Lot[]
+}
+
+model Godown {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String?  @unique
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locations GodownLocation[]
+  lots      Lot[]
+}
+
+model GodownLocation {
+  id        String   @id @default(cuid())
+  godownId  String
+  godown    Godown   @relation(fields: [godownId], references: [id], onDelete: Cascade)
+  code      String
+  label     String?
+  capacity  Decimal?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lots Lot[]
+
+  @@unique([godownId, code])
+}
+
+model GreyPurchaseOrder {
+  id           String   @id @default(cuid())
+  poNumber     String   @unique
+  supplierId   String
+  supplier     Party    @relation("GreySupplier", fields: [supplierId], references: [id])
+  orderDate    DateTime @default(now())
+  fabricNotes  String?
+  quantity     Decimal?
+  unit         String   @default("m")
+  status       String   @default("OPEN")
+  whatsappNote String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bills    GreyPurchaseBill[]
+  programs MillProgram[]
+  lots     Lot[]
+
+  @@index([supplierId, orderDate])
+}
+
+model GreyPurchaseBill {
+  id        String            @id @default(cuid())
+  billNo    String
+  orderId   String
+  order     GreyPurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  billDate  DateTime          @default(now())
+  amount    Decimal           @default(0)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([orderId, billNo])
+}
+
+model MillProgram {
+  id            String        @id @default(cuid())
+  programNo     String        @unique
+  millId        String
+  mill          Party         @relation("ProgramMill", fields: [millId], references: [id])
+  weaverId      String?
+  weaver        Party?        @relation("ProgramWeaver", fields: [weaverId], references: [id])
+  greyOrderId   String?
+  greyOrder     GreyPurchaseOrder? @relation(fields: [greyOrderId], references: [id])
+  fabricTypeId  String
+  fabricType    FabricType    @relation(fields: [fabricTypeId], references: [id])
+  shadeId       String
+  shade         Shade         @relation(fields: [shadeId], references: [id])
+  finishTypeId  String?
+  finishType    FinishType?   @relation(fields: [finishTypeId], references: [id])
+  width         Decimal?     
+  gsm           Decimal?     
+  feelFallNotes String?
+  extraMods     String?
+  remarks       String?
+  photoUrl      String?
+  status        ProgramStatus @default(DRAFT)
+  sentAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  lots Lot[]
+
+  @@index([status, millId])
+  @@index([shadeId, fabricTypeId])
+}
+
+model Lot {
+  id              String         @id @default(cuid())
+  lotNumber       String         @unique
+  rollNumber      String?
+  marka           String?
+  millMarkaId     String?
+  millMarka       MillMarka?     @relation(fields: [millMarkaId], references: [id])
+  fabricTypeId    String
+  fabricType      FabricType     @relation(fields: [fabricTypeId], references: [id])
+  shadeId         String
+  shade           Shade          @relation(fields: [shadeId], references: [id])
+  finishTypeId    String?
+  finishType      FinishType?    @relation(fields: [finishTypeId], references: [id])
+  programId       String?
+  program         MillProgram?   @relation(fields: [programId], references: [id])
+  greyOrderId     String?
+  greyOrder       GreyPurchaseOrder? @relation(fields: [greyOrderId], references: [id])
+  millId          String?
+  mill            Party?         @relation("LotMill", fields: [millId], references: [id])
+  weaverId        String?
+  weaver          Party?         @relation("LotWeaver", fields: [weaverId], references: [id])
+  godownId        String?
+  godown          Godown?        @relation(fields: [godownId], references: [id])
+  locationId      String?
+  location        GodownLocation? @relation(fields: [locationId], references: [id])
+  width           Decimal?
+  gsm             Decimal?
+  /// Total length for the lot (meters). Equals sum of roll lengths when rolls exist.
+  quantity        Decimal
+  lengthM         Decimal?
+  weightKg        Decimal?
+  rollCount       Int            @default(1)
+  unit            String         @default("m")
+  qualityGrade    QualityGrade   @default(A)
+  defectType      DefectType     @default(NONE)
+  origin          LotOrigin      @default(PROGRAM)
+  /// Priority for return-goods lots (also mirrored on SalesReturn).
+  returnPriority  DefectSeverity?
+  sourceSaleBillId String?
+  sourceSaleBill  SaleBill?      @relation("ReturnSourceBill", fields: [sourceSaleBillId], references: [id])
+  parentLotId     String?
+  parentLot       Lot?           @relation("LotRelot", fields: [parentLotId], references: [id])
+  childLots       Lot[]          @relation("LotRelot")
+  onHand          Decimal        @default(0)
+  reserved        Decimal        @default(0)
+  active          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  rolls           LotRoll[]
+  qualityChecks   QualityCheck[]
+  movements       StockMovement[]
+  billLines       SaleBillLine[]
+  dispatchLines   DispatchLine[]
+  salesReturnsAsOriginal SalesReturn[] @relation("ReturnOriginalLot")
+  salesReturnAsNew       SalesReturn?  @relation("ReturnNewLot")
+  millReturns            MillReturn[]
+
+  @@index([fabricTypeId, shadeId])
+  @@index([marka])
+  @@index([godownId, locationId])
+  @@index([programId])
+  @@index([millId, weaverId])
+  @@index([millMarkaId])
+  @@index([origin, qualityGrade])
+  @@index([sourceSaleBillId])
+}
+
+/// Individual rolls inside a lot (each with its own length / weight).
+model LotRoll {
+  id        String   @id @default(cuid())
+  lotId     String
+  lot       Lot      @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  rollNo    String
+  lengthM   Decimal
+  weightKg  Decimal?
+  notes     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([lotId, rollNo])
+  @@index([lotId])
+}
+
+model QualityCheck {
+  id          String          @id @default(cuid())
+  lotId       String
+  lot         Lot             @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  inspectorId String?
+  inspector   User?           @relation("QcInspector", fields: [inspectorId], references: [id])
+  checkedAt   DateTime        @default(now())
+  passed      Boolean
+  defectType  DefectType      @default(NONE)
+  severity    DefectSeverity?
+  grade       QualityGrade    @default(A)
+  remarks     String?
+  photoUrl    String?
+  whatsappSent Boolean        @default(false)
+  /// GR / QC checklist ticks
+  checklistWeaver Boolean     @default(false)
+  checklistMill   Boolean     @default(false)
+  checklistDying  Boolean     @default(false)
+  checklistMinor  Boolean     @default(false)
+  millReturns MillReturn[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([defectType, severity])
+  @@index([checkedAt])
+}
+
+model StockMovement {
+  id          String            @id @default(cuid())
+  lotId       String
+  lot         Lot               @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  type        StockMovementType
+  quantity    Decimal          
+  referenceType String?
+  referenceId   String?
+  notes       String?
+  createdById String?
+  createdAt   DateTime          @default(now())
+
+  @@index([lotId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model SaleBill {
+  id              String     @id @default(cuid())
+  billNo          String     @unique
+  type            BillType
+  status          BillStatus @default(DRAFT)
+  partyId         String
+  party           Party      @relation(fields: [partyId], references: [id])
+  billDate        DateTime   @default(now())
+  /// Credit period is snapshotted from the party when the sale is created.
+  paymentTermsDays Int?
+  interestRatePct Decimal?
+  /// Customer credit starts when goods are actually dispatched.
+  creditStartsAt  DateTime?
+  dueDate         DateTime?
+  preDueReminderSentAt DateTime?
+  dueReminderSentAt DateTime?
+  subtotal        Decimal    @default(0)
+  gstPct          Decimal    @default(0)
+  gstAmount       Decimal    @default(0)
+  tdsPct          Decimal    @default(0)
+  tdsAmount       Decimal    @default(0)
+  total           Decimal    @default(0)
+  notes           String?
+  provisionalId   String?    @unique
+  provisional     SaleBill?  @relation("ProvToSale", fields: [provisionalId], references: [id])
+  convertedSale   SaleBill?  @relation("ProvToSale")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  lines            SaleBillLine[]
+  payments         Payment[]
+  dispatches       Dispatch[]
+  accountNotes     AccountNote[]
+  commissions      CommissionEntry[]
+  salesReturns     SalesReturn[]
+  returnSourceLots Lot[]           @relation("ReturnSourceBill")
+
+  @@index([partyId, billDate])
+  @@index([type, status])
+  @@index([dueDate])
+}
+
+model SaleBillLine {
+  id          String   @id @default(cuid())
+  billId      String
+  bill        SaleBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  lotId       String?
+  lot         Lot?     @relation(fields: [lotId], references: [id])
+  /// Frozen goods identity at billing time (survives later lot edits).
+  lotNumber   String?
+  fabricName  String?
+  colorFamily String?
+  shadeName   String?
+  shadeCode   String?
+  finishName  String?
+  millName    String?
+  weaverName  String?
+  width       Decimal?
+  gsm         Decimal?
+  marka       String?
+  rollNumber  String?
+  rollCount   Int?
+  weightKg    Decimal?
+  lengthM     Decimal?
+  rollsDetail String?
+  description String?
+  quantity    Decimal
+  unit        String   @default("m")
+  rate        Decimal  @default(0)
+  amount      Decimal  @default(0)
+
+  @@index([billId])
+  @@index([lotId])
+}
+
+model Dispatch {
+  id           String         @id @default(cuid())
+  /// Internal delivery ref (UI treats sale bill as the customer document).
+  challanNo    String         @unique
+  partyId      String
+  party        Party          @relation(fields: [partyId], references: [id])
+  saleBillId   String?
+  saleBill     SaleBill?      @relation(fields: [saleBillId], references: [id])
+  vehicleNo    String?
+  driverName   String?
+  driverPhone  String?
+  status       DispatchStatus @default(DRAFT)
+  dispatchedAt DateTime?
+  whatsappSent Boolean        @default(false)
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  lines DispatchLine[]
+
+  @@index([partyId, status])
+  @@index([saleBillId])
+}
+
+model DispatchLine {
+  id         String   @id @default(cuid())
+  dispatchId String
+  dispatch   Dispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  lotId      String
+  lot        Lot      @relation(fields: [lotId], references: [id])
+  quantity   Decimal
+  /// Snapshot copy for delivery trail
+  lotNumber  String?
+  fabricName String?
+  shadeName  String?
+  rollsDetail String?
+
+  @@index([dispatchId])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  partyId     String
+  party       Party    @relation(fields: [partyId], references: [id])
+  direction   PaymentDirection @default(RECEIPT)
+  category    PaymentCategory @default(CUSTOMER_RECEIPT)
+  saleBillId  String?
+  saleBill    SaleBill? @relation(fields: [saleBillId], references: [id])
+  commissionEntryId String?
+  commissionEntry CommissionEntry? @relation(fields: [commissionEntryId], references: [id])
+  amount      Decimal 
+  paidAt      DateTime @default(now())
+  method      String?
+  reference   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([partyId, paidAt])
+  @@index([direction, category, paidAt])
+  @@index([commissionEntryId])
+}
+
+model WhatsAppMessageLog {
+  id           String         @id @default(cuid())
+  to           String
+  template     String
+  entityType   String?
+  entityId     String?
+  payload      Json?
+  status       WhatsAppStatus @default(QUEUED)
+  providerId   String?
+  error        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([status, createdAt])
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+enum NoteType {
+  DEBIT
+  CREDIT
+}
+
+enum CommissionBasis {
+  MILL
+  WEAVER
+  PARTY
+}
+
+model AccountNote {
+  id          String   @id @default(cuid())
+  noteNo      String   @unique
+  type        NoteType
+  partyId     String
+  party       Party    @relation(fields: [partyId], references: [id])
+  saleBillId  String?
+  saleBill    SaleBill? @relation(fields: [saleBillId], references: [id])
+  amount      Decimal
+  reason      String?
+  tdsPct      Decimal  @default(0)
+  tdsAmount   Decimal  @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([partyId, type])
+  @@index([saleBillId])
+}
+
+model CommissionEntry {
+  id              String          @id @default(cuid())
+  agentId         String
+  agent           Party           @relation("CommissionAgent", fields: [agentId], references: [id])
+  basis           CommissionBasis
+  relatedPartyId  String?
+  relatedParty    Party?          @relation("CommissionRelated", fields: [relatedPartyId], references: [id])
+  saleBillId      String?
+  saleBill        SaleBill?       @relation(fields: [saleBillId], references: [id])
+  ratePct         Decimal         @default(0)
+  amount          Decimal         @default(0)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  payments         Payment[]
+
+  @@index([agentId, createdAt])
+  @@index([basis])
+}
+
+model SalesReturn {
+  id             String            @id @default(cuid())
+  /// Document + lot tag prefix MCSR-…
+  returnNo       String            @unique
+  status         GoodsReturnStatus @default(PENDING_QC)
+  priority       DefectSeverity    @default(MEDIUM)
+  partyId        String
+  party          Party             @relation(fields: [partyId], references: [id])
+  saleBillId     String?
+  saleBill       SaleBill?         @relation(fields: [saleBillId], references: [id])
+  saleBillLineId String?
+  millMarkaId    String?
+  millMarka      MillMarka?        @relation(fields: [millMarkaId], references: [id])
+  markaPhotoUrl  String?
+  /// Original lot if sticker / tag still known (optional — often lost after months).
+  originalLotId  String?
+  originalLot    Lot?              @relation("ReturnOriginalLot", fields: [originalLotId], references: [id])
+  /// New MCSR inventory lot created at intake; stocked after GR QC.
+  newLotId       String?           @unique
+  newLot         Lot?              @relation("ReturnNewLot", fields: [newLotId], references: [id])
+  quantity       Decimal
+  reason         String?
+  restock        Boolean           @default(true)
+  qualityGrade   QualityGrade?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([partyId, createdAt])
+  @@index([status, priority])
+  @@index([saleBillId])
+  @@index([originalLotId])
+  @@index([millMarkaId])
+}
+
+/// RF (return-to-mill) raised when QC finds mill / other defects that must go back.
+model MillReturn {
+  id              String          @id @default(cuid())
+  rfNo            String          @unique
+  status          MillReturnStatus @default(OPEN)
+  lotId           String
+  lot             Lot             @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  millId          String
+  mill            Party           @relation("MillReturnMill", fields: [millId], references: [id])
+  qualityCheckId  String?
+  qualityCheck    QualityCheck?   @relation(fields: [qualityCheckId], references: [id])
+  /// QC kind: PROGRAM (normal inward) or SALES_RETURN (goods return).
+  source          LotOrigin       @default(PROGRAM)
+  qcAt            DateTime
+  /// SLA: must physically send to mill by this time (QC + 1 day).
+  dueAt           DateTime
+  sentAt          DateTime?
+  whatsappSent    Boolean         @default(false)
+  goodsSummary    String?
+  remarks         String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status, dueAt])
+  @@index([lotId])
+  @@index([millId, status])
+  @@index([qualityCheckId])
+}
