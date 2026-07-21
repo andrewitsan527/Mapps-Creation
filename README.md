@@ -1,18 +1,16 @@
 # Mapps Creation — RFD Fabric ERP
 
-Operations ERP for grey purchase → mill program → QC → live stock → provisional/sale bills → dispatch, with WhatsApp hooks.
+Operations ERP for grey purchase → mill program → QC → live stock → sale bills → delivery, with WhatsApp hooks.
 
 ## Stack
 
 - Next.js + TypeScript + Tailwind
-- **PostgreSQL** + Prisma
-- Cookie session auth (roles ready)
+- **PostgreSQL** + Prisma (migrations)
+- Cookie session auth
 - WhatsApp provider adapter (stub now; Meta/BSP later)
-- Docker Compose included for **AWS Linux** deploy (optional locally)
+- Vercel-ready (`vercel.json` cron + Blob uploads)
 
-## Local setup (Windows + pgAdmin — no Docker Desktop)
-
-Your PostgreSQL service is enough. The Next.js app runs separately with `npm run dev`.
+## Local setup (Windows + pgAdmin)
 
 ### 1. Create the database in pgAdmin
 
@@ -22,18 +20,21 @@ Your PostgreSQL service is enough. The Next.js app runs separately with `npm run
 
 ### 2. Set connection string
 
-Edit `.env`:
+Copy `.env.example` → `.env` and set:
 
 ```env
-DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/mapps?schema=public"
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/Mapps_Creation?schema=public"
+AUTH_SECRET="mapps-dev-secret-change-in-production-32chars"
+CRON_SECRET="mapps-dev-cron"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+WHATSAPP_PROVIDER="stub"
 ```
 
-Use the same user/password you use in pgAdmin (often user `postgres`).
-
-### 3. Migrate, seed, run the app
+### 3. Migrate, seed, run
 
 ```bash
-npm run db:push
+npm install
+npm run db:deploy
 npm run db:seed
 npm run dev
 ```
@@ -41,32 +42,40 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000)  
 Login: `owner@mapps.local` / `mapps123`
 
-## Docker later (AWS Linux)
-
-Docker Desktop is **not** required on your Windows machine. On the AWS Linux server (Docker CLI):
+If this database was previously set up with `db push` (no `_prisma_migrations` history), baseline once then continue with migrations:
 
 ```bash
-docker compose up -d --build
+npx prisma migrate resolve --applied 20260722004820_init
 ```
 
-That starts Postgres + the web app. Override `AUTH_SECRET` in the environment for production.
+For new schema changes during development:
 
-## Modules live
+```bash
+npm run db:migrate
+```
 
-- Masters: fabrics, color families + shades (color picker), parties (terms + interest), godowns/bins, finishes
-- Grey PO → Mill programs (WhatsApp) → QC → live stock ledger
-- Lot lifecycle trail + bin placement suggestions
-- Provisional / direct sale bills (GST + TDS), convert, dispatch stock-out
-- Payments, aging, interest, WhatsApp reminders (+ `/api/cron/payment-reminders`)
-- Finance: debit/credit notes, agent commission (mill/weaver/party)
-- Returns: sales return restock, mill defect WA, low-grade list
-- WhatsApp message log (stub until Meta/BSP credentials)
+## Vercel deploy
+
+1. Hosted Postgres (Neon / Supabase / Vercel Postgres) — use the **pooled** `DATABASE_URL`
+2. Set env vars from `.env.example` (`AUTH_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_APP_URL`, etc.)
+3. Enable **Vercel Blob** (adds `BLOB_READ_WRITE_TOKEN`) for marka photo uploads
+4. Build runs `prisma generate && prisma migrate deploy && next build`
+5. After first deploy, seed once against the hosted DB:
+
+```bash
+# with hosted DATABASE_URL in .env
+npm run db:seed
+```
+
+Payment reminders run daily via Vercel Cron → `/api/cron/payment-reminders`.
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `npm run dev` | Next.js app only |
-| `npm run db:push` | Apply Prisma schema to Postgres |
-| `npm run db:seed` | Demo masters + sample stock |
+| `npm run dev` | Next.js app |
+| `npm run db:deploy` | Apply pending migrations (local + Vercel) |
+| `npm run db:migrate` | Create/apply a new migration in dev |
+| `npm run db:seed` | Demo masters + sample data |
 | `npm run db:studio` | Prisma Studio |
+| `npm run db:push` | Schema sync without migrations (dev escape hatch only) |
