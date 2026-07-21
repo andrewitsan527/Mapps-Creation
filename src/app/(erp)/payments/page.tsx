@@ -7,9 +7,9 @@ import { PaymentEntryForm } from "@/components/payment-entry-form";
 import {
   listDispatchedReceivables,
   listOpenCommissions,
-  PAYMENT_CATEGORY_LABELS,
   summarizeClientOutstanding,
 } from "@/server/domain/receivables";
+import { PAYMENT_CATEGORY_LABELS } from "@/lib/payment-labels";
 import {
   EmptyState,
   PageHeader,

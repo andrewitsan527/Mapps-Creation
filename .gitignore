@@ -26,6 +26,8 @@
 
 # Cursor IDE local plans / rules / cache
 .cursor/
+CLAUDE.md
+AGENTS.md
 
 # debug
 npm-debug.log*

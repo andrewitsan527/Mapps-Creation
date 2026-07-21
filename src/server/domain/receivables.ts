@@ -1,4 +1,3 @@
-import type { PaymentCategory } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   calcInterest,
@@ -7,14 +6,7 @@ import {
   toDec,
 } from "@/server/domain/finance";
 
-export const PAYMENT_CATEGORY_LABELS: Record<PaymentCategory, string> = {
-  CUSTOMER_RECEIPT: "Customer receipt",
-  MILL_PAYMENT: "Mill payment",
-  WEAVER_PAYMENT: "Weaver payment",
-  GREY_SUPPLIER_PAYMENT: "Grey supplier payment",
-  AGENT_COMMISSION: "Agent commission",
-  OTHER: "Other payment",
-};
+export { PAYMENT_CATEGORY_LABELS } from "@/lib/payment-labels";
 
 export type ReceivableBill = {
   id: string;

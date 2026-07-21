@@ -53,7 +53,7 @@ export async function listPartyOptions(
   opts?: { includeInactive?: boolean },
 ) {
   const typeList = Array.isArray(types) ? types : [types];
-  return prisma.party.findMany({
+  const rows = await prisma.party.findMany({
     where: {
       type: { in: typeList },
       ...(opts?.includeInactive ? {} : { active: true }),
@@ -71,6 +71,12 @@ export async function listPartyOptions(
     },
     orderBy: { name: "asc" },
   });
+
+  // Plain JSON for Client Components (Prisma Decimal is not serializable).
+  return rows.map((p) => ({
+    ...p,
+    interestRatePct: p.interestRatePct.toString(),
+  }));
 }
 
 export type PartyOption = Awaited<ReturnType<typeof listPartyOptions>>[number];
