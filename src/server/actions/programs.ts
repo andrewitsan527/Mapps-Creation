@@ -73,6 +73,22 @@ export async function sendProgramWhatsApp(formData: FormData) {
     throw new Error("Mill has no WhatsApp number — update party master");
   }
 
+  const body = [
+    "Mapps Creation — Mill program",
+    `Program: ${program.programNo}`,
+    `Mill: ${program.mill.name}`,
+    `Fabric: ${program.fabricType.name}`,
+    `Colour: ${program.shade.colorFamily.name} / ${program.shade.name}`,
+    `GSM: ${program.gsm?.toString() ?? "-"}`,
+    `Width: ${program.width?.toString() ?? "-"}`,
+    `Finish: ${program.finishType?.name ?? "-"}`,
+    program.feelFallNotes ? `Feel / fall: ${program.feelFallNotes}` : null,
+    program.extraMods ? `Extra process: ${program.extraMods}` : null,
+    program.remarks ? `Remarks: ${program.remarks}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   await sendWhatsApp({
     to: program.mill.whatsapp,
     template: "mill_program",
@@ -86,6 +102,7 @@ export async function sendProgramWhatsApp(formData: FormData) {
       width: program.width?.toString() ?? "-",
       finish: program.finishType?.name ?? "-",
       remarks: program.remarks ?? "-",
+      body,
     },
   });
 

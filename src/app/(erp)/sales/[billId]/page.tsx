@@ -9,10 +9,11 @@ import {
   Field,
   PageHeader,
   Panel,
-  buttonClass,
   buttonGhostClass,
+  buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { WhatsAppNotifyToggle } from "@/components/whatsapp-notify-toggle";
 
 export default async function SaleBillDetailPage({
   params,
@@ -133,17 +134,12 @@ export default async function SaleBillDetailPage({
               <Field label="Notes">
                 <input className={inputClass} name="notes" />
               </Field>
-              <label className="flex items-center gap-1.5 text-[11px] text-(--muted)">
-                <input
-                  type="checkbox"
-                  name="notifyWhatsapp"
-                  value="true"
-                  defaultChecked
-                />
-                WhatsApp sale bill to party
-              </label>
-              <button className={buttonClass} type="submit">
-                Deliver & send bill
+              <WhatsAppNotifyToggle
+                label="WhatsApp sale bill to party"
+                hint="Sends full goods identity with delivery"
+              />
+              <button className={buttonWaClass} type="submit">
+                Deliver & WhatsApp bill
               </button>
             </form>
           </Panel>

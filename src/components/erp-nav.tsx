@@ -99,13 +99,13 @@ function NavSection({
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1.5 rounded px-1.5 py-1 text-[12px] transition",
+                  "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] transition",
                   active
-                    ? "bg-(--sidebar-active) font-semibold text-white"
+                    ? "bg-(--sidebar-active) font-semibold text-white shadow-sm"
                     : "text-(--sidebar-ink) hover:bg-(--sidebar-hover)",
                 )}
               >
-                <Icon className="h-3 w-3 shrink-0 opacity-80" />
+                <Icon className="h-3.5 w-3.5 shrink-0 opacity-90" />
                 <span className="truncate">{item.label}</span>
               </Link>
             </li>

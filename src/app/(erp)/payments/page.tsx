@@ -15,8 +15,9 @@ import {
   PageHeader,
   Panel,
   StatCard,
-  buttonGhostClass,
+  buttonWaClass,
 } from "@/components/ui";
+import { Banknote, MessageCircle } from "lucide-react";
 
 export default async function PaymentsPage() {
   const [parties, receivables, commissions, recentPayments] = await Promise.all([
@@ -50,10 +51,11 @@ export default async function PaymentsPage() {
     <div>
       <PageHeader
         title="Payments & dues"
+        icon={Banknote}
         description="Client receipts after dispatch · mill / weaver / grey / agent payouts · 10-day & due-date WhatsApp reminders."
       />
       <div className="mb-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-        <StatCard label="Clients with dues" value={clients.length} />
+        <StatCard label="Clients with dues" value={clients.length} icon={Banknote} />
         <StatCard label="Outstanding" value={`₹${formatQty(outstanding)}`} />
         <StatCard label="Overdue" value={`₹${formatQty(overdue)}`} />
         <StatCard label="Accrued interest" value={`₹${formatQty(interest)}`} />
@@ -201,10 +203,8 @@ export default async function PaymentsPage() {
                                 name="saleBillId"
                                 value={row.id}
                               />
-                              <button
-                                className={buttonGhostClass}
-                                type="submit"
-                              >
+                              <button className={buttonWaClass} type="submit">
+                                <MessageCircle className="h-3 w-3" />
                                 Remind WA
                               </button>
                             </form>

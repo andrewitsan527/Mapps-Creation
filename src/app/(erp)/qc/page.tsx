@@ -10,8 +10,10 @@ import {
   Panel,
   StatCard,
   buttonClass,
+  buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { ClipboardCheck, MessageCircle } from "lucide-react";
 
 export default async function QcPage() {
   const now = new Date();
@@ -79,6 +81,7 @@ export default async function QcPage() {
     <div>
       <PageHeader
         title="Quality check"
+        icon={ClipboardCheck}
         description="Program inward QC. Goods return QC is on Returns. Weaver HIGH on top; mill RF within 1 day."
       />
 
@@ -188,7 +191,24 @@ export default async function QcPage() {
                           {overdue ? " · overdue" : ""}
                         </span>
                       </td>
-                      <td>{rf.whatsappSent ? "Sent" : "Pending"}</td>
+                      <td>
+                        <span
+                          className={
+                            rf.whatsappSent ? "badge badge-wa" : "badge badge-warn"
+                          }
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          {rf.whatsappSent ? "Sent" : "Pending"}
+                        </span>
+                        {!rf.whatsappSent ? (
+                          <Link
+                            href="/returns"
+                            className={`${buttonWaClass} ml-1 px-1.5 py-0.5 text-[10px]`}
+                          >
+                            Send
+                          </Link>
+                        ) : null}
+                      </td>
                     </tr>
                   );
                 })}

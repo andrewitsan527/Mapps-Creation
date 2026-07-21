@@ -9,9 +9,11 @@ import {
   Field,
   PageHeader,
   Panel,
-  buttonClass,
+  buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { WhatsAppNotifyToggle } from "@/components/whatsapp-notify-toggle";
+import { Truck } from "lucide-react";
 
 export default async function DispatchPage() {
   const [pendingBills, deliveries] = await Promise.all([
@@ -42,6 +44,7 @@ export default async function DispatchPage() {
     <div>
       <PageHeader
         title="Delivery"
+        icon={Truck}
         description="Deliver against the sale bill and WhatsApp the party. Internal ref only — no challan."
       />
 
@@ -93,17 +96,12 @@ export default async function DispatchPage() {
                   <input className={inputClass} name="notes" />
                 </Field>
                 <div className="flex flex-col justify-end gap-1">
-                  <label className="flex items-center gap-1.5 text-[11px] text-(--muted)">
-                    <input
-                      type="checkbox"
-                      name="notifyWhatsapp"
-                      value="true"
-                      defaultChecked
-                    />
-                    WhatsApp bill
-                  </label>
-                  <button className={buttonClass} type="submit">
-                    Deliver & send bill
+                  <WhatsAppNotifyToggle
+                    label="WhatsApp sale bill"
+                    hint="Full goods detail to party"
+                  />
+                  <button className={buttonWaClass} type="submit">
+                    Deliver & WhatsApp
                   </button>
                 </div>
               </form>

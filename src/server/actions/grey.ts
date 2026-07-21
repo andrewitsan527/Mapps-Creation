@@ -24,10 +24,16 @@ export async function createGreyPo(formData: FormData) {
   const quantityRaw = String(formData.get("quantity") || "").trim();
   const unit = String(formData.get("unit") || "m");
   const whatsappNote = String(formData.get("whatsappNote") || "").trim() || null;
+  const notify = String(formData.get("notifyWhatsapp") || "") === "true";
 
   if (!supplierId) throw new Error("Supplier required");
 
   const supplier = await prisma.party.findUniqueOrThrow({ where: { id: supplierId } });
+  if (notify && !supplier.whatsapp) {
+    throw new Error(
+      "Supplier has no WhatsApp number — update supplier master or untick WhatsApp",
+    );
+  }
   const po = await prisma.greyPurchaseOrder.create({
     data: {
       poNumber: await nextPoNumber(),
@@ -40,14 +46,16 @@ export async function createGreyPo(formData: FormData) {
     },
   });
 
-  if (supplier.whatsapp) {
+  if (notify && supplier.whatsapp) {
     await sendWhatsApp({
       to: supplier.whatsapp,
-      template: "mill_program",
+      template: "grey_purchase_order",
       entityType: "GreyPurchaseOrder",
       entityId: po.id,
       variables: {
         poNumber: po.poNumber,
+        supplier: supplier.name,
+        quantity: quantityRaw ? `${quantityRaw} ${unit}` : "-",
         note: whatsappNote || fabricNotes || "Grey purchase order created",
       },
     });

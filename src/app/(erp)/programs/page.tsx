@@ -9,9 +9,10 @@ import {
   PageHeader,
   Panel,
   buttonClass,
-  buttonGhostClass,
+  buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { MessageCircle, ScrollText } from "lucide-react";
 
 type IdName = { id: string; name: string };
 type ShadeOption = {
@@ -103,6 +104,7 @@ export default async function ProgramsPage() {
     <div>
       <PageHeader
         title="Mill program cards"
+        icon={ScrollText}
         description="Program cards — send to mill on WhatsApp."
       />
       <div className="grid gap-1.5 xl:grid-cols-[300px_1fr]">
@@ -227,7 +229,8 @@ export default async function ProgramsPage() {
                         {p.status === "DRAFT" || p.status === "SENT_TO_MILL" ? (
                           <form action={sendProgramWhatsApp}>
                             <input type="hidden" name="id" value={p.id} />
-                            <button className={buttonGhostClass} type="submit">
+                            <button className={buttonWaClass} type="submit">
+                              <MessageCircle className="h-3 w-3" />
                               WhatsApp mill
                             </button>
                           </form>

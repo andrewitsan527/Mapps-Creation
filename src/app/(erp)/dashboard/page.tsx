@@ -3,6 +3,14 @@ import { prisma } from "@/lib/db";
 import { PageHeader, Panel, StatCard } from "@/components/ui";
 import { statusBadge } from "@/lib/format";
 import { formatQty } from "@/lib/utils";
+import {
+  AlertTriangle,
+  Boxes,
+  ClipboardCheck,
+  LayoutDashboard,
+  Package,
+  ScrollText,
+} from "lucide-react";
 
 export default async function DashboardPage() {
   const now = new Date();
@@ -94,10 +102,15 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <PageHeader title="Operations desk" />
+      <PageHeader title="Operations desk" icon={LayoutDashboard} />
 
       {weaverPriority.length > 0 ? (
-        <Panel title="Weaver defect — priority" className="mb-1.5" compact>
+        <Panel
+          title="Weaver defect — priority"
+          icon={AlertTriangle}
+          className="mb-1.5"
+          compact
+        >
           <div className="overflow-x-auto">
             <table className="erp-table">
               <thead>
@@ -145,15 +158,16 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4 xl:grid-cols-7">
-        <StatCard label="Grey POs" value={openGrey} />
-        <StatCard label="Programs" value={openPrograms} />
-        <StatCard label="Lots" value={lotCount} />
+        <StatCard label="Grey POs" value={openGrey} icon={Package} />
+        <StatCard label="Programs" value={openPrograms} icon={ScrollText} />
+        <StatCard label="Lots" value={lotCount} icon={Boxes} />
         <StatCard label="Provisional" value={provisionalBills} />
         <StatCard label="Weaver HIGH" value={weaverPriority.length} />
         <StatCard
           label="Mill RF open"
           value={millRfOpen}
           hint={millRfOverdue ? `${millRfOverdue} overdue` : "1-day SLA"}
+          icon={ClipboardCheck}
         />
         <StatCard label="Past due" value={overdueApprox} />
       </div>

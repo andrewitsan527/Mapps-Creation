@@ -20,6 +20,8 @@ import {
   buttonGhostClass,
   inputClass,
 } from "@/components/ui";
+import { WhatsAppNotifyToggle } from "@/components/whatsapp-notify-toggle";
+import { CreditCard } from "lucide-react";
 
 type SellableLot = LotGoods & {
   id: string;
@@ -69,6 +71,7 @@ export default async function SalesPage() {
     <div>
       <PageHeader
         title="Sales"
+        icon={CreditCard}
         description="Reserve or bill lots with full fabric identity. Deliver from Delivery."
       />
       <div className="grid gap-1.5 xl:grid-cols-[280px_280px_1fr]">
@@ -77,8 +80,8 @@ export default async function SalesPage() {
             action={createProvisionalBill}
             clients={clients}
             sellable={sellable}
-            submitLabel="Reserve stock"
-            showNotify={false}
+            submitLabel="Reserve sale order"
+            showNotify
           />
         </Panel>
         <Panel title="Sale bill" compact>
@@ -227,10 +230,11 @@ function BillForm({
         </Field>
       </div>
       {showNotify ? (
-        <label className="flex items-center gap-1.5 text-[11px] text-(--muted)">
-          <input type="checkbox" name="notifyWhatsapp" value="true" />
-          WhatsApp bill to party on issue
-        </label>
+        <WhatsAppNotifyToggle
+          label="WhatsApp bill to party on issue"
+          hint="Uses party WhatsApp number from masters"
+          defaultChecked={false}
+        />
       ) : null}
       <button className={buttonClass} type="submit">
         {submitLabel}

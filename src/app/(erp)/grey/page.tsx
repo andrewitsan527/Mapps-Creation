@@ -10,8 +10,11 @@ import {
   PageHeader,
   Panel,
   buttonClass,
+  buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { WhatsAppNotifyToggle } from "@/components/whatsapp-notify-toggle";
+import { MessageCircle, Package } from "lucide-react";
 
 export default async function GreyPage() {
   const [suppliers, orders] = await Promise.all([
@@ -30,7 +33,8 @@ export default async function GreyPage() {
     <div>
       <PageHeader
         title="Grey purchase"
-        description="PO, supplier note, and grey bills."
+        icon={Package}
+        description="PO, supplier WhatsApp, and grey bills."
       />
       <div className="grid gap-1.5 lg:grid-cols-[300px_1fr]">
         <Panel title="New grey PO" compact>
@@ -53,8 +57,13 @@ export default async function GreyPage() {
             <Field label="WhatsApp note">
               <textarea className={inputClass} name="whatsappNote" rows={2} />
             </Field>
-            <button className={buttonClass} type="submit">
-              Create PO
+            <WhatsAppNotifyToggle
+              label="WhatsApp PO to supplier"
+              hint="Uses supplier WhatsApp from masters"
+            />
+            <button className={buttonWaClass} type="submit">
+              <MessageCircle className="h-3 w-3" />
+              Create PO & WhatsApp
             </button>
           </form>
         </Panel>

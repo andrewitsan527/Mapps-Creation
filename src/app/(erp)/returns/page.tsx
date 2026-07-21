@@ -18,8 +18,10 @@ import {
   PageHeader,
   Panel,
   buttonClass,
+  buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { MessageCircle, RotateCcw } from "lucide-react";
 
 export default async function ReturnsPage() {
   const now = new Date();
@@ -152,6 +154,7 @@ export default async function ReturnsPage() {
     <div>
       <PageHeader
         title="Goods return"
+        icon={RotateCcw}
         description="Bill intake → GR QC (mill/weaver/dyeing/minor). Mill defect opens RF + WhatsApp mill (1-day send SLA). Weaver = dashboard HIGH."
       />
 
@@ -425,7 +428,8 @@ export default async function ReturnsPage() {
                       name="remarks"
                       placeholder="Send notes"
                     />
-                    <button className={buttonClass} type="submit">
+                    <button className={buttonWaClass} type="submit">
+                      <MessageCircle className="h-3 w-3" />
                       Mark sent + WA mill
                     </button>
                   </form>

@@ -63,12 +63,21 @@ export async function createProvisionalBill(formData: FormData) {
   const gstPct = String(formData.get("gstPct") || "5").trim() || "5";
   const tdsPct = String(formData.get("tdsPct") || "0").trim() || "0";
   const notes = String(formData.get("notes") || "").trim() || null;
+  const notify = String(formData.get("notifyWhatsapp") || "") === "true";
 
   if (!partyId || !lotId || !quantity) {
     throw new Error("Party, lot and quantity required");
   }
 
-  const lot = await loadLotForSale(lotId);
+  const [lot, party] = await Promise.all([
+    loadLotForSale(lotId),
+    prisma.party.findUniqueOrThrow({ where: { id: partyId } }),
+  ]);
+  if (notify && !party.whatsapp) {
+    throw new Error(
+      "Client has no WhatsApp number — update party master or untick WhatsApp",
+    );
+  }
   const qty = toDecimal(quantity);
   const available = lotAvailable(lot.onHand, lot.reserved);
   if (available.lt(qty)) {
@@ -80,6 +89,8 @@ export async function createProvisionalBill(formData: FormData) {
   const { tdsAmount } = calcTds({ amount: lineAmount.plus(gstAmount), tdsPct });
   const total = lineAmount.plus(gstAmount);
 
+  let billId = "";
+  let billNo = "";
   await prisma.$transaction(async (tx) => {
     const bill = await tx.saleBill.create({
       data: {
@@ -97,6 +108,8 @@ export async function createProvisionalBill(formData: FormData) {
         lines: { create: lineCreateFromLot(lot, qty, rate, lineAmount) },
       },
     });
+    billId = bill.id;
+    billNo = bill.billNo;
 
     await applyStockMovement(tx, {
       lotId,
@@ -109,9 +122,36 @@ export async function createProvisionalBill(formData: FormData) {
     });
   });
 
+  if (notify && party.whatsapp) {
+    const body = formatBillWhatsAppBody({
+      billNo,
+      partyName: party.name,
+      total,
+      lines: [
+        {
+          ...snapshotBillLine(lot),
+          quantity: qty,
+          unit: lot.unit,
+        },
+      ],
+    });
+    await sendWhatsApp({
+      to: party.whatsapp,
+      template: "provisional_bill",
+      entityType: "SaleBill",
+      entityId: billId,
+      variables: {
+        billNo,
+        total: total.toString(),
+        body,
+      },
+    });
+  }
+
   revalidatePath("/sales");
   revalidatePath("/stock");
   revalidatePath("/dispatch");
+  revalidatePath("/messages");
 }
 
 export async function createDirectSaleBill(formData: FormData) {

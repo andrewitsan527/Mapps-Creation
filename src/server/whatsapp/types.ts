@@ -1,4 +1,5 @@
 export type WhatsAppTemplate =
+  | "grey_purchase_order"
   | "mill_program"
   | "sale_bill"
   | "provisional_bill"
