@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ChevronRight, LogOut, Menu, MessageCircle } from "lucide-react";
-import { logoutAction } from "@/server/actions/auth";
+import { cn } from "@/lib/utils";
+import type { ShellFlow } from "@/lib/shell-flow";
 import type { UserRole } from "@/lib/roles";
 import {
   MobileBottomNav,
@@ -13,7 +10,11 @@ import {
   type NavBadges,
 } from "@/components/erp-nav";
 import { clusterForPath, linkForPath } from "@/lib/flow";
-import { cn } from "@/lib/utils";
+import { logoutAction } from "@/server/actions/auth";
+import { ChevronRight, LogOut, Menu, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Suspense, use, useState } from "react";
 
 export type ShellAlert = {
   label: string;
@@ -22,49 +23,128 @@ export type ShellAlert = {
   tone: "danger" | "warn" | "info";
 };
 
+function badgesFromFlow(flow: ShellFlow): NavBadges {
+  return {
+    "/qc": flow.qc.queue,
+    "/returns": flow.grQcPending + flow.millRfOpen,
+    "/dispatch": flow.delivery.queue,
+    "/payments": flow.payment.alert,
+  };
+}
+
+function alertsFromFlow(flow: ShellFlow): ShellAlert[] {
+  return [
+    {
+      label: "RF overdue",
+      count: flow.millRfOverdue,
+      href: "/returns",
+      tone: "danger" as const,
+    },
+    {
+      label: "past due",
+      count: flow.payment.alert,
+      href: "/payments",
+      tone: "danger" as const,
+    },
+    {
+      label: "weaver HIGH",
+      count: flow.weaverHigh,
+      href: "/qc",
+      tone: "warn" as const,
+    },
+  ].filter((a) => a.count > 0);
+}
+
+function LiveSideNav({
+  flowPromise,
+}: {
+  flowPromise: Promise<ShellFlow>;
+}) {
+  const flow = use(flowPromise);
+  return <SideNav badges={badgesFromFlow(flow)} />;
+}
+
+function LiveHeaderAlerts({
+  flowPromise,
+}: {
+  flowPromise: Promise<ShellFlow>;
+}) {
+  const flow = use(flowPromise);
+  const liveAlerts = alertsFromFlow(flow);
+  if (liveAlerts.length === 0) return null;
+
+  return (
+    <>
+      {liveAlerts.map((alert) => (
+        <Link
+          key={alert.href + alert.label}
+          href={alert.href}
+          className={cn(
+            "badge transition hover:brightness-95",
+            alert.tone === "danger"
+              ? "badge-danger"
+              : alert.tone === "warn"
+                ? "badge-warn"
+                : "badge-info",
+          )}
+        >
+          {alert.count} {alert.label}
+        </Link>
+      ))}
+    </>
+  );
+}
+
 export function ErpShell({
   user,
   children,
   whatsappProvider = "stub",
-  badges = {},
-  alerts = [],
+  flowPromise,
 }: {
   user: { name: string; email: string; role: UserRole };
   children: React.ReactNode;
   whatsappProvider?: string;
-  badges?: NavBadges;
-  alerts?: ShellAlert[];
+  flowPromise: Promise<ShellFlow>;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const pathname = usePathname();
   const waLive = whatsappProvider === "meta";
   const cluster = clusterForPath(pathname);
   const link = linkForPath(pathname);
-  const liveAlerts = alerts.filter((a) => a.count > 0);
 
   return (
-    <div className="min-h-screen text-(--ink)">
+    <div className="erp-shell min-h-screen text-(--ink)">
       <div className="flex min-h-screen">
-        <aside className="sticky top-0 hidden h-screen w-49 shrink-0 flex-col border-r border-white/5 bg-(--sidebar) text-(--sidebar-ink) md:flex">
+        <aside className="no-print sticky top-0 hidden h-screen w-52 shrink-0 flex-col border-r border-white/6 bg-(--sidebar) text-(--sidebar-ink) md:flex">
           <Link
             href="/dashboard"
-            className="border-b border-white/10 px-3 py-3 transition hover:bg-white/5"
+            className="group relative border-b border-white/8 px-3.5 py-3.5 transition hover:bg-white/[0.04]"
           >
-            <p className="font-serif text-[19px] leading-none tracking-tight text-white">
-              Mapps
-            </p>
-            <p className="mt-1 text-[9.5px] font-medium tracking-[0.14em] text-(--sidebar-muted) uppercase">
-              Creation · RFD ERP
-            </p>
+            <span className="absolute inset-x-3 top-0 h-px bg-linear-to-r from-transparent via-[#c9a227]/70 to-transparent opacity-80" />
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-8 w-8 place-items-center rounded-full border border-[#c9a227]/55 bg-linear-to-br from-[#2a241c] to-[#0c0a08] font-serif text-[11px] font-bold tracking-wide text-[#e8c547] shadow-[0_0_0_1px_rgba(201,162,39,0.12)]">
+                MC
+              </span>
+              <div className="min-w-0">
+                <p className="font-serif text-[18px] leading-none tracking-tight text-white">
+                  Mapps
+                </p>
+                <p className="mt-1 text-[9px] font-semibold tracking-[0.16em] text-(--sidebar-muted) uppercase">
+                  Creation · RFD
+                </p>
+              </div>
+            </div>
           </Link>
 
-          <SideNav badges={badges} />
+          <Suspense fallback={<SideNav badges={{}} />}>
+            <LiveSideNav flowPromise={flowPromise} />
+          </Suspense>
 
-          <div className="mt-auto space-y-2 border-t border-white/10 px-3 py-2.5">
+          <div className="mt-auto space-y-2.5 border-t border-white/8 px-3 py-3">
             <Link
               href="/messages"
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition",
+                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition",
                 waLive
                   ? "bg-[#128c7e]/25 text-[#7ddec8] hover:bg-[#128c7e]/40"
                   : "bg-white/5 text-(--sidebar-muted) hover:bg-white/10",
@@ -77,7 +157,7 @@ export function ErpShell({
               <p className="truncate text-[12px] font-medium text-white">
                 {user.name}
               </p>
-              <p className="truncate text-[10px] text-(--sidebar-muted)">
+              <p className="truncate text-[10px] tracking-wide text-(--sidebar-muted)">
                 {user.role}
               </p>
             </div>
@@ -94,20 +174,20 @@ export function ErpShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-11 items-center justify-between gap-2 border-b border-(--line) bg-(--panel)/92 px-3 backdrop-blur sm:px-4">
+          <header className="no-print sticky top-0 z-30 flex h-12 items-center justify-between gap-2 border-b border-(--line) bg-(--panel)/90 px-3 backdrop-blur-md sm:px-4">
             <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
-                className="rounded-md border border-(--line) p-1.5 md:hidden"
+                className="rounded-md border border-(--line) p-1.5 transition hover:bg-(--panel-sunken) md:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="h-3.5 w-3.5" />
               </button>
               <div className="flex min-w-0 items-center gap-1 text-[11.5px]">
-                <span className="font-serif text-[14px] md:hidden">Mapps</span>
+                <span className="font-serif text-[15px] md:hidden">Mapps</span>
                 {cluster ? (
-                  <span className="hidden font-semibold tracking-wide text-(--muted) uppercase md:inline">
+                  <span className="hidden font-semibold tracking-[0.12em] text-(--muted) uppercase md:inline">
                     {cluster.title}
                   </span>
                 ) : null}
@@ -123,36 +203,25 @@ export function ErpShell({
             </div>
 
             <div className="flex min-w-0 items-center gap-1.5">
-              {liveAlerts.map((alert) => (
-                <Link
-                  key={alert.href + alert.label}
-                  href={alert.href}
-                  className={cn(
-                    "badge transition hover:brightness-95",
-                    alert.tone === "danger"
-                      ? "badge-danger"
-                      : alert.tone === "warn"
-                        ? "badge-warn"
-                        : "badge-info",
-                  )}
-                >
-                  {alert.count} {alert.label}
-                </Link>
-              ))}
+              <Suspense fallback={null}>
+                <LiveHeaderAlerts flowPromise={flowPromise} />
+              </Suspense>
               <p className="hidden truncate text-right text-[11px] text-(--muted) lg:block">
                 {user.email}
               </p>
             </div>
           </header>
 
-          <main className="animate-fade-up flex-1 px-3 py-3 pb-20 sm:px-4 md:pb-5">
+          <main className="animate-fade-up flex-1 px-3 py-3.5 pb-20 sm:px-4 md:pb-5">
             {children}
           </main>
         </div>
       </div>
 
-      <MobileBottomNav onMore={() => setMoreOpen(true)} />
-      <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <div className="no-print">
+        <MobileBottomNav onMore={() => setMoreOpen(true)} />
+        <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
+      </div>
     </div>
   );
 }

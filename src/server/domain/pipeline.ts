@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/db";
-import type { StageKey } from "@/lib/flow";
+import type { ShellFlow } from "@/lib/shell-flow";
 
 export type StageSnapshot = {
   /** Items waiting for action at this stage. */
@@ -9,12 +9,7 @@ export type StageSnapshot = {
   alert: number;
 };
 
-export type PipelineSnapshot = Record<StageKey, StageSnapshot> & {
-  millRfOpen: number;
-  millRfOverdue: number;
-  weaverHigh: number;
-  grQcPending: number;
-};
+export type PipelineSnapshot = ShellFlow;
 
 /**
  * One batched read of every "work waiting here" queue in the order-to-cash

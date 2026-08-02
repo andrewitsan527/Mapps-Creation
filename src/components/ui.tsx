@@ -46,11 +46,11 @@ export function PageHeader({
         {eyebrow ? <p className="band-label mb-1">{eyebrow}</p> : null}
         <div className="flex items-center gap-2">
           {Icon ? (
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--line) bg-linear-to-b from-white to-(--panel-sunken) text-(--accent) shadow-(--shadow-sm)">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-(--line) bg-linear-to-b from-white to-(--panel-sunken) text-(--accent) shadow-(--shadow-sm)">
               <Icon className="h-4 w-4" />
             </span>
           ) : null}
-          <h1 className="truncate font-serif text-[19px] leading-tight font-semibold tracking-tight text-(--ink)">
+          <h1 className="truncate font-serif text-[21px] leading-tight font-semibold tracking-tight text-(--ink)">
             {title}
           </h1>
         </div>
@@ -175,12 +175,12 @@ export function Panel({
   return (
     <div
       className={cn(
-        "panel-elevated overflow-hidden rounded-lg border border-(--line) bg-(--panel)",
+        "panel-elevated overflow-hidden rounded-xl border border-(--line) bg-(--panel)",
         className,
       )}
     >
       {title ? (
-        <div className="flex items-center justify-between gap-2 border-b border-(--line) bg-(--panel-alt) px-2.5 py-1.5">
+        <div className="flex items-center justify-between gap-2 border-b border-(--line) bg-linear-to-r from-(--panel-alt) to-white px-2.5 py-1.5">
           <div className="flex min-w-0 items-center gap-1.5">
             {Icon ? (
               <Icon className={cn("h-3.5 w-3.5 shrink-0", toneText[tone])} />
@@ -269,19 +269,19 @@ export function FieldGroup({
 }
 
 export const inputClass =
-  "w-full rounded-md border border-(--line) bg-white px-2.5 py-1.5 text-[12px] outline-none transition placeholder:text-(--faint) hover:border-(--line-strong) focus:border-(--accent) focus:ring-2 focus:ring-(--accent-soft)";
+  "w-full rounded-md border border-(--line) bg-white px-2.5 py-1.5 text-[12.5px] outline-none transition placeholder:text-(--faint) hover:border-(--line-strong) focus:border-(--accent) focus:shadow-(--shadow-glow) focus:ring-0";
 
 export const buttonClass =
-  "inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--accent) px-2.5 py-1.5 text-[12px] font-semibold text-white shadow-(--shadow-sm) transition hover:bg-(--accent-strong) active:translate-y-px disabled:opacity-50";
+  "pressable inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--accent) px-2.5 py-1.5 text-[12px] font-semibold text-white shadow-(--shadow-sm) transition hover:bg-(--accent-strong) disabled:opacity-50";
 
 export const buttonGhostClass =
-  "inline-flex items-center justify-center gap-1.5 rounded-md border border-(--line) bg-white px-2.5 py-1.5 text-[12px] font-medium text-(--ink) transition hover:border-(--line-strong) hover:bg-(--panel-sunken) active:translate-y-px disabled:opacity-50";
+  "pressable inline-flex items-center justify-center gap-1.5 rounded-md border border-(--line) bg-white px-2.5 py-1.5 text-[12px] font-medium text-(--ink) transition hover:border-(--line-strong) hover:bg-(--panel-sunken) disabled:opacity-50";
 
 export const buttonWaClass =
-  "inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--wa) px-2.5 py-1.5 text-[12px] font-semibold text-white shadow-(--shadow-sm) transition hover:brightness-110 active:translate-y-px disabled:opacity-50";
+  "pressable inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--wa) px-2.5 py-1.5 text-[12px] font-semibold text-white shadow-(--shadow-sm) transition hover:brightness-110 disabled:opacity-50";
 
 export const buttonTinyClass =
-  "inline-flex items-center justify-center gap-1 rounded border border-(--line) bg-white px-1.5 py-0.5 text-[11px] font-medium text-(--ink-soft) transition hover:border-(--accent) hover:text-(--accent)";
+  "pressable inline-flex items-center justify-center gap-1 rounded border border-(--line) bg-white px-1.5 py-0.5 text-[11px] font-medium text-(--ink-soft) transition hover:border-(--accent) hover:text-(--accent)";
 
 /* ------------------------------------------------------------------ */
 /* Data display                                                        */
@@ -405,7 +405,7 @@ export function MetricStrip({
   return (
     <div
       className={cn(
-        "panel-elevated grid divide-x divide-(--line-soft) overflow-hidden rounded-lg border border-(--line) bg-(--panel)",
+        "panel-elevated grid divide-x divide-(--line-soft) overflow-hidden rounded-xl border border-(--line) bg-(--panel)",
         className,
       )}
     >

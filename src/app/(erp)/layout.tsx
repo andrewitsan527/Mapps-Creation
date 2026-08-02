@@ -1,9 +1,14 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { ErpShell, type ShellAlert } from "@/components/erp-shell";
+import { ErpShell } from "@/components/erp-shell";
 import { getWhatsAppProviderName } from "@/server/whatsapp";
 import { getPipelineSnapshot } from "@/server/domain/pipeline";
 
+/**
+ * Start the pipeline read without awaiting it. The shell streams badges /
+ * alerts in via Suspense so page content is not blocked by 16 count queries.
+ */
 export default async function ErpLayout({
   children,
 }: {
@@ -12,44 +17,15 @@ export default async function ErpLayout({
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const flow = await getPipelineSnapshot();
-
-  const badges = {
-    "/qc": flow.qc.queue,
-    "/returns": flow.grQcPending + flow.millRfOpen,
-    "/dispatch": flow.delivery.queue,
-    "/payments": flow.payment.alert,
-  };
-
-  const alerts: ShellAlert[] = [
-    {
-      label: "RF overdue",
-      count: flow.millRfOverdue,
-      href: "/returns",
-      tone: "danger",
-    },
-    {
-      label: "past due",
-      count: flow.payment.alert,
-      href: "/payments",
-      tone: "danger",
-    },
-    {
-      label: "weaver HIGH",
-      count: flow.weaverHigh,
-      href: "/qc",
-      tone: "warn",
-    },
-  ];
+  const flowPromise = getPipelineSnapshot();
 
   return (
     <ErpShell
       user={user}
       whatsappProvider={getWhatsAppProviderName()}
-      badges={badges}
-      alerts={alerts}
+      flowPromise={flowPromise}
     >
-      {children}
+      <Suspense fallback={null}>{children}</Suspense>
     </ErpShell>
   );
 }

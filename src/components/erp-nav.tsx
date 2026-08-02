@@ -35,15 +35,16 @@ export function SideNav({ badges = {} }: { badges?: NavBadges }) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    prefetch
                     className={cn(
                       "group relative flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] transition",
                       active
-                        ? "bg-(--sidebar-active) font-semibold text-white"
+                        ? "bg-(--sidebar-active) font-semibold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
                         : "text-(--sidebar-ink) hover:bg-(--sidebar-hover) hover:text-white",
                     )}
                   >
                     {active ? (
-                      <span className="absolute top-1.5 bottom-1.5 -left-1.5 w-0.5 rounded-r bg-[#4fd1b5]" />
+                      <span className="absolute top-1.5 bottom-1.5 -left-1.5 w-0.5 rounded-r bg-[#e8c547]" />
                     ) : null}
                     <Icon className="h-3.5 w-3.5 shrink-0 opacity-90" />
                     <span className="truncate">{item.label}</span>

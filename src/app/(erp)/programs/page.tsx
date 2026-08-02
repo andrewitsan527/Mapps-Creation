@@ -23,6 +23,7 @@ import {
 } from "@/components/ui";
 import {
   ClipboardCheck,
+  Eye,
   MessageCircle,
   PlusCircle,
   ScrollText,
@@ -403,30 +404,40 @@ export default async function ProgramsPage() {
                                 )}
                               </td>
                               <td>
-                                {p.status === "DRAFT" ||
-                                p.status === "SENT_TO_MILL" ? (
-                                  <form action={sendProgramWhatsApp}>
-                                    <input
-                                      type="hidden"
-                                      name="id"
-                                      value={p.id}
-                                    />
-                                    <button
-                                      className={buttonWaClass}
-                                      type="submit"
-                                    >
-                                      <MessageCircle className="h-3 w-3" />
-                                      {p.sentAt ? "Resend" : "WhatsApp mill"}
-                                    </button>
-                                  </form>
-                                ) : (
+                                <div className="flex flex-wrap items-center justify-end gap-1">
                                   <Link
-                                    href="/qc"
+                                    href={`/programs/${p.id}/card`}
                                     className={buttonTinyClass}
+                                    title="Preview / print / PDF"
                                   >
-                                    QC
+                                    <Eye className="h-3 w-3" />
+                                    Card
                                   </Link>
-                                )}
+                                  {p.status === "DRAFT" ||
+                                  p.status === "SENT_TO_MILL" ? (
+                                    <form action={sendProgramWhatsApp}>
+                                      <input
+                                        type="hidden"
+                                        name="id"
+                                        value={p.id}
+                                      />
+                                      <button
+                                        className={buttonWaClass}
+                                        type="submit"
+                                      >
+                                        <MessageCircle className="h-3 w-3" />
+                                        {p.sentAt ? "Resend" : "WhatsApp"}
+                                      </button>
+                                    </form>
+                                  ) : (
+                                    <Link
+                                      href="/qc"
+                                      className={buttonTinyClass}
+                                    >
+                                      QC
+                                    </Link>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}

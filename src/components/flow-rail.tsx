@@ -29,14 +29,14 @@ export function FlowRail({
   return (
     <div
       className={cn(
-        "panel-elevated overflow-hidden rounded-lg border border-(--line) bg-(--panel)",
+        "panel-elevated overflow-hidden rounded-xl border border-(--line) bg-(--panel)",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-(--line) bg-(--panel-alt) px-2.5 py-1">
+      <div className="flex items-center justify-between gap-2 border-b border-(--line) bg-linear-to-r from-(--panel-alt) to-white px-3 py-1.5">
         <p className="band-label">Order-to-cash flow</p>
         <p className="hidden text-[10.5px] text-(--muted) sm:block">
-          Each tile is the work waiting at that step
+          Jump to the stage that needs you
         </p>
       </div>
       <ol className="flex overflow-x-auto">
@@ -49,12 +49,13 @@ export function FlowRail({
           const Icon = stage.icon;
 
           return (
-            <li key={stage.key} className="min-w-[112px] flex-1">
+            <li key={stage.key} className="min-w-28 flex-1">
               <Link
                 href={stage.href}
+                prefetch
                 title={`${stage.queueLabel} → ${stage.action}`}
                 className={cn(
-                  "group relative flex h-full flex-col gap-0.5 border-r border-(--line-soft) px-2.5 py-1.5 transition last:border-r-0",
+                  "group relative flex h-full flex-col gap-0.5 border-r border-(--line-soft) px-2.5 py-2 transition last:border-r-0",
                   isActive
                     ? "bg-(--accent-soft)"
                     : "hover:bg-(--panel-sunken)",
@@ -66,12 +67,12 @@ export function FlowRail({
                 <span className="flex items-center gap-1">
                   <Icon
                     className={cn(
-                      "h-3 w-3 shrink-0",
+                      "h-3.5 w-3.5 shrink-0 transition",
                       isActive
                         ? "text-(--accent)"
                         : isDone
                           ? "text-(--faint)"
-                          : "text-(--muted)",
+                          : "text-(--muted) group-hover:text-(--ink-soft)",
                     )}
                   />
                   <span
@@ -84,7 +85,7 @@ export function FlowRail({
                   </span>
                 </span>
                 <span className="flex items-baseline gap-1">
-                  <span className="text-[15px] leading-none font-semibold tabular-nums text-(--ink)">
+                  <span className="text-[17px] leading-none font-semibold tabular-nums text-(--ink)">
                     {queue}
                   </span>
                   {alert > 0 ? (

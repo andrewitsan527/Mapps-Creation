@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { COMPANY } from "@/lib/company";
+import {
+  getProgramCardData,
+  programCardPublicUrl,
+} from "@/server/domain/program-card";
 import { sendWhatsApp } from "@/server/whatsapp";
 
 async function requireUser() {
@@ -59,34 +64,34 @@ export async function createProgram(formData: FormData) {
 export async function sendProgramWhatsApp(formData: FormData) {
   await requireUser();
   const id = String(formData.get("id") || "");
-  const program = await prisma.millProgram.findUniqueOrThrow({
-    where: { id },
-    include: {
-      mill: true,
-      fabricType: true,
-      shade: { include: { colorFamily: true } },
-      finishType: true,
-    },
-  });
+  const program = await getProgramCardData(id);
+  if (!program) throw new Error("Program not found");
 
   if (!program.mill.whatsapp) {
     throw new Error("Mill has no WhatsApp number — update party master");
   }
 
+  const cardUrl = programCardPublicUrl(program.id);
+  const shadeLabel = `${program.shade.colorFamily.name} / ${program.shade.name}`;
+  const hex = program.shade.hex?.toUpperCase() ?? "see card";
+
   const body = [
-    "Mapps Creation — Mill program",
+    `${COMPANY.shortName} — Mill program card`,
     `Program: ${program.programNo}`,
     `Mill: ${program.mill.name}`,
     `Fabric: ${program.fabricType.name}`,
-    `Colour: ${program.shade.colorFamily.name} / ${program.shade.name}`,
-    `GSM: ${program.gsm?.toString() ?? "-"}`,
-    `Width: ${program.width?.toString() ?? "-"}`,
+    `Colour: ${shadeLabel}`,
+    `Colour hex: ${hex}`,
+    `GSM: ${program.gsm ?? "-"}`,
+    `Width: ${program.width ?? "-"}`,
     `Finish: ${program.finishType?.name ?? "-"}`,
     program.feelFallNotes ? `Feel / fall: ${program.feelFallNotes}` : null,
     program.extraMods ? `Extra process: ${program.extraMods}` : null,
     program.remarks ? `Remarks: ${program.remarks}` : null,
+    "",
+    `Open / print / PDF card: ${cardUrl}`,
   ]
-    .filter(Boolean)
+    .filter((line) => line !== null)
     .join("\n");
 
   await sendWhatsApp({
@@ -97,11 +102,13 @@ export async function sendProgramWhatsApp(formData: FormData) {
     variables: {
       programNo: program.programNo,
       fabric: program.fabricType.name,
-      color: `${program.shade.colorFamily.name} / ${program.shade.name}`,
-      gsm: program.gsm?.toString() ?? "-",
-      width: program.width?.toString() ?? "-",
+      color: shadeLabel,
+      hex,
+      gsm: program.gsm ?? "-",
+      width: program.width ?? "-",
       finish: program.finishType?.name ?? "-",
       remarks: program.remarks ?? "-",
+      cardUrl,
       body,
     },
   });
@@ -112,4 +119,5 @@ export async function sendProgramWhatsApp(formData: FormData) {
   });
 
   revalidatePath("/programs");
+  revalidatePath(`/programs/${id}/card`);
 }
