@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createHash, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
@@ -52,7 +53,8 @@ export async function destroySession() {
   }
 }
 
-export async function getSessionUser() {
+/** Deduped per request: the layout, page and any action share one lookup. */
+export const getSessionUser = cache(async function getSessionUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -77,7 +79,7 @@ export async function getSessionUser() {
   }
 
   return session.user;
-}
+});
 
 export function hasRole(role: UserRole, allowed: UserRole[]) {
   return allowed.includes(role);

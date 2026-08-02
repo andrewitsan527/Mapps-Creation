@@ -1,0 +1,104 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { pipeline, type StageKey } from "@/lib/flow";
+import { cn } from "@/lib/utils";
+
+export type FlowCounts = Partial<
+  Record<StageKey, { queue: number; alert: number }>
+>;
+
+/**
+ * Horizontal order-to-cash rail. Shows where work is sitting and lets the
+ * user jump straight to the stage that needs attention.
+ */
+export function FlowRail({
+  counts,
+  className,
+}: {
+  counts: FlowCounts;
+  className?: string;
+}) {
+  const pathname = usePathname();
+  const activeIndex = pipeline.findIndex(
+    (stage) =>
+      pathname === stage.href || pathname.startsWith(`${stage.href}/`),
+  );
+
+  return (
+    <div
+      className={cn(
+        "panel-elevated overflow-hidden rounded-lg border border-(--line) bg-(--panel)",
+        className,
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-(--line) bg-(--panel-alt) px-2.5 py-1">
+        <p className="band-label">Order-to-cash flow</p>
+        <p className="hidden text-[10.5px] text-(--muted) sm:block">
+          Each tile is the work waiting at that step
+        </p>
+      </div>
+      <ol className="flex overflow-x-auto">
+        {pipeline.map((stage, index) => {
+          const data = counts[stage.key];
+          const queue = data?.queue ?? 0;
+          const alert = data?.alert ?? 0;
+          const isActive = index === activeIndex;
+          const isDone = activeIndex >= 0 && index < activeIndex;
+          const Icon = stage.icon;
+
+          return (
+            <li key={stage.key} className="min-w-[112px] flex-1">
+              <Link
+                href={stage.href}
+                title={`${stage.queueLabel} → ${stage.action}`}
+                className={cn(
+                  "group relative flex h-full flex-col gap-0.5 border-r border-(--line-soft) px-2.5 py-1.5 transition last:border-r-0",
+                  isActive
+                    ? "bg-(--accent-soft)"
+                    : "hover:bg-(--panel-sunken)",
+                )}
+              >
+                {isActive ? (
+                  <span className="absolute inset-x-0 top-0 h-0.5 bg-(--accent)" />
+                ) : null}
+                <span className="flex items-center gap-1">
+                  <Icon
+                    className={cn(
+                      "h-3 w-3 shrink-0",
+                      isActive
+                        ? "text-(--accent)"
+                        : isDone
+                          ? "text-(--faint)"
+                          : "text-(--muted)",
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "truncate text-[10.5px] font-semibold tracking-wide uppercase",
+                      isActive ? "text-(--accent-strong)" : "text-(--muted)",
+                    )}
+                  >
+                    {stage.label}
+                  </span>
+                </span>
+                <span className="flex items-baseline gap-1">
+                  <span className="text-[15px] leading-none font-semibold tabular-nums text-(--ink)">
+                    {queue}
+                  </span>
+                  {alert > 0 ? (
+                    <span className="badge badge-danger">{alert}</span>
+                  ) : null}
+                </span>
+                <span className="truncate text-[10px] text-(--faint)">
+                  {stage.queueLabel}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}

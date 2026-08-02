@@ -1,8 +1,16 @@
 import { MessageCircle, Radio } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { statusBadge } from "@/lib/format";
+import { formatDateTime } from "@/lib/utils";
 import { getWhatsAppProviderName } from "@/server/whatsapp";
-import { EmptyState, PageHeader, Panel, StatCard } from "@/components/ui";
+import {
+  EmptyState,
+  Metric,
+  MetricStrip,
+  PageHeader,
+  Panel,
+  TableWrap,
+} from "@/components/ui";
 
 export default async function MessagesPage() {
   const provider = getWhatsAppProviderName();
@@ -16,38 +24,49 @@ export default async function MessagesPage() {
     prisma.whatsAppMessageLog.count({ where: { status: "STUB" } }),
   ]);
 
+  const live = provider === "meta";
+
   return (
-    <div>
+    <div className="space-y-3">
       <PageHeader
-        title="WhatsApp"
+        title="WhatsApp log"
+        eyebrow="Insight"
         icon={MessageCircle}
-        description="Outbound mill, delivery, QC RF and payment reminders. Provider switches via WHATSAPP_PROVIDER."
+        description="Every outbound message the ERP sends — mill programs, sale bills on delivery, mill RF notices, and payment reminders."
       />
 
-      <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-        <StatCard
+      <MetricStrip className="grid-cols-2 sm:grid-cols-4">
+        <Metric
           label="Provider"
-          value={provider === "meta" ? "Meta" : "Stub"}
-          hint={
-            provider === "meta"
-              ? "Cloud API live"
-              : "Set WHATSAPP_PROVIDER=meta + token"
-          }
-          icon={Radio}
+          value={live ? "Meta Cloud" : "Stub"}
+          tone={live ? "wa" : "warn"}
+          hint={live ? "Live sends" : "Set WHATSAPP_PROVIDER=meta"}
         />
-        <StatCard label="Sent" value={sent} icon={MessageCircle} />
-        <StatCard label="Failed" value={failed} />
-        <StatCard label="Stub logs" value={stubbed} />
-      </div>
+        <Metric label="Sent" value={sent} tone="accent" />
+        <Metric
+          label="Failed"
+          value={failed}
+          tone={failed ? "danger" : "neutral"}
+        />
+        <Metric label="Stub logs" value={stubbed} hint="Not delivered" />
+      </MetricStrip>
 
-      <Panel title="Message log" icon={MessageCircle} compact>
+      <Panel
+        title="Message log"
+        icon={live ? Radio : MessageCircle}
+        tone={live ? "wa" : "neutral"}
+        subtitle={`Last ${logs.length}`}
+        flush
+      >
         {logs.length === 0 ? (
-          <EmptyState
-            icon={MessageCircle}
-            text="No messages yet. Send a program, delivery bill, mill RF or payment reminder."
-          />
+          <div className="p-2.5">
+            <EmptyState
+              icon={MessageCircle}
+              text="No messages yet. Send a program, delivery bill, mill RF or payment reminder."
+            />
+          </div>
         ) : (
-          <div className="overflow-x-auto">
+          <TableWrap maxHeight={600}>
             <table className="erp-table">
               <thead>
                 <tr>
@@ -72,19 +91,21 @@ export default async function MessagesPage() {
                     "—";
                   return (
                     <tr key={m.id}>
-                      <td className="whitespace-nowrap text-[11px]">
-                        {m.createdAt.toLocaleString("en-IN")}
+                      <td className="text-[11px] whitespace-nowrap text-(--muted)">
+                        {formatDateTime(m.createdAt)}
                       </td>
                       <td className="font-medium">{m.to}</td>
-                      <td>{m.template}</td>
+                      <td className="text-[11px]">{m.template}</td>
                       <td className="text-[11px] text-(--muted)">
                         {m.entityType ?? "—"}
                         {m.entityId ? ` · ${m.entityId.slice(0, 8)}` : ""}
                       </td>
                       <td>
-                        <span className={statusBadge(m.status)}>{m.status}</span>
+                        <span className={statusBadge(m.status)}>
+                          {m.status}
+                        </span>
                       </td>
-                      <td className="max-w-56 truncate text-[11px] text-(--muted)">
+                      <td className="max-w-64 truncate text-[11px] text-(--muted)">
                         {preview}
                       </td>
                     </tr>
@@ -92,7 +113,7 @@ export default async function MessagesPage() {
                 })}
               </tbody>
             </table>
-          </div>
+          </TableWrap>
         )}
       </Panel>
     </div>
