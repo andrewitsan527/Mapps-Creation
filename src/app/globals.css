@@ -8,11 +8,11 @@
   --panel-alt: #f6f8fb;
   --panel-sunken: #eef2f6;
 
-  /* Text */
-  --ink: #0c1219;
-  --ink-soft: #2c3a48;
-  --muted: #5f6e7c;
-  --faint: #8f9eab;
+  /* Text — keep near-black for readability on light panels */
+  --ink: #0a0a0a;
+  --ink-soft: #161616;
+  --muted: #2e2e2e;
+  --faint: #4a4a4a;
 
   /* Lines */
   --line: #d0d9e2;
@@ -145,9 +145,8 @@ body {
 .panel-elevated {
   box-shadow: var(--shadow-panel);
   transition:
-    box-shadow 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .panel-elevated:hover {
@@ -164,6 +163,26 @@ body {
 
 .pressable:active {
   transform: translateY(1px);
+}
+
+a,
+button {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+/* Page content enters smoothly without delaying paint */
+.page-enter {
+  animation: fade-up 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
 }
 
 /* ---------- Login ---------- */
@@ -208,8 +227,7 @@ body {
 }
 
 .erp-table thead th {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 1;
   text-align: left;
   font-weight: 600;
@@ -223,8 +241,14 @@ body {
   white-space: nowrap;
 }
 
+/* Sticky only inside a capped scroll host — avoids colliding with app header */
+.table-scroll .erp-table thead th {
+  position: sticky;
+  top: 0;
+}
+
 .erp-table td {
-  padding: 0.4rem 0.5rem;
+  padding: 0.45rem 0.55rem;
   border-bottom: 1px solid var(--line-soft);
   vertical-align: middle;
 }
@@ -313,7 +337,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--muted);
 }
 
 /* Scrollbars */
@@ -694,6 +718,30 @@ body {
 
   .pc-brand-text h1 {
     font-size: 1.3rem;
+  }
+}
+
+/* Mobile ERP chrome only — desktop (md+) unchanged */
+@media (max-width: 767px) {
+  .erp-shell .badge {
+    font-size: 0.62rem;
+    padding: 0.12rem 0.4rem;
+    white-space: nowrap;
+  }
+
+  .erp-table {
+    font-size: 0.72rem;
+  }
+
+  .erp-table thead th,
+  .erp-table td {
+    padding: 0.45rem 0.4rem;
+  }
+
+  /* Prefer horizontal pan on wide tables without shifting the page */
+  .table-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
 }
 

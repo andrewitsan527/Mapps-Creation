@@ -54,14 +54,27 @@ function noteBalanceOf(
   );
 }
 
-export async function listDispatchedReceivables(): Promise<ReceivableBill[]> {
+export async function listDispatchedReceivables(options?: {
+  take?: number;
+}): Promise<ReceivableBill[]> {
+  const take = options?.take ?? 200;
   const bills = await prisma.saleBill.findMany({
     where: {
       type: "SALE",
       status: "ISSUED",
       dispatches: { some: { status: "DISPATCHED" } },
     },
-    include: {
+    select: {
+      id: true,
+      billNo: true,
+      partyId: true,
+      total: true,
+      paymentTermsDays: true,
+      interestRatePct: true,
+      creditStartsAt: true,
+      dueDate: true,
+      preDueReminderSentAt: true,
+      dueReminderSentAt: true,
       party: {
         select: {
           id: true,
@@ -84,7 +97,7 @@ export async function listDispatchedReceivables(): Promise<ReceivableBill[]> {
       },
     },
     orderBy: [{ dueDate: "asc" }, { billDate: "asc" }],
-    take: 200,
+    take,
   });
 
   const now = new Date();

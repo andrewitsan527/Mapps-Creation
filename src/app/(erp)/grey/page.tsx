@@ -228,7 +228,7 @@ export default async function GreyPage() {
                               </Link>
                             )}
                           </td>
-                          <td className="min-w-70">
+                          <td className="max-w-56 min-w-40 sm:max-w-70">
                             {o.fabricNotes ? (
                               <p className="mb-1 text-[11px] text-(--muted)">
                                 {o.fabricNotes}
@@ -263,7 +263,7 @@ export default async function GreyPage() {
                               </summary>
                               <form
                                 action={addGreyBill}
-                                className="mt-1 grid gap-1 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                                className="mt-1 grid gap-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]"
                               >
                                 <input type="hidden" name="orderId" value={o.id} />
                                 <input

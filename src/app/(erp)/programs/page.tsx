@@ -111,6 +111,7 @@ export default async function ProgramsPage() {
           colorFamily: { select: { name: true } },
         },
         orderBy: [{ colorFamily: { name: "asc" } }, { name: "asc" }],
+        take: 250,
       }),
       prisma.finishType.findMany({
         where: { active: true },

@@ -30,8 +30,8 @@ export default function LoginPage() {
   const [state, action, pending] = useActionState(loginAction, initial);
 
   return (
-    <div className="login-weave relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
-      <div className="animate-soft-rise relative z-10 grid w-full max-w-[880px] overflow-hidden rounded-2xl border border-white/10 login-card lg:grid-cols-[1.08fr_1fr]">
+    <div className="login-weave relative flex min-h-screen items-center justify-center overflow-hidden px-3 py-6 sm:px-4 sm:py-8">
+      <div className="animate-soft-rise relative z-10 grid w-full max-w-[880px] overflow-hidden rounded-xl border border-white/10 login-card sm:rounded-2xl lg:grid-cols-[1.08fr_1fr]">
         <div className="relative hidden flex-col justify-between overflow-hidden p-8 text-white lg:flex">
           <div
             className="pointer-events-none absolute inset-0 opacity-40"
@@ -94,18 +94,29 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative bg-[#fcfdfd] p-6 sm:p-8">
+        <div className="relative bg-[#fcfdfd] p-5 sm:p-8">
+          <div className="mb-5 flex items-center gap-2.5 lg:hidden">
+            <span className="grid h-9 w-9 place-items-center rounded-full border border-[#c9a227]/55 bg-linear-to-br from-[#2f281f] to-[#0c0a08] font-serif text-[11px] font-bold text-[#e8c547]">
+              MC
+            </span>
+            <div>
+              <p className="font-serif text-[18px] leading-none font-semibold tracking-tight text-(--ink)">
+                Mapps Creation
+              </p>
+              <p className="mt-0.5 text-[10px] tracking-[0.12em] text-(--muted) uppercase">
+                RFD ERP
+              </p>
+            </div>
+          </div>
+
           <div className="mb-6 flex items-start justify-between gap-2">
             <div>
               <p className="text-[10px] font-semibold tracking-[0.16em] text-(--muted) uppercase">
                 Secure sign in
               </p>
-              <h1 className="mt-1 font-serif text-[26px] font-semibold tracking-tight text-(--ink)">
+              <h1 className="mt-1 font-serif text-[22px] font-semibold tracking-tight text-(--ink) sm:text-[26px]">
                 Operations desk
               </h1>
-              <p className="mt-1.5 text-[12px] text-(--muted) lg:hidden">
-                Mapps Creation · RFD ERP
-              </p>
             </div>
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-(--accent)/15 bg-(--accent-soft) px-2.5 py-1 text-[10px] font-semibold text-(--accent-strong)">
               <ShieldCheck className="h-3 w-3" />

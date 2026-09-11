@@ -37,7 +37,7 @@ export function GoodsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="table-scroll overflow-x-auto">
       <table className="erp-table">
         <thead>
           <tr>

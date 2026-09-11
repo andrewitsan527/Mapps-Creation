@@ -186,6 +186,14 @@ export function ErpShell({
               </button>
               <div className="flex min-w-0 items-center gap-1 text-[11.5px]">
                 <span className="font-serif text-[15px] md:hidden">Mapps</span>
+                {link ? (
+                  <>
+                    <ChevronRight className="h-3 w-3 shrink-0 text-(--faint) md:hidden" />
+                    <span className="truncate font-semibold text-(--ink) md:hidden">
+                      {link.label}
+                    </span>
+                  </>
+                ) : null}
                 {cluster ? (
                   <span className="hidden font-semibold tracking-[0.12em] text-(--muted) uppercase md:inline">
                     {cluster.title}
@@ -202,7 +210,7 @@ export function ErpShell({
               </div>
             </div>
 
-            <div className="flex min-w-0 items-center gap-1.5">
+            <div className="flex min-w-0 max-w-[48%] items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:max-w-none sm:gap-1.5">
               <Suspense fallback={null}>
                 <LiveHeaderAlerts flowPromise={flowPromise} />
               </Suspense>
@@ -212,7 +220,7 @@ export function ErpShell({
             </div>
           </header>
 
-          <main className="animate-fade-up flex-1 px-3 py-3.5 pb-20 sm:px-4 md:pb-5">
+          <main className="page-enter flex-1 overflow-x-hidden px-2.5 py-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-4 md:pb-5">
             {children}
           </main>
         </div>

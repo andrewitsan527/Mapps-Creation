@@ -126,11 +126,22 @@ export async function getAvailability(
       ...(filters.gsm != null ? { gsm: filters.gsm } : {}),
       ...(filters.width != null ? { width: filters.width } : {}),
     },
-    include: {
-      fabricType: true,
-      shade: { include: { colorFamily: true } },
-      godown: true,
-      location: true,
+    select: {
+      id: true,
+      fabricTypeId: true,
+      shadeId: true,
+      gsm: true,
+      width: true,
+      unit: true,
+      onHand: true,
+      reserved: true,
+      fabricType: { select: { name: true } },
+      shade: {
+        select: {
+          name: true,
+          colorFamily: { select: { name: true } },
+        },
+      },
     },
     orderBy: [{ fabricType: { name: "asc" } }, { shade: { name: "asc" } }],
   });
@@ -149,7 +160,7 @@ export async function getAvailability(
       onHand: Prisma.Decimal;
       reserved: Prisma.Decimal;
       available: Prisma.Decimal;
-      lots: typeof lots;
+      lotCount: number;
     }
   >();
 
@@ -180,13 +191,13 @@ export async function getAvailability(
         onHand,
         reserved,
         available,
-        lots: [lot],
+        lotCount: 1,
       });
     } else {
       existing.onHand = existing.onHand.plus(onHand);
       existing.reserved = existing.reserved.plus(reserved);
       existing.available = existing.available.plus(available);
-      existing.lots.push(lot);
+      existing.lotCount += 1;
     }
   }
 

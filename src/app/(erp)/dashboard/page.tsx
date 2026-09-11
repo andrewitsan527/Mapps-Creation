@@ -4,6 +4,7 @@ import {
   EmptyState,
   Metric,
   MetricStrip,
+  NextStep,
   PageHeader,
   Panel,
   Section,
@@ -39,7 +40,7 @@ export default async function DashboardPage() {
   const [flow, receivables, weaverPriority, openRfs, awaitingDelivery] =
     await Promise.all([
       getPipelineSnapshot(),
-      listDispatchedReceivables(),
+      listDispatchedReceivables({ take: 80 }),
       prisma.lot.findMany({
         where: {
           defectType: "WEAVER",
@@ -427,6 +428,29 @@ export default async function DashboardPage() {
           </Panel>
         </div>
       </Section>
+
+      <NextStep
+        steps={[
+          {
+            label: "QC desk",
+            href: "/qc",
+            hint: "Clear returns & weaver HIGH",
+            count: flow.qc.queue || undefined,
+          },
+          {
+            label: "Dispatch",
+            href: "/dispatch",
+            hint: "Billed goods waiting to leave",
+            count: flow.delivery.queue || undefined,
+          },
+          {
+            label: "Collect dues",
+            href: "/payments",
+            hint: "Reminders & receipts",
+            count: flow.payment.alert || undefined,
+          },
+        ]}
+      />
     </div>
   );
 }

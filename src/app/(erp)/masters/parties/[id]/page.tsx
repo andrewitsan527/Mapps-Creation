@@ -161,7 +161,7 @@ export default async function EditPartyPage({
                     <form
                       key={marka.id}
                       action={updateMillMarka}
-                      className="grid grid-cols-[110px_1fr_80px_auto] gap-1"
+                      className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr_80px_auto]"
                     >
                       <input type="hidden" name="id" value={marka.id} />
                       <input
@@ -194,7 +194,7 @@ export default async function EditPartyPage({
 
               <form
                 action={addMillMarka}
-                className="mt-2 grid grid-cols-[110px_1fr_auto] gap-1 border-t border-(--line-soft) pt-2"
+                className="mt-2 grid grid-cols-1 gap-1 border-t border-(--line-soft) pt-2 sm:grid-cols-[110px_1fr_auto]"
               >
                 <input type="hidden" name="millId" value={party.id} />
                 <input

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, X } from "lucide-react";
 import { allNavLinks, navClusters, type NavLink } from "@/lib/flow";
 import { cn } from "@/lib/utils";
 
@@ -71,8 +71,8 @@ export function MobileBottomNav({ onMore }: { onMore: () => void }) {
   const items = mobileItems.slice(0, 4);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-(--line) bg-(--panel)/95 backdrop-blur md:hidden">
-      <ul className="grid grid-cols-5 gap-0 px-1 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-(--line) bg-(--panel)/96 shadow-[0_-6px_24px_rgba(12,18,25,0.06)] backdrop-blur-md md:hidden">
+      <ul className="grid grid-cols-5 gap-0 px-0.5 pt-0.5 pb-[env(safe-area-inset-bottom)]">
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
@@ -80,13 +80,19 @@ export function MobileBottomNav({ onMore }: { onMore: () => void }) {
             <li key={item.href}>
               <Link
                 href={item.href}
+                prefetch
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium",
+                  "relative flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium",
                   active ? "text-(--accent)" : "text-(--muted)",
                 )}
               >
-                <Icon className="h-4 w-4" />
-                <span className="truncate">{item.label.split(" ")[0]}</span>
+                {active ? (
+                  <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-(--accent)" />
+                ) : null}
+                <Icon className={cn("h-5 w-5", active && "stroke-[2.25px]")} />
+                <span className="max-w-full truncate">
+                  {item.label.split(" ")[0]}
+                </span>
               </Link>
             </li>
           );
@@ -95,9 +101,9 @@ export function MobileBottomNav({ onMore }: { onMore: () => void }) {
           <button
             type="button"
             onClick={onMore}
-            className="flex w-full flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium text-(--muted)"
+            className="flex min-h-12 w-full flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium text-(--muted)"
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreHorizontal className="h-5 w-5" />
             <span>More</span>
           </button>
         </li>
@@ -124,24 +130,30 @@ export function MobileMoreMenu({
         aria-label="Close menu"
         onClick={onClose}
       />
-      <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-xl bg-(--panel) p-3 shadow-(--shadow-pop)">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="font-serif text-[15px] font-semibold">All modules</p>
+      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] animate-soft-rise overflow-y-auto rounded-t-2xl bg-(--panel) p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-(--shadow-pop)">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div>
+            <p className="font-serif text-[16px] font-semibold">All modules</p>
+            <p className="text-[11px] text-(--muted)">
+              Jump anywhere in the desk
+            </p>
+          </div>
           <button
             type="button"
-            className="text-[12px] text-(--muted)"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-(--line) text-(--muted)"
             onClick={onClose}
+            aria-label="Close"
           >
-            Close
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {navClusters.map((cluster) => (
             <div key={cluster.id}>
-              <p className="band-label mb-1">
+              <p className="band-label mb-1.5">
                 {cluster.title} · {cluster.caption}
               </p>
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 {cluster.items.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(pathname, item.href);
@@ -151,13 +163,13 @@ export function MobileMoreMenu({
                       href={item.href}
                       onClick={onClose}
                       className={cn(
-                        "flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[12px]",
+                        "flex min-h-11 items-center gap-2 rounded-lg border px-2.5 py-2 text-[12.5px]",
                         active
                           ? "border-(--accent) bg-(--accent-soft) font-semibold text-(--accent-strong)"
-                          : "border-(--line) text-(--ink-soft)",
+                          : "border-(--line) text-(--ink-soft) active:bg-(--panel-sunken)",
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      <Icon className="h-4 w-4 shrink-0" />
                       <span className="truncate">{item.label}</span>
                     </Link>
                   );

@@ -76,7 +76,7 @@ export const navClusters: NavCluster[] = [
     title: "Inventory",
     caption: "Stock & returns",
     items: [
-      { href: "/stock", label: "Live stock", icon: Boxes, mobile: true },
+      { href: "/stock", label: "Live stock", icon: Boxes },
       { href: "/returns", label: "Goods return", icon: RotateCcw },
     ],
   },
@@ -85,7 +85,7 @@ export const navClusters: NavCluster[] = [
     title: "Sell",
     caption: "Bills & delivery",
     items: [
-      { href: "/sales", label: "Sales", icon: CreditCard, mobile: true },
+      { href: "/sales", label: "Sales", icon: CreditCard },
       { href: "/dispatch", label: "Delivery", icon: Truck },
     ],
   },
@@ -94,7 +94,12 @@ export const navClusters: NavCluster[] = [
     title: "Money",
     caption: "Dues & ledger",
     items: [
-      { href: "/payments", label: "Payments & dues", icon: Banknote },
+      {
+        href: "/payments",
+        label: "Payments & dues",
+        icon: Banknote,
+        mobile: true,
+      },
       { href: "/finance", label: "Finance tools", icon: Calculator },
     ],
   },
