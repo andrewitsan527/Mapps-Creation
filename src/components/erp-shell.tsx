@@ -15,6 +15,7 @@ import { ChevronRight, LogOut, Menu, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, use, useState } from "react";
+import { SiteFooter } from "@/components/site-footer";
 
 export type ShellAlert = {
   label: string;
@@ -220,9 +221,10 @@ export function ErpShell({
             </div>
           </header>
 
-          <main className="page-enter flex-1 overflow-x-hidden px-2.5 py-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-4 md:pb-5">
+          <main className="page-enter flex-1 overflow-x-hidden px-2.5 py-3 sm:px-4 md:pb-4">
             {children}
           </main>
+          <SiteFooter className="pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-2.5" />
         </div>
       </div>
 

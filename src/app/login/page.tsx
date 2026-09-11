@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { loginAction, type AuthActionState } from "@/server/actions/auth";
 import { buttonClass, Field, inputClass } from "@/components/ui";
+import { SiteFooter } from "@/components/site-footer";
 
 const initial: AuthActionState = {};
 
@@ -30,7 +31,7 @@ export default function LoginPage() {
   const [state, action, pending] = useActionState(loginAction, initial);
 
   return (
-    <div className="login-weave relative flex min-h-screen items-center justify-center overflow-hidden px-3 py-6 sm:px-4 sm:py-8">
+    <div className="login-weave relative flex min-h-screen items-center justify-center overflow-hidden px-3 py-6 pb-16 sm:px-4 sm:py-8 sm:pb-16">
       <div className="animate-soft-rise relative z-10 grid w-full max-w-[880px] overflow-hidden rounded-xl border border-white/10 login-card sm:rounded-2xl lg:grid-cols-[1.08fr_1fr]">
         <div className="relative hidden flex-col justify-between overflow-hidden p-8 text-white lg:flex">
           <div
@@ -163,6 +164,11 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      <SiteFooter
+        tone="dark"
+        className="absolute inset-x-0 bottom-0 border-0 bg-transparent py-3"
+      />
     </div>
   );
 }
