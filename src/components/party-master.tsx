@@ -24,6 +24,7 @@ import {
   buttonTinyClass,
   inputClass,
 } from "@/components/ui";
+import { GstinInput } from "@/components/gstin-input";
 import {
   Briefcase,
   Building2,
@@ -386,11 +387,7 @@ export function PartyFields({
           </Field>
         )}
         <Field label="GSTIN">
-          <input
-            className={inputClass}
-            name="gstin"
-            defaultValue={values?.gstin ?? ""}
-          />
+          <GstinInput defaultValue={values?.gstin ?? ""} />
         </Field>
       </FieldGroup>
 

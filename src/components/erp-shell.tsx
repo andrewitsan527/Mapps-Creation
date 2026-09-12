@@ -110,6 +110,17 @@ export function ErpShell({
   const [moreOpen, setMoreOpen] = useState(false);
   const pathname = usePathname();
   const waLive = whatsappProvider === "meta";
+  const waClick = whatsappProvider === "click";
+  const waLabel = waLive
+    ? "WhatsApp live"
+    : waClick
+      ? "WhatsApp click"
+      : "WhatsApp stub";
+  const waClass = waLive
+    ? "bg-[#128c7e]/25 text-[#7ddec8] hover:bg-[#128c7e]/40"
+    : waClick
+      ? "bg-[#128c7e]/15 text-[#5ec4b0] hover:bg-[#128c7e]/25"
+      : "bg-white/5 text-(--sidebar-muted) hover:bg-white/10";
   const cluster = clusterForPath(pathname);
   const link = linkForPath(pathname);
 
@@ -146,13 +157,11 @@ export function ErpShell({
               href="/messages"
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold transition",
-                waLive
-                  ? "bg-[#128c7e]/25 text-[#7ddec8] hover:bg-[#128c7e]/40"
-                  : "bg-white/5 text-(--sidebar-muted) hover:bg-white/10",
+                waClass,
               )}
             >
               <MessageCircle className="h-3 w-3" />
-              {waLive ? "WhatsApp live" : "WhatsApp stub"}
+              {waLabel}
             </Link>
             <div>
               <p className="truncate text-[12px] font-medium text-white">

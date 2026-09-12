@@ -493,6 +493,7 @@ export async function deliverSaleBill(formData: FormData) {
     }
   });
 
+  let shareUrl: string | undefined;
   if (notify && bill.party.whatsapp) {
     const body = formatBillWhatsAppBody({
       billNo: bill.billNo,
@@ -501,7 +502,7 @@ export async function deliverSaleBill(formData: FormData) {
       lines: bill.lines,
       vehicleNo,
     });
-    await sendWhatsApp({
+    const sent = await sendWhatsApp({
       to: bill.party.whatsapp,
       template: "sale_bill",
       entityType: "SaleBill",
@@ -512,6 +513,7 @@ export async function deliverSaleBill(formData: FormData) {
         body,
       },
     });
+    shareUrl = sent.shareUrl;
     await prisma.dispatch.update({
       where: { id: dispatchId },
       data: { whatsappSent: true },
@@ -524,6 +526,7 @@ export async function deliverSaleBill(formData: FormData) {
   revalidatePath("/stock");
   revalidatePath("/payments");
   revalidatePath("/messages");
+  return { shareUrl };
 }
 
 /** @deprecated use deliverSaleBill */

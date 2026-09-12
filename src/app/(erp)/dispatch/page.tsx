@@ -18,6 +18,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { WhatsAppNotifyToggle } from "@/components/whatsapp-notify-toggle";
+import { WhatsAppForm } from "@/components/whatsapp-form";
 import { MessageCircle, PackageCheck, Truck } from "lucide-react";
 
 export default async function DispatchPage() {
@@ -165,7 +166,7 @@ export default async function DispatchPage() {
 
                 <GoodsTable rows={b.lines} showMoney />
 
-                <form
+                <WhatsAppForm
                   action={deliverSaleBill}
                   className="mt-2 grid gap-1.5 border-t border-(--line-soft) pt-2 sm:grid-cols-2 lg:grid-cols-5"
                 >
@@ -185,14 +186,14 @@ export default async function DispatchPage() {
                   <div className="flex flex-col justify-end gap-1">
                     <WhatsAppNotifyToggle
                       label="WhatsApp sale bill"
-                      hint="Full goods detail to party"
+                      hint="Opens WhatsApp with bill text — tap Send"
                     />
                     <button className={buttonWaClass} type="submit">
                       <MessageCircle className="h-3 w-3" />
                       Deliver & WhatsApp
                     </button>
                   </div>
-                </form>
+                </WhatsAppForm>
               </Panel>
             ))}
           </div>

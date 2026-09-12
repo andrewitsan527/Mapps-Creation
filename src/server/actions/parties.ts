@@ -30,7 +30,7 @@ function readPartyFields(formData: FormData) {
     whatsapp: String(formData.get("whatsapp") || "").trim() || null,
     phone: String(formData.get("phone") || "").trim() || null,
     email: String(formData.get("email") || "").trim() || null,
-    gstin: String(formData.get("gstin") || "").trim() || null,
+    gstin: String(formData.get("gstin") || "").trim().toUpperCase() || null,
     address: String(formData.get("address") || "").trim() || null,
     notes: String(formData.get("notes") || "").trim() || null,
     paymentTermsDays: Number.isFinite(paymentTermsDays) ? paymentTermsDays : 30,

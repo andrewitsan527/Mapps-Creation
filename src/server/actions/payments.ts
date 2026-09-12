@@ -213,7 +213,7 @@ async function sendBillReminder(saleBillId: string, kind: ReminderKind) {
     reminderKind: kind,
   });
 
-  await sendWhatsApp({
+  const { shareUrl } = await sendWhatsApp({
     to: bill.party.whatsapp,
     template: "payment_reminder",
     entityType: "SaleBill",
@@ -241,16 +241,17 @@ async function sendBillReminder(saleBillId: string, kind: ReminderKind) {
       data: { dueReminderSentAt: new Date() },
     });
   }
-  return true;
+  return { shareUrl };
 }
 
 export async function sendPaymentReminder(formData: FormData) {
   await requireUser();
   const saleBillId = String(formData.get("saleBillId") || "");
   if (!saleBillId) throw new Error("Sale bill required");
-  await sendBillReminder(saleBillId, "MANUAL");
+  const result = await sendBillReminder(saleBillId, "MANUAL");
   revalidatePath("/payments");
   revalidatePath("/messages");
+  return typeof result === "object" ? result : {};
 }
 
 function dayRange(date: Date) {

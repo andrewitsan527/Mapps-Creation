@@ -22,7 +22,10 @@ import {
   inputClass,
 } from "@/components/ui";
 import { WhatsAppNotifyToggle } from "@/components/whatsapp-notify-toggle";
+import { WhatsAppForm } from "@/components/whatsapp-form";
+import { getWhatsAppProviderName } from "@/server/whatsapp";
 import {
+  Download,
   FileText,
   MessageCircle,
   Package,
@@ -30,6 +33,7 @@ import {
 } from "lucide-react";
 
 export default async function GreyPage() {
+  const waProvider = getWhatsAppProviderName();
   const [suppliers, orders] = await Promise.all([
     listPartyOptions("GREY_SUPPLIER"),
     prisma.greyPurchaseOrder.findMany({
@@ -102,7 +106,7 @@ export default async function GreyPage() {
       <div className="grid gap-3 xl:grid-cols-[300px_1fr]">
         <Section title="Raise a PO" step={1} icon={PlusCircle} tone="accent">
           <Panel compact>
-            <form action={createGreyPo} className="space-y-2.5">
+            <WhatsAppForm action={createGreyPo} className="space-y-2.5">
               <FieldGroup label="Supplier">
                 <Field label="Grey supplier">
                   <PartySelect name="supplierId" options={suppliers} required />
@@ -138,7 +142,13 @@ export default async function GreyPage() {
                 </Field>
                 <WhatsAppNotifyToggle
                   label="WhatsApp PO to supplier"
-                  hint="Uses supplier WhatsApp from masters"
+                  hint={
+                    waProvider === "meta"
+                      ? "Live Meta API — sent automatically"
+                      : waProvider === "click"
+                        ? "Opens normal WhatsApp with the PO filled in — tap Send"
+                        : "Stub only — logged under Messages, not delivered"
+                  }
                 />
               </FieldGroup>
 
@@ -146,7 +156,7 @@ export default async function GreyPage() {
                 <MessageCircle className="h-3 w-3" />
                 Create PO & WhatsApp
               </button>
-            </form>
+            </WhatsAppForm>
           </Panel>
         </Section>
 
@@ -196,6 +206,16 @@ export default async function GreyPage() {
                               <span className={statusBadge(o.status)}>
                                 {o.status}
                               </span>
+                              <a
+                                href={`/api/pdf/grey/${o.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={buttonTinyClass}
+                                title="Download PO PDF"
+                              >
+                                <Download className="h-3 w-3" />
+                                PDF
+                              </a>
                             </div>
                             <div className="mt-0.5 text-[10px] text-(--faint)">
                               {formatDate(o.orderDate)}

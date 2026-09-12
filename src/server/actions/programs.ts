@@ -8,6 +8,7 @@ import {
   getProgramCardData,
   programCardPublicUrl,
 } from "@/server/domain/program-card";
+import { programPdfUrl } from "@/lib/pdf-urls";
 import { sendWhatsApp } from "@/server/whatsapp";
 
 async function requireUser() {
@@ -72,6 +73,7 @@ export async function sendProgramWhatsApp(formData: FormData) {
   }
 
   const cardUrl = programCardPublicUrl(program.id);
+  const pdfUrl = programPdfUrl(program.id);
   const shadeLabel = `${program.shade.colorFamily.name} / ${program.shade.name}`;
   const hex = program.shade.hex?.toUpperCase() ?? "see card";
 
@@ -89,12 +91,13 @@ export async function sendProgramWhatsApp(formData: FormData) {
     program.extraMods ? `Extra process: ${program.extraMods}` : null,
     program.remarks ? `Remarks: ${program.remarks}` : null,
     "",
-    `Open / print / PDF card: ${cardUrl}`,
+    `PDF: ${pdfUrl}`,
+    `Preview: ${cardUrl}`,
   ]
     .filter((line) => line !== null)
     .join("\n");
 
-  await sendWhatsApp({
+  const { shareUrl } = await sendWhatsApp({
     to: program.mill.whatsapp,
     template: "mill_program",
     entityType: "MillProgram",
@@ -109,6 +112,7 @@ export async function sendProgramWhatsApp(formData: FormData) {
       finish: program.finishType?.name ?? "-",
       remarks: program.remarks ?? "-",
       cardUrl,
+      pdfUrl,
       body,
     },
   });
@@ -120,4 +124,6 @@ export async function sendProgramWhatsApp(formData: FormData) {
 
   revalidatePath("/programs");
   revalidatePath(`/programs/${id}/card`);
+  revalidatePath("/messages");
+  return { shareUrl, pdfUrl };
 }

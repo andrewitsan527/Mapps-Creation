@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { COMPANY } from "@/lib/company";
+import { greyPoPdfUrl } from "@/lib/pdf-urls";
 import { sendWhatsApp } from "@/server/whatsapp";
 
 async function requireUser() {
@@ -28,12 +30,16 @@ export async function createGreyPo(formData: FormData) {
 
   if (!supplierId) throw new Error("Supplier required");
 
-  const supplier = await prisma.party.findUniqueOrThrow({ where: { id: supplierId } });
+  const supplier = await prisma.party.findUniqueOrThrow({
+    where: { id: supplierId },
+  });
   if (notify && !supplier.whatsapp) {
     throw new Error(
-      "Supplier has no WhatsApp number — update supplier master or untick WhatsApp",
+      "Supplier has no WhatsApp number — open Masters → Suppliers, add WhatsApp, then retry",
     );
   }
+
+  const quantityLabel = quantityRaw ? `${quantityRaw} ${unit}` : "-";
   const po = await prisma.greyPurchaseOrder.create({
     data: {
       poNumber: await nextPoNumber(),
@@ -47,7 +53,22 @@ export async function createGreyPo(formData: FormData) {
   });
 
   if (notify && supplier.whatsapp) {
-    await sendWhatsApp({
+    const pdfUrl = greyPoPdfUrl(po.id);
+    const body = [
+      `${COMPANY.shortName} — Grey purchase order`,
+      `PO: ${po.poNumber}`,
+      `Supplier: ${supplier.name}`,
+      `Quantity: ${quantityLabel}`,
+      fabricNotes ? `Fabric: ${fabricNotes}` : null,
+      whatsappNote ? `Note: ${whatsappNote}` : null,
+      "",
+      `PDF: ${pdfUrl}`,
+      `Contact: ${COMPANY.phone}`,
+    ]
+      .filter((line) => line !== null)
+      .join("\n");
+
+    const { shareUrl } = await sendWhatsApp({
       to: supplier.whatsapp,
       template: "grey_purchase_order",
       entityType: "GreyPurchaseOrder",
@@ -55,13 +76,21 @@ export async function createGreyPo(formData: FormData) {
       variables: {
         poNumber: po.poNumber,
         supplier: supplier.name,
-        quantity: quantityRaw ? `${quantityRaw} ${unit}` : "-",
+        quantity: quantityLabel,
         note: whatsappNote || fabricNotes || "Grey purchase order created",
+        pdfUrl,
+        body,
       },
     });
+
+    revalidatePath("/grey");
+    revalidatePath("/messages");
+    return { shareUrl, pdfUrl, poNumber: po.poNumber };
   }
 
   revalidatePath("/grey");
+  revalidatePath("/messages");
+  return { poNumber: po.poNumber };
 }
 
 export async function addGreyBill(formData: FormData) {

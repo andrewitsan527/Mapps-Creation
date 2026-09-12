@@ -1,10 +1,18 @@
 import { prisma } from "@/lib/db";
+import { ClickWhatsAppProvider } from "./click-provider";
 import { StubWhatsAppProvider } from "./stub-provider";
 import { MetaWhatsAppProvider } from "./meta-provider";
 import type { SendWhatsAppInput, WhatsAppProvider } from "./types";
 
-export function getWhatsAppProviderName(): "meta" | "stub" {
-  const name = (process.env.WHATSAPP_PROVIDER || "stub").toLowerCase();
+export type WhatsAppProviderName = "meta" | "click" | "stub";
+
+/**
+ * - click (default): opens normal WhatsApp (wa.me) — no Business API needed
+ * - meta: live Cloud API when token + phone id are set
+ * - stub: log only
+ */
+export function getWhatsAppProviderName(): WhatsAppProviderName {
+  const name = (process.env.WHATSAPP_PROVIDER || "click").toLowerCase();
   if (name === "meta") {
     if (
       process.env.WHATSAPP_API_TOKEN?.trim() &&
@@ -12,18 +20,21 @@ export function getWhatsAppProviderName(): "meta" | "stub" {
     ) {
       return "meta";
     }
+    return "click";
   }
-  return "stub";
+  if (name === "stub") return "stub";
+  return "click";
 }
 
 function getProvider(): WhatsAppProvider {
-  if (getWhatsAppProviderName() === "meta") {
-    return new MetaWhatsAppProvider();
-  }
-  return new StubWhatsAppProvider();
+  const name = getWhatsAppProviderName();
+  if (name === "meta") return new MetaWhatsAppProvider();
+  if (name === "stub") return new StubWhatsAppProvider();
+  return new ClickWhatsAppProvider();
 }
 
 export async function sendWhatsApp(input: SendWhatsAppInput) {
+  const providerName = getWhatsAppProviderName();
   const provider = getProvider();
   const result = await provider.send({
     ...input,
@@ -37,10 +48,11 @@ export async function sendWhatsApp(input: SendWhatsAppInput) {
       entityType: input.entityType,
       entityId: input.entityId,
       payload: {
-        provider: getWhatsAppProviderName(),
+        provider: providerName,
         variables: input.variables ?? {},
         mediaUrl: input.mediaUrl ?? null,
         mode: process.env.WHATSAPP_SEND_MODE || "text",
+        shareUrl: result.shareUrl ?? null,
       },
       status: result.status,
       providerId: result.providerId,
@@ -48,7 +60,7 @@ export async function sendWhatsApp(input: SendWhatsAppInput) {
     },
   });
 
-  return { result, log };
+  return { result, log, shareUrl: result.shareUrl };
 }
 
 export type { SendWhatsAppInput, WhatsAppTemplate } from "./types";

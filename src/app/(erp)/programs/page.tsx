@@ -21,8 +21,10 @@ import {
   buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { WhatsAppForm } from "@/components/whatsapp-form";
 import {
   ClipboardCheck,
+  Download,
   Eye,
   MessageCircle,
   PlusCircle,
@@ -409,14 +411,24 @@ export default async function ProgramsPage() {
                                   <Link
                                     href={`/programs/${p.id}/card`}
                                     className={buttonTinyClass}
-                                    title="Preview / print / PDF"
+                                    title="Preview / print"
                                   >
                                     <Eye className="h-3 w-3" />
                                     Card
                                   </Link>
+                                  <a
+                                    href={`/api/pdf/program/${p.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={buttonTinyClass}
+                                    title="Download PDF"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    PDF
+                                  </a>
                                   {p.status === "DRAFT" ||
                                   p.status === "SENT_TO_MILL" ? (
-                                    <form action={sendProgramWhatsApp}>
+                                    <WhatsAppForm action={sendProgramWhatsApp}>
                                       <input
                                         type="hidden"
                                         name="id"
@@ -429,7 +441,7 @@ export default async function ProgramsPage() {
                                         <MessageCircle className="h-3 w-3" />
                                         {p.sentAt ? "Resend" : "WhatsApp"}
                                       </button>
-                                    </form>
+                                    </WhatsAppForm>
                                   ) : (
                                     <Link
                                       href="/qc"

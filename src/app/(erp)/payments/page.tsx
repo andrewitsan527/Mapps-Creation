@@ -29,6 +29,7 @@ import {
   buttonTinyClass,
   buttonWaClass,
 } from "@/components/ui";
+import { WhatsAppForm } from "@/components/whatsapp-form";
 import {
   Banknote,
   Briefcase,
@@ -330,7 +331,7 @@ export default async function PaymentsPage() {
                               </td>
                               <td>
                                 {row.whatsapp ? (
-                                  <form action={sendPaymentReminder}>
+                                  <WhatsAppForm action={sendPaymentReminder}>
                                     <input
                                       type="hidden"
                                       name="saleBillId"
@@ -343,7 +344,7 @@ export default async function PaymentsPage() {
                                       <MessageCircle className="h-3 w-3" />
                                       Remind
                                     </button>
-                                  </form>
+                                  </WhatsAppForm>
                                 ) : (
                                   <span className="text-[10px] text-(--faint)">
                                     no WA

@@ -10,6 +10,7 @@ import {
   Printer,
 } from "lucide-react";
 import { buttonClass, buttonGhostClass, buttonWaClass } from "@/components/ui";
+import { WhatsAppForm } from "@/components/whatsapp-form";
 
 export function ProgramCardToolbar({
   programId,
@@ -20,7 +21,9 @@ export function ProgramCardToolbar({
   programId: string;
   programNo: string;
   canWhatsApp: boolean;
-  whatsappAction?: (formData: FormData) => Promise<void>;
+  whatsappAction?: (
+    formData: FormData,
+  ) => Promise<{ shareUrl?: string; pdfUrl?: string } | void>;
 }) {
   const router = useRouter();
 
@@ -42,7 +45,7 @@ export function ProgramCardToolbar({
           </p>
           <p className="flex items-center gap-1 text-[10.5px] text-(--muted)">
             <Eye className="h-3 w-3" />
-            Live preview · print or save as PDF
+            Live preview · print or download PDF
           </p>
         </div>
       </div>
@@ -56,23 +59,24 @@ export function ProgramCardToolbar({
           <Printer className="h-3.5 w-3.5" />
           Print
         </button>
-        <button
-          type="button"
+        <a
+          href={`/api/pdf/program/${programId}`}
+          target="_blank"
+          rel="noopener noreferrer"
           className={buttonGhostClass}
-          onClick={() => window.print()}
-          title="In the print dialog, choose ‘Save as PDF’ as the destination"
+          title="Download program card PDF"
         >
           <Download className="h-3.5 w-3.5" />
-          Save PDF
-        </button>
+          PDF
+        </a>
         {canWhatsApp && whatsappAction ? (
-          <form action={whatsappAction}>
+          <WhatsAppForm action={whatsappAction}>
             <input type="hidden" name="id" value={programId} />
             <button className={buttonWaClass} type="submit">
               <MessageCircle className="h-3 w-3" />
               WhatsApp mill
             </button>
-          </form>
+          </WhatsAppForm>
         ) : null}
         <Link href={`/programs/${programId}/card`} className="sr-only">
           Card
