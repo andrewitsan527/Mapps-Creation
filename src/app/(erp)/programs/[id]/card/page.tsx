@@ -28,8 +28,8 @@ export default async function ProgramCardPage({
       <ProgramCard data={data} />
       <p className="no-print mt-3 text-center text-[11px] text-(--muted)">
         Use <strong>Print</strong> for a paper copy, or <strong>Save PDF</strong>{" "}
-        and pick “Save as PDF” in the system print dialog. The colour chip
-        prints with the shade hex so the mill can match it.
+        and pick “Save as PDF” in the system print dialog. Quality / Code /
+        Colour is printed so the mill can match the goods.
       </p>
     </div>
   );

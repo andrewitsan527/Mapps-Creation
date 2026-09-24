@@ -253,35 +253,37 @@ model FabricType {
   lots     Lot[]
 }
 
-model ColorFamily {
+model Quality {
   id        String   @id @default(cuid())
-  name      String   @unique
-  sortOrder Int      @default(0)
+  name      String
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  shades Shade[]
+  programs MillProgram[]
+  lots     Lot[]
 }
 
-model Shade {
-  id            String      @id @default(cuid())
-  colorFamilyId String
-  colorFamily   ColorFamily @relation(fields: [colorFamilyId], references: [id], onDelete: Cascade)
-  code          String
-  name          String
-  hex           String?
-  swatchUrl     String?
-  sortOrder     Int         @default(0)
-  active        Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+model Code {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   programs MillProgram[]
   lots     Lot[]
+}
 
-  @@unique([colorFamilyId, code])
-  @@index([name])
+model Colour {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  programs MillProgram[]
+  lots     Lot[]
 }
 
 model FinishType {
@@ -377,8 +379,12 @@ model MillProgram {
   greyOrder     GreyPurchaseOrder? @relation(fields: [greyOrderId], references: [id])
   fabricTypeId  String
   fabricType    FabricType    @relation(fields: [fabricTypeId], references: [id])
-  shadeId       String
-  shade         Shade         @relation(fields: [shadeId], references: [id])
+  qualityId     String?
+  quality       Quality?      @relation(fields: [qualityId], references: [id])
+  codeId        String?
+  code          Code?         @relation(fields: [codeId], references: [id])
+  colourId      String?
+  colour        Colour?       @relation(fields: [colourId], references: [id])
   finishTypeId  String?
   finishType    FinishType?   @relation(fields: [finishTypeId], references: [id])
   width         Decimal?     
@@ -400,7 +406,7 @@ model MillProgram {
   inwards MillInward[]
 
   @@index([status, millId])
-  @@index([shadeId, fabricTypeId])
+  @@index([qualityId, codeId, colourId])
 }
 
 /// Partial physical receipt from the mill against a program (before QC / lot).
@@ -432,8 +438,12 @@ model Lot {
   millMarka       MillMarka?     @relation(fields: [millMarkaId], references: [id])
   fabricTypeId    String
   fabricType      FabricType     @relation(fields: [fabricTypeId], references: [id])
-  shadeId         String
-  shade           Shade          @relation(fields: [shadeId], references: [id])
+  qualityId       String?
+  quality         Quality?       @relation(fields: [qualityId], references: [id])
+  codeId          String?
+  code            Code?          @relation(fields: [codeId], references: [id])
+  colourId        String?
+  colour          Colour?        @relation(fields: [colourId], references: [id])
   finishTypeId    String?
   finishType      FinishType?    @relation(fields: [finishTypeId], references: [id])
   programId       String?
@@ -483,7 +493,7 @@ model Lot {
   salesReturnAsNew       SalesReturn?  @relation("ReturnNewLot")
   millReturns            MillReturn[]
 
-  @@index([fabricTypeId, shadeId])
+  @@index([fabricTypeId])
   @@index([marka])
   @@index([godownId, locationId])
   @@index([programId])
@@ -609,9 +619,9 @@ model SaleBillLine {
   /// Frozen goods identity at billing time (survives later lot edits).
   lotNumber   String?
   fabricName  String?
-  colorFamily String?
-  shadeName   String?
-  shadeCode   String?
+  quality     String?
+  code        String?
+  colour      String?
   finishName  String?
   millName    String?
   weaverName  String?
@@ -667,7 +677,9 @@ model DispatchLine {
   /// Snapshot copy for delivery trail
   lotNumber  String?
   fabricName String?
-  shadeName  String?
+  quality    String?
+  code       String?
+  colour     String?
   rollsDetail String?
 
   @@index([dispatchId])

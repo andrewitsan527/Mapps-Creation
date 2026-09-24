@@ -15,15 +15,22 @@ import { sendWhatsApp } from "@/server/whatsapp";
 
 export const MILL_RETURN_SLA_MS = 24 * 60 * 60 * 1000;
 
+function qccIdentity(source: {
+  quality?: { name: string } | null;
+  code?: { name: string } | null;
+  colour?: { name: string } | null;
+}): string {
+  if (source.quality?.name && source.code?.name && source.colour?.name) {
+    return `${source.quality.name} / ${source.code.name} / ${source.colour.name}`;
+  }
+  return "Incomplete identity";
+}
+
 export const lotForMillReturnInclude = {
   fabricType: { select: { name: true } },
-  shade: {
-    select: {
-      name: true,
-      code: true,
-      colorFamily: { select: { name: true } },
-    },
-  },
+  quality: { select: { name: true } },
+  code: { select: { name: true } },
+  colour: { select: { name: true } },
   finishType: { select: { name: true } },
   mill: { select: { id: true, name: true, whatsapp: true, phone: true } },
   weaver: { select: { id: true, name: true, whatsapp: true, phone: true } },
@@ -98,7 +105,7 @@ export function formatMillRfWhatsAppBody(input: {
     `Source: ${input.source === "SALES_RETURN" ? "Goods return QC" : "Program QC"}`,
     `Lot: ${lot.lotNumber}`,
     `Fabric: ${lot.fabricType.name}`,
-    `Colour: ${colorScheme(lot)}`,
+    `Quality / Code / Colour: ${colorScheme(lot)}`,
     finishNameOf(lot) !== "—" ? `Finish: ${finishNameOf(lot)}` : null,
     formatDec(lot.width) !== "—" ? `Width: ${formatDec(lot.width)}"` : null,
     formatDec(lot.gsm) !== "—" ? `GSM: ${formatDec(lot.gsm)}` : null,
@@ -253,9 +260,9 @@ export async function openMillReturnAndNotify(input: {
           mill: { select: { id: true, name: true, whatsapp: true, phone: true } },
           weaver: { select: { name: true } },
           fabricType: { select: { name: true } },
-          shade: {
-            select: { name: true, colorFamily: { select: { name: true } } },
-          },
+          quality: { select: { name: true } },
+          code: { select: { name: true } },
+          colour: { select: { name: true } },
         },
       },
     },
@@ -270,12 +277,12 @@ export async function openMillReturnAndNotify(input: {
   const dueAt = new Date(qcAt.getTime() + MILL_RETURN_SLA_MS);
   const rfNo = await nextMillRfNo();
   const defects = defectFlagsLabel(input);
-  const shade = inward.program.shade;
+  const identity = qccIdentity(inward.program);
   const goodsSummary = [
     inward.inwardNo,
     inward.program.programNo,
     inward.program.fabricType.name,
-    `${shade.colorFamily.name}/${shade.name}`,
+    identity,
     `${inward.quantity} ${inward.unit}`,
   ].join(" · ");
 
@@ -306,7 +313,7 @@ export async function openMillReturnAndNotify(input: {
       `Inward: ${inward.inwardNo}`,
       `Program: ${inward.program.programNo}`,
       `Fabric: ${inward.program.fabricType.name}`,
-      `Colour: ${shade.colorFamily.name} / ${shade.name}`,
+      `Quality / Code / Colour: ${identity}`,
       `Qty: ${inward.quantity} ${inward.unit}`,
       mill.name ? `Mill: ${mill.name}` : null,
       inward.program.weaver?.name
@@ -334,7 +341,7 @@ export async function openMillReturnAndNotify(input: {
         body,
         mill: mill.name,
         fabric: inward.program.fabricType.name,
-        colour: `${shade.colorFamily.name} / ${shade.name}`,
+        colour: identity,
         length: `${inward.quantity} ${inward.unit}`,
         dueAt: dueAt.toLocaleString("en-IN"),
       },
@@ -383,12 +390,9 @@ export async function markMillReturnSent(input: {
               mill: { select: { name: true } },
               weaver: { select: { name: true } },
               fabricType: { select: { name: true } },
-              shade: {
-                select: {
-                  name: true,
-                  colorFamily: { select: { name: true } },
-                },
-              },
+              quality: { select: { name: true } },
+              code: { select: { name: true } },
+              colour: { select: { name: true } },
             },
           },
         },
@@ -440,7 +444,7 @@ export async function markMillReturnSent(input: {
     } else if (input.resendWhatsApp && open.millInward) {
       const inward = open.millInward;
       const mill = inward.program.mill;
-      const shade = inward.program.shade;
+      const identity = qccIdentity(inward.program);
       const to = open.mill.whatsapp ?? open.mill.phone;
       if (to) {
         const body = [
@@ -449,7 +453,7 @@ export async function markMillReturnSent(input: {
           `Inward: ${inward.inwardNo}`,
           `Program: ${inward.program.programNo}`,
           `Fabric: ${inward.program.fabricType.name}`,
-          `Colour: ${shade.colorFamily.name} / ${shade.name}`,
+          `Quality / Code / Colour: ${identity}`,
           `Qty: ${inward.quantity} ${inward.unit}`,
           mill?.name ? `Mill: ${mill.name}` : null,
           inward.program.weaver?.name
@@ -474,7 +478,7 @@ export async function markMillReturnSent(input: {
             status: "SENT",
             mill: mill?.name ?? open.mill.name,
             fabric: inward.program.fabricType.name,
-            colour: `${shade.colorFamily.name} / ${shade.name}`,
+            colour: identity,
             length: `${inward.quantity} ${inward.unit}`,
           },
         });

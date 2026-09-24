@@ -12,8 +12,9 @@ export type GrBillOption = {
     id: string;
     lotNumber: string | null;
     fabricName: string | null;
-    colorFamily: string | null;
-    shadeName: string | null;
+    quality: string | null;
+    code: string | null;
+    colour: string | null;
     millName: string | null;
     millId: string | null;
     weaverName: string | null;
@@ -90,9 +91,9 @@ export function GoodsReturnIntakeForm({
               {[
                 l.lotNumber,
                 l.fabricName,
-                l.colorFamily && l.shadeName
-                  ? `${l.colorFamily}/${l.shadeName}`
-                  : l.shadeName,
+                l.quality && l.code && l.colour
+                  ? `${l.quality} / ${l.code} / ${l.colour}`
+                  : null,
                 l.millName ? `mill ${l.millName}` : null,
                 `${l.quantity}${l.unit}`,
               ]
@@ -107,7 +108,9 @@ export function GoodsReturnIntakeForm({
         <div className="rounded border border-(--line) bg-[#fafbfc] p-1.5 text-[11px]">
           <p className="font-semibold">
             {line.fabricName ?? "Fabric"} ·{" "}
-            {[line.colorFamily, line.shadeName].filter(Boolean).join("/") || "—"}
+            {line.quality && line.code && line.colour
+              ? `${line.quality} / ${line.code} / ${line.colour}`
+              : "Incomplete identity"}
           </p>
           <p className="mt-0.5 text-(--muted)">
             Mill {line.millName ?? "not linked"} · Weaver{" "}

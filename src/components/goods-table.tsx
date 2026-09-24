@@ -1,12 +1,12 @@
-import { formatDec } from "@/server/domain/goods";
+import { billLineIdentity, formatDec } from "@/server/domain/goods";
 import { formatQty } from "@/lib/utils";
 
 export type GoodsRow = {
   lotNumber?: string | null;
   fabricName?: string | null;
-  colorFamily?: string | null;
-  shadeName?: string | null;
-  shadeCode?: string | null;
+  quality?: string | null;
+  code?: string | null;
+  colour?: string | null;
   finishName?: string | null;
   millName?: string | null;
   weaverName?: string | null;
@@ -43,7 +43,7 @@ export function GoodsTable({
           <tr>
             <th>Lot</th>
             <th>Fabric</th>
-            <th>Color</th>
+            <th>Quality / Code / Colour</th>
             <th>Finish</th>
             <th>W / GSM</th>
             <th>Rolls</th>
@@ -63,10 +63,6 @@ export function GoodsTable({
         </thead>
         <tbody>
           {rows.map((r, i) => {
-            const color = [r.colorFamily, r.shadeName]
-              .filter(Boolean)
-              .join(" / ");
-            const shadeCode = r.shadeCode ? ` (${r.shadeCode})` : "";
             return (
               <tr key={`${r.lotNumber ?? "line"}-${i}`}>
                 <td>
@@ -76,10 +72,7 @@ export function GoodsTable({
                   ) : null}
                 </td>
                 <td>{r.fabricName ?? "—"}</td>
-                <td>
-                  {color || "—"}
-                  {shadeCode}
-                </td>
+                <td>{billLineIdentity(r)}</td>
                 <td>{r.finishName ?? "—"}</td>
                 <td className="tabular-nums">
                   {formatDec(r.width)} / {formatDec(r.gsm)}

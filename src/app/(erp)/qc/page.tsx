@@ -40,9 +40,9 @@ export default async function QcPage() {
           weaver: { select: { name: true } },
           fabricType: { select: { name: true } },
           finishType: { select: { name: true } },
-          shade: {
-            select: { name: true, colorFamily: { select: { name: true } } },
-          },
+          quality: { select: { name: true } },
+          code: { select: { name: true } },
+          colour: { select: { name: true } },
           greyOrder: { select: { quantity: true, unit: true } },
           inwards: { select: { quantity: true } },
         },
@@ -60,9 +60,9 @@ export default async function QcPage() {
               programNo: true,
               mill: { select: { name: true } },
               fabricType: { select: { name: true } },
-              shade: {
-                select: { name: true, colorFamily: { select: { name: true } } },
-              },
+              quality: { select: { name: true } },
+              code: { select: { name: true } },
+              colour: { select: { name: true } },
             },
           },
         },
@@ -82,9 +82,9 @@ export default async function QcPage() {
           rollCount: true,
           createdAt: true,
           fabricType: { select: { name: true } },
-          shade: {
-            select: { name: true, colorFamily: { select: { name: true } } },
-          },
+          quality: { select: { name: true } },
+          code: { select: { name: true } },
+          colour: { select: { name: true } },
           mill: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -99,7 +99,9 @@ export default async function QcPage() {
           lotNumber: true,
           returnPriority: true,
           fabricType: { select: { name: true } },
-          shade: { select: { name: true } },
+          quality: { select: { name: true } },
+          code: { select: { name: true } },
+          colour: { select: { name: true } },
           weaver: { select: { name: true } },
         },
         orderBy: [{ returnPriority: "desc" }, { updatedAt: "desc" }],
@@ -228,8 +230,12 @@ export default async function QcPage() {
                             {row.inwardNo} · {row.program.programNo} ·{" "}
                             {formatQty(row.quantity)} {row.unit} ·{" "}
                             {row.program.fabricType.name} ·{" "}
-                            {row.program.shade.colorFamily.name}/
-                            {row.program.shade.name} · mill{" "}
+                            {row.program.quality &&
+                            row.program.code &&
+                            row.program.colour
+                              ? `${row.program.quality.name} / ${row.program.code.name} / ${row.program.colour.name}`
+                              : "Incomplete identity"}{" "}
+                            · mill{" "}
                             {row.program.mill.name}
                           </option>
                         ))}
@@ -246,7 +252,10 @@ export default async function QcPage() {
                         {pendingLots.map((l) => (
                           <option key={l.id} value={l.id}>
                             {l.lotNumber} · {l.fabricType.name} ·{" "}
-                            {l.shade.colorFamily.name}/{l.shade.name} ·{" "}
+                            {l.quality && l.code && l.colour
+                              ? `${l.quality.name} / ${l.code.name} / ${l.colour.name}`
+                              : "Incomplete identity"}{" "}
+                            ·{" "}
                             {formatQty(l.lengthM ?? l.quantity)}
                             {l.mill ? ` · ${l.mill.name}` : ""}
                           </option>
@@ -335,7 +344,7 @@ export default async function QcPage() {
                     <thead>
                       <tr>
                         <th>Lot</th>
-                        <th>Fabric / shade</th>
+                        <th>Fabric / identity</th>
                         <th>Weaver</th>
                         <th>Pri</th>
                         <th />
@@ -346,7 +355,10 @@ export default async function QcPage() {
                         <tr key={lot.id}>
                           <td className="font-semibold">{lot.lotNumber}</td>
                           <td className="text-(--muted)">
-                            {lot.fabricType.name} / {lot.shade.name}
+                            {lot.fabricType.name} /{" "}
+                            {lot.quality && lot.code && lot.colour
+                              ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
+                              : "Incomplete identity"}
                           </td>
                           <td>{lot.weaver?.name ?? "—"}</td>
                           <td>

@@ -43,7 +43,9 @@ type TrailLot = {
   onHand: { toString(): string };
   reserved: { toString(): string };
   fabricType: { name: string };
-  shade: { name: string; colorFamily: { name: string } };
+  quality: { name: string } | null;
+  code: { name: string } | null;
+  colour: { name: string } | null;
   finishType: { name: string } | null;
   millMarka: { code: string } | null;
   mill: { name: string } | null;
@@ -124,7 +126,9 @@ export default async function LotTrailPage({
     where: { id: lotId },
     include: {
       fabricType: true,
-      shade: { include: { colorFamily: true } },
+      quality: { select: { name: true } },
+      code: { select: { name: true } },
+      colour: { select: { name: true } },
       finishType: true,
       millMarka: true,
       mill: true,
@@ -250,7 +254,11 @@ export default async function LotTrailPage({
       <PageHeader
         title={lot.lotNumber}
         icon={Boxes}
-        description={`${lot.fabricType.name} · ${lot.shade.colorFamily.name}/${lot.shade.name} · finish ${finishName}`}
+        description={`${lot.fabricType.name} · ${
+          lot.quality && lot.code && lot.colour
+            ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
+            : "Incomplete identity"
+        } · finish ${finishName}`}
         actions={
           <>
             {isReturn ? (

@@ -52,8 +52,9 @@ export default async function ReturnsPage() {
               lotId: true,
               lotNumber: true,
               fabricName: true,
-              colorFamily: true,
-              shadeName: true,
+              quality: true,
+              code: true,
+              colour: true,
               millName: true,
               weaverName: true,
               finishName: true,
@@ -84,12 +85,9 @@ export default async function ReturnsPage() {
           newLot: {
             include: {
               fabricType: { select: { name: true } },
-              shade: {
-                select: {
-                  name: true,
-                  colorFamily: { select: { name: true } },
-                },
-              },
+              quality: { select: { name: true } },
+              code: { select: { name: true } },
+              colour: { select: { name: true } },
               mill: { select: { name: true } },
               weaver: { select: { name: true } },
             },
@@ -149,8 +147,9 @@ export default async function ReturnsPage() {
       id: l.id,
       lotNumber: l.lotNumber,
       fabricName: l.fabricName,
-      colorFamily: l.colorFamily,
-      shadeName: l.shadeName,
+      quality: l.quality,
+      code: l.code,
+      colour: l.colour,
       millName: l.millName,
       millId: l.lot?.millId ?? null,
       weaverName: l.weaverName,
@@ -274,7 +273,11 @@ export default async function ReturnsPage() {
                     {r.newLot ? (
                       <p className="mb-1.5 text-[11px] text-(--muted)">
                         {r.newLot.fabricType.name} ·{" "}
-                        {r.newLot.shade.colorFamily.name}/{r.newLot.shade.name}
+                        {r.newLot.quality?.name &&
+                        r.newLot.code?.name &&
+                        r.newLot.colour?.name
+                          ? `${r.newLot.quality.name} / ${r.newLot.code.name} / ${r.newLot.colour.name}`
+                          : "Incomplete identity"}
                         {r.newLot.mill ? ` · mill ${r.newLot.mill.name}` : ""}
                         {r.newLot.weaver
                           ? ` · weaver ${r.newLot.weaver.name}`

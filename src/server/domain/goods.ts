@@ -2,14 +2,9 @@ import type { Decimal } from "@prisma/client/runtime/library";
 
 export const lotGoodsInclude = {
   fabricType: { select: { id: true, name: true } },
-  shade: {
-    select: {
-      id: true,
-      name: true,
-      code: true,
-      colorFamily: { select: { id: true, name: true } },
-    },
-  },
+  quality: { select: { id: true, name: true } },
+  code: { select: { id: true, name: true } },
+  colour: { select: { id: true, name: true } },
   finishType: { select: { id: true, name: true } },
   mill: { select: { id: true, name: true, whatsapp: true } },
   weaver: { select: { id: true, name: true, whatsapp: true } },
@@ -52,11 +47,9 @@ export type LotGoods = {
   origin?: string | null;
   returnPriority?: string | null;
   fabricType: { name: string };
-  shade: {
-    name: string;
-    code?: string | null;
-    colorFamily: { name: string };
-  };
+  quality?: { name: string } | null;
+  code?: { name: string } | null;
+  colour?: { name: string } | null;
   finishType?: { name: string } | null;
   mill?: { name: string } | null;
   weaver?: { name: string } | null;
@@ -106,9 +99,21 @@ export function rollsDetailText(lot: LotGoods): string {
 }
 
 export function colorScheme(lot: LotGoods): string {
-  return `${lot.shade.colorFamily.name} / ${lot.shade.name}${
-    lot.shade.code ? ` (${lot.shade.code})` : ""
-  }`;
+  if (lot.quality?.name && lot.code?.name && lot.colour?.name) {
+    return `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`;
+  }
+  return "Incomplete identity";
+}
+
+export function billLineIdentity(line: {
+  quality?: string | null;
+  code?: string | null;
+  colour?: string | null;
+}): string {
+  if (line.quality && line.code && line.colour) {
+    return `${line.quality} / ${line.code} / ${line.colour}`;
+  }
+  return "Incomplete identity";
 }
 
 export function millNameOf(lot: LotGoods): string {
@@ -172,12 +177,15 @@ export function goodsDescription(lot: LotGoods): string {
 }
 
 export function snapshotBillLine(lot: LotGoods) {
+  const fullScheme = Boolean(
+    lot.quality?.name && lot.code?.name && lot.colour?.name,
+  );
   return {
     lotNumber: lot.lotNumber,
     fabricName: lot.fabricType.name,
-    colorFamily: lot.shade.colorFamily.name,
-    shadeName: lot.shade.name,
-    shadeCode: lot.shade.code ?? null,
+    quality: fullScheme ? lot.quality!.name : null,
+    code: fullScheme ? lot.code!.name : null,
+    colour: fullScheme ? lot.colour!.name : null,
     finishName: finishNameOf(lot) === "—" ? null : finishNameOf(lot),
     millName: millNameOf(lot) === "—" ? null : millNameOf(lot),
     weaverName: weaverNameOf(lot) === "—" ? null : weaverNameOf(lot),
@@ -196,9 +204,9 @@ export function snapshotBillLine(lot: LotGoods) {
 export type BillLineGoods = {
   lotNumber?: string | null;
   fabricName?: string | null;
-  colorFamily?: string | null;
-  shadeName?: string | null;
-  shadeCode?: string | null;
+  quality?: string | null;
+  code?: string | null;
+  colour?: string | null;
   finishName?: string | null;
   millName?: string | null;
   weaverName?: string | null;
@@ -226,11 +234,12 @@ export function formatBillWhatsAppBody(input: {
 }): string {
   const lines = input.lines
     .map((l, i) => {
-      const color = [l.colorFamily, l.shadeName].filter(Boolean).join("/");
+      const color = billLineIdentity(l);
+      const colorPart = color === "—" ? null : color;
       return [
         `${i + 1}. ${l.lotNumber ?? "Lot"}`,
         l.fabricName,
-        color || null,
+        colorPart,
         l.finishName ? `Finish ${l.finishName}` : null,
         num(l.width) !== null ? `W ${formatDec(l.width)}` : null,
         num(l.gsm) !== null ? `GSM ${formatDec(l.gsm)}` : null,

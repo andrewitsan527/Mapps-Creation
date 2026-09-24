@@ -13,7 +13,12 @@ import {
   formatQty,
 } from "@/lib/utils";
 import { statusBadge } from "@/lib/format";
-import { lotGoodsInclude, lotLabel, type LotGoods } from "@/server/domain/goods";
+import {
+  billLineIdentity,
+  lotGoodsInclude,
+  lotLabel,
+  type LotGoods,
+} from "@/server/domain/goods";
 import { listPartyOptions } from "@/lib/parties";
 import { PartySelect } from "@/components/party-select";
 import {
@@ -63,8 +68,9 @@ export default async function SalesPage() {
         lines: {
           select: {
             fabricName: true,
-            shadeName: true,
-            colorFamily: true,
+            quality: true,
+            code: true,
+            colour: true,
             rollCount: true,
             quantity: true,
             unit: true,
@@ -218,7 +224,7 @@ export default async function SalesPage() {
 
                 <FieldGroup label="Pricing">
                   <div className="grid grid-cols-2 gap-1.5">
-                    <Field label="Qty (m)">
+                    <Field label="Qty (kg)">
                       <input
                         className={inputClass}
                         name="quantity"
@@ -333,9 +339,7 @@ export default async function SalesPage() {
                               .map((l) =>
                                 [
                                   l.fabricName,
-                                  l.colorFamily && l.shadeName
-                                    ? `${l.colorFamily}/${l.shadeName}`
-                                    : l.shadeName,
+                                  billLineIdentity(l),
                                   l.rollCount ? `${l.rollCount}r` : null,
                                   `${formatQty(l.quantity)}${l.unit}`,
                                 ]

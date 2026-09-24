@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { createProgram, sendProgramWhatsApp } from "@/server/actions/programs";
-import { MillInwardForm } from "@/components/mill-inward-form";
 import { MillReturnCompleteForm } from "@/components/mill-return-complete-form";
 import { programQtySummary } from "@/server/domain/mill-inward";
 import { listMillWeaverLinks, listPartyOptions } from "@/lib/parties";
@@ -27,20 +26,12 @@ import {
 import {
   ClipboardCheck,
   Eye,
-  Inbox,
   MessageCircle,
   PlusCircle,
   ScrollText,
 } from "lucide-react";
 
 type IdName = { id: string; name: string };
-type ShadeOption = {
-  id: string;
-  name: string;
-  code: string;
-  hex: string | null;
-  colorFamily: { name: string };
-};
 type GreyOption = {
   id: string;
   poNumber: string;
@@ -64,7 +55,9 @@ type ProgramRow = {
   mill: IdName;
   weaver: IdName | null;
   fabricType: IdName;
-  shade: ShadeOption;
+  quality: { name: string } | null;
+  code: { name: string } | null;
+  colour: { name: string } | null;
   finishType: IdName | null;
   greyOrder: { poNumber: string } | null;
   lots: { id: string; lotNumber: string }[];
@@ -111,7 +104,7 @@ const stageGroups = [
 ];
 
 export default async function ProgramsPage() {
-  const [mills, weavers, fabrics, shades, finishes, greyRows, millWeaverLinks, programs] =
+  const [mills, weavers, fabrics, qualities, codes, colours, finishes, greyRows, millWeaverLinks, programs] =
     await Promise.all([
       listPartyOptions("MILL"),
       listPartyOptions("WEAVER"),
@@ -120,16 +113,20 @@ export default async function ProgramsPage() {
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
-      prisma.shade.findMany({
+      prisma.quality.findMany({
         where: { active: true },
-        select: {
-          id: true,
-          name: true,
-          code: true,
-          hex: true,
-          colorFamily: { select: { name: true } },
-        },
-        orderBy: [{ colorFamily: { name: "asc" } }, { name: "asc" }],
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.code.findMany({
+        where: { active: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.colour.findMany({
+        where: { active: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
       }),
       prisma.finishType.findMany({
         where: { active: true },
@@ -164,15 +161,9 @@ export default async function ProgramsPage() {
           mill: { select: { id: true, name: true } },
           weaver: { select: { id: true, name: true } },
           fabricType: { select: { id: true, name: true } },
-          shade: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-              hex: true,
-              colorFamily: { select: { name: true } },
-            },
-          },
+          quality: { select: { name: true } },
+          code: { select: { name: true } },
+          colour: { select: { name: true } },
           finishType: { select: { id: true, name: true } },
           greyOrder: { select: { poNumber: true, quantity: true, unit: true } },
           returnCompletedAt: true,
@@ -212,22 +203,6 @@ export default async function ProgramsPage() {
     };
   });
 
-  const inwardable = programRows
-    .filter(
-      (p) =>
-        p.status !== "DRAFT" &&
-        p.status !== "CLOSED" &&
-        p.status !== "CANCELLED" &&
-        (p.qty.remaining == null || p.qty.remaining > 0),
-    )
-    .map((p) => ({
-      id: p.id,
-      programNo: p.programNo,
-      millName: p.mill.name,
-      unit: p.qty.unit,
-      remaining: p.qty.remaining,
-    }));
-
   const greys: GreyOption[] = greyRows.map((g) => ({
     id: g.id,
     poNumber: g.poNumber,
@@ -257,7 +232,7 @@ export default async function ProgramsPage() {
         title="Mill programs"
         eyebrow="Produce"
         icon={ScrollText}
-        description="One card per mill instruction. Send it on WhatsApp, record mill inwards as goods return, then hand each inward to QC."
+        description="One card per mill instruction. Create the program, send it on WhatsApp, and track status. Physical receipts are recorded on Mill Inward."
         actions={
           <Link href="/qc" className={buttonTinyClass}>
             <ClipboardCheck className="h-3 w-3" />
@@ -313,12 +288,32 @@ export default async function ProgramsPage() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Shade / color scheme">
-                  <select className={inputClass} name="shadeId" required>
-                    <option value="">Select shade…</option>
-                    {shades.map((s: ShadeOption) => (
-                      <option key={s.id} value={s.id}>
-                        {s.colorFamily.name} · {s.name} ({s.code})
+                <Field label="Quality">
+                  <select className={inputClass} name="qualityId" required>
+                    <option value="">Select…</option>
+                    {qualities.map((q: IdName) => (
+                      <option key={q.id} value={q.id}>
+                        {q.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Code">
+                  <select className={inputClass} name="codeId" required>
+                    <option value="">Select…</option>
+                    {codes.map((c: IdName) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Colour">
+                  <select className={inputClass} name="colourId" required>
+                    <option value="">Select…</option>
+                    {colours.map((c: IdName) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
                       </option>
                     ))}
                   </select>
@@ -379,7 +374,7 @@ export default async function ProgramsPage() {
             <Panel compact>
               <EmptyState
                 icon={ScrollText}
-                text="No programs yet. Add shades under Masters → Colors if the shade list is empty."
+                text="No programs yet. Add Quality, Code and Colour under Masters → Colors first."
               />
             </Panel>
           ) : (
@@ -405,7 +400,7 @@ export default async function ProgramsPage() {
                         <thead>
                           <tr>
                             <th>Program</th>
-                            <th>Shade</th>
+                            <th>Quality / code / colour</th>
                             <th>Spec</th>
                             <th>Mill / weaver</th>
                             <th>Inward</th>
@@ -431,15 +426,14 @@ export default async function ProgramsPage() {
                                 </p>
                               </td>
                               <td>
-                                <span className="inline-flex items-center gap-1.5">
-                                  <span
-                                    className="h-3.5 w-3.5 shrink-0 rounded-full border border-(--line)"
-                                    style={{ background: p.shade.hex || "#999" }}
-                                  />
+                                {p.quality && p.code && p.colour ? (
                                   <span className="truncate">
-                                    {p.shade.colorFamily.name}/{p.shade.name}
+                                    {p.quality.name} / {p.code.name} /{" "}
+                                    {p.colour.name}
                                   </span>
-                                </span>
+                                ) : (
+                                  "Incomplete identity"
+                                )}
                               </td>
                               <td className="text-[11px] text-(--muted)">
                                 {p.gsm ? `${p.gsm} GSM` : "—"} ·{" "}
@@ -566,27 +560,13 @@ export default async function ProgramsPage() {
             </div>
           )}
 
-          {inwardable.length > 0 ? (
-            <Section
-              title="Mill inward"
-              step={3}
-              icon={Inbox}
-              description="Record each physical return. Remaining is not treated as shortage."
-            >
-              <Panel compact>
-                <MillInwardForm programs={inwardable} />
-              </Panel>
-            </Section>
-          ) : null}
-
           <div className="tx-next">
           <NextStep
             steps={[
               {
-                label: "Record mill inward & run QC",
+                label: "QC desk",
                 href: "/qc",
-                hint: "Inward, then QC; lot is created on PASS",
-                count: inwardable.length || undefined,
+                hint: "Inspect lots after inward; lot is created on PASS",
               },
               {
                 label: "Check live stock",

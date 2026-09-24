@@ -98,13 +98,22 @@ export async function applyStockMovement(
   });
 }
 
-/** Aggregate live stock by fabric + shade (+ optional GSM/width filters). */
+function hasFullScheme(lot: {
+  qualityId: string | null;
+  codeId: string | null;
+  colourId: string | null;
+}) {
+  return Boolean(lot.qualityId && lot.codeId && lot.colourId);
+}
+
+/** Aggregate live stock by fabric + Quality / Code / Colour (+ optional GSM/width). */
 export async function getAvailability(
   db: Db,
   filters: {
     fabricTypeId?: string;
-    shadeId?: string;
-    colorFamilyId?: string;
+    qualityId?: string;
+    codeId?: string;
+    colourId?: string;
     gsm?: number;
     width?: number;
     qualityGrade?: string;
@@ -115,34 +124,39 @@ export async function getAvailability(
     where: {
       active: true,
       ...(filters.fabricTypeId ? { fabricTypeId: filters.fabricTypeId } : {}),
-      ...(filters.shadeId ? { shadeId: filters.shadeId } : {}),
+      ...(filters.qualityId ? { qualityId: filters.qualityId } : {}),
+      ...(filters.codeId ? { codeId: filters.codeId } : {}),
+      ...(filters.colourId ? { colourId: filters.colourId } : {}),
       ...(filters.godownId ? { godownId: filters.godownId } : {}),
       ...(filters.qualityGrade
         ? { qualityGrade: filters.qualityGrade as never }
-        : {}),
-      ...(filters.colorFamilyId
-        ? { shade: { colorFamilyId: filters.colorFamilyId } }
         : {}),
       ...(filters.gsm != null ? { gsm: filters.gsm } : {}),
       ...(filters.width != null ? { width: filters.width } : {}),
     },
     include: {
       fabricType: true,
-      shade: { include: { colorFamily: true } },
+      quality: { select: { id: true, name: true } },
+      code: { select: { id: true, name: true } },
+      colour: { select: { id: true, name: true } },
       godown: true,
       location: true,
     },
-    orderBy: [{ fabricType: { name: "asc" } }, { shade: { name: "asc" } }],
+    orderBy: [{ fabricType: { name: "asc" } }, { createdAt: "desc" }],
   });
 
   const groups = new Map<
     string,
     {
+      identity: "qcc" | "incomplete";
       fabricTypeId: string;
       fabricTypeName: string;
-      shadeId: string;
-      shadeName: string;
-      colorFamilyName: string;
+      qualityId: string | null;
+      qualityName: string | null;
+      codeId: string | null;
+      codeName: string | null;
+      colourId: string | null;
+      colourName: string | null;
       gsm: string | null;
       width: string | null;
       unit: string;
@@ -154,13 +168,20 @@ export async function getAvailability(
   >();
 
   for (const lot of lots) {
-    const key = [
-      lot.fabricTypeId,
-      lot.shadeId,
-      lot.gsm?.toString() ?? "",
-      lot.width?.toString() ?? "",
-      lot.unit,
-    ].join("|");
+    const gsm = lot.gsm?.toString() ?? "";
+    const width = lot.width?.toString() ?? "";
+    const identity = hasFullScheme(lot) ? "qcc" : "incomplete";
+    const key = hasFullScheme(lot)
+      ? [
+          lot.fabricTypeId,
+          lot.qualityId,
+          lot.codeId,
+          lot.colourId,
+          gsm,
+          width,
+          lot.unit,
+        ].join("|")
+      : `incomplete:${lot.id}`;
 
     const existing = groups.get(key);
     const onHand = toDecimal(lot.onHand);
@@ -169,11 +190,15 @@ export async function getAvailability(
 
     if (!existing) {
       groups.set(key, {
+        identity,
         fabricTypeId: lot.fabricTypeId,
         fabricTypeName: lot.fabricType.name,
-        shadeId: lot.shadeId,
-        shadeName: lot.shade.name,
-        colorFamilyName: lot.shade.colorFamily.name,
+        qualityId: lot.qualityId,
+        qualityName: lot.quality?.name ?? null,
+        codeId: lot.codeId,
+        codeName: lot.code?.name ?? null,
+        colourId: lot.colourId,
+        colourName: lot.colour?.name ?? null,
         gsm: lot.gsm?.toString() ?? null,
         width: lot.width?.toString() ?? null,
         unit: lot.unit,

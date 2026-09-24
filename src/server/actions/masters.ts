@@ -24,42 +24,6 @@ export async function createFabricType(formData: FormData) {
   revalidatePath("/masters/fabrics");
 }
 
-export async function createColorFamily(formData: FormData) {
-  await requireUser();
-  const name = String(formData.get("name") || "").trim();
-  if (!name) throw new Error("Name required");
-
-  await prisma.colorFamily.create({ data: { name } });
-  revalidatePath("/masters/colors");
-}
-
-export async function createShade(formData: FormData) {
-  await requireUser();
-  const schema = z.object({
-    colorFamilyId: z.string().min(1),
-    code: z.string().min(1),
-    name: z.string().min(1),
-    hex: z.string().optional(),
-  });
-
-  const parsed = schema.parse({
-    colorFamilyId: formData.get("colorFamilyId"),
-    code: String(formData.get("code") || "").trim(),
-    name: String(formData.get("name") || "").trim(),
-    hex: String(formData.get("hex") || "").trim() || undefined,
-  });
-
-  await prisma.shade.create({
-    data: {
-      colorFamilyId: parsed.colorFamilyId,
-      code: parsed.code,
-      name: parsed.name,
-      hex: parsed.hex,
-    },
-  });
-  revalidatePath("/masters/colors");
-}
-
 export async function createFinishType(formData: FormData) {
   await requireUser();
   const name = String(formData.get("name") || "").trim();
@@ -67,4 +31,31 @@ export async function createFinishType(formData: FormData) {
 
   await prisma.finishType.create({ data: { name } });
   revalidatePath("/masters/finishes");
+}
+
+export async function createQuality(formData: FormData) {
+  await requireUser();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) throw new Error("Name required");
+
+  await prisma.quality.create({ data: { name } });
+  revalidatePath("/masters/colors");
+}
+
+export async function createCode(formData: FormData) {
+  await requireUser();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) throw new Error("Name required");
+
+  await prisma.code.create({ data: { name } });
+  revalidatePath("/masters/colors");
+}
+
+export async function createColour(formData: FormData) {
+  await requireUser();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) throw new Error("Name required");
+
+  await prisma.colour.create({ data: { name } });
+  revalidatePath("/masters/colors");
 }

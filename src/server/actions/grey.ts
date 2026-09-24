@@ -25,7 +25,7 @@ export async function createGreyPo(formData: FormData) {
   const agentId = String(formData.get("agentId") || "") || null;
   const fabricNotes = String(formData.get("fabricNotes") || "").trim() || null;
   const quantityRaw = String(formData.get("quantity") || "").trim();
-  const unit = String(formData.get("unit") || "m");
+  const unit = "kg";
   const dyeingRateRaw = String(formData.get("dyeingRate") || "").trim();
   const whatsappNote = String(formData.get("whatsappNote") || "").trim() || null;
   const notify = String(formData.get("notifyWhatsapp") || "") === "true";

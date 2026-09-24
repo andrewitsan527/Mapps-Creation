@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { deliverSaleBill } from "@/server/actions/sales";
 import { formatDate, formatMoney, formatMoneyShort, relativeDays } from "@/lib/utils";
 import { GoodsTable } from "@/components/goods-table";
+import { billLineIdentity } from "@/server/domain/goods";
 import {
   EmptyState,
   Field,
@@ -56,7 +57,9 @@ export default async function DispatchPage() {
           select: {
             lotNumber: true,
             fabricName: true,
-            shadeName: true,
+            quality: true,
+            code: true,
+            colour: true,
             rollsDetail: true,
           },
         },
@@ -241,7 +244,7 @@ export default async function DispatchPage() {
                             [
                               l.lotNumber,
                               l.fabricName,
-                              l.shadeName,
+                              billLineIdentity(l),
                               l.rollsDetail,
                             ]
                               .filter(Boolean)

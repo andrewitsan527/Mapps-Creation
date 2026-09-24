@@ -63,7 +63,9 @@ export async function intakeGoodsReturn(formData: FormData) {
           lot: {
             include: {
               fabricType: true,
-              shade: true,
+              quality: true,
+              code: true,
+              colour: true,
               finishType: true,
               mill: true,
               weaver: true,
@@ -81,7 +83,9 @@ export async function intakeGoodsReturn(formData: FormData) {
 
   const lotInclude = {
     fabricType: true,
-    shade: true,
+    quality: true,
+    code: true,
+    colour: true,
     finishType: true,
     mill: true,
     weaver: true,
@@ -103,26 +107,37 @@ export async function intakeGoodsReturn(formData: FormData) {
   }
 
   let fabricTypeId = sourceLot?.fabricTypeId;
-  let shadeId = sourceLot?.shadeId;
+  let qualityId = sourceLot?.qualityId ?? null;
+  let codeId = sourceLot?.codeId ?? null;
+  let colourId = sourceLot?.colourId ?? null;
   if (!fabricTypeId && line.fabricName) {
     const ft = await prisma.fabricType.findFirst({
       where: { name: line.fabricName },
     });
     fabricTypeId = ft?.id;
   }
-  if (!shadeId && line.shadeName) {
-    const sh = await prisma.shade.findFirst({
-      where: {
-        name: line.shadeName,
-        ...(line.colorFamily
-          ? { colorFamily: { name: line.colorFamily } }
-          : {}),
-      },
+  if (!qualityId && line.quality) {
+    const q = await prisma.quality.findFirst({
+      where: { name: line.quality },
     });
-    shadeId = sh?.id;
+    qualityId = q?.id ?? null;
   }
-  if (!fabricTypeId || !shadeId) {
-    throw new Error("Fabric / shade from bill could not be matched in masters");
+  if (!codeId && line.code) {
+    const c = await prisma.code.findFirst({
+      where: { name: line.code },
+    });
+    codeId = c?.id ?? null;
+  }
+  if (!colourId && line.colour) {
+    const col = await prisma.colour.findFirst({
+      where: { name: line.colour },
+    });
+    colourId = col?.id ?? null;
+  }
+  if (!fabricTypeId || !qualityId || !codeId || !colourId) {
+    throw new Error(
+      "Fabric / quality / code / colour from bill could not be matched in masters",
+    );
   }
 
   const expectedMillId =
@@ -178,7 +193,9 @@ export async function intakeGoodsReturn(formData: FormData) {
         parentLotId: sourceLot?.id ?? null,
         millMarkaId: verifiedMarka.id,
         fabricTypeId,
-        shadeId,
+        qualityId,
+        codeId,
+        colourId,
         finishTypeId: sourceLot?.finishTypeId ?? null,
         millId: verifiedMarka.millId,
         weaverId: sourceLot?.weaverId ?? null,

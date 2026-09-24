@@ -42,9 +42,9 @@ export default async function ReportsPage() {
         onHand: true,
         reserved: true,
         fabricType: { select: { name: true } },
-        shade: {
-          select: { name: true, colorFamily: { select: { name: true } } },
-        },
+        quality: { select: { name: true } },
+        code: { select: { name: true } },
+        colour: { select: { name: true } },
       },
       take: 200,
     }),
@@ -58,15 +58,19 @@ export default async function ReportsPage() {
   const passRate =
     qcTotal === 0 ? 0 : Math.round((qcPass / qcTotal) * 1000) / 10;
 
-  const stockByShade = new Map<
+  const stockByIdentity = new Map<
     string,
     { onHand: number; reserved: number; available: number }
   >();
   for (const lot of lots) {
-    const key = `${lot.fabricType.name} / ${lot.shade.colorFamily.name}/${lot.shade.name}`;
+    const identity =
+      lot.quality?.name && lot.code?.name && lot.colour?.name
+        ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
+        : "Incomplete identity";
+    const key = `${lot.fabricType.name} / ${identity}`;
     const onHand = Number(lot.onHand);
     const reserved = Number(lot.reserved);
-    const cur = stockByShade.get(key) ?? {
+    const cur = stockByIdentity.get(key) ?? {
       onHand: 0,
       reserved: 0,
       available: 0,
@@ -74,10 +78,10 @@ export default async function ReportsPage() {
     cur.onHand += onHand;
     cur.reserved += reserved;
     cur.available += onHand - reserved;
-    stockByShade.set(key, cur);
+    stockByIdentity.set(key, cur);
   }
 
-  const stockRows = Array.from(stockByShade.entries())
+  const stockRows = Array.from(stockByIdentity.entries())
     .map(([name, v]) => ({ name, ...v }))
     .sort((a, b) => b.available - a.available)
     .slice(0, 25);
@@ -90,7 +94,7 @@ export default async function ReportsPage() {
         title="Reports"
         eyebrow="Insight"
         icon={BarChart3}
-        description="Quality performance, where programs are stuck, and how stock is distributed across fabric and shade."
+        description="Quality performance, where programs are stuck, and how stock is distributed across fabric and Quality / Code / Colour."
         actions={
           <Link href="/dashboard" className={buttonTinyClass}>
             Control tower
@@ -214,7 +218,7 @@ export default async function ReportsPage() {
         </Panel>
 
         <Panel
-          title="Stock by fabric / shade"
+          title="Stock by fabric / Quality / Code / Colour"
           icon={Boxes}
           tone="accent"
           subtitle="Top 25 by available"
@@ -234,7 +238,7 @@ export default async function ReportsPage() {
               <table className="erp-table">
                 <thead>
                   <tr>
-                    <th>Fabric / shade</th>
+                    <th>Fabric / Quality / Code / Colour</th>
                     <th>Share</th>
                     <th className="num">Avail</th>
                     <th className="num">Reserved</th>

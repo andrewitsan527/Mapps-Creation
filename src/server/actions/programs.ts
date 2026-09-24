@@ -33,7 +33,9 @@ export async function createProgram(formData: FormData) {
   let weaverId = String(formData.get("weaverId") || "") || null;
   const greyOrderId = String(formData.get("greyOrderId") || "") || null;
   const fabricTypeId = String(formData.get("fabricTypeId") || "");
-  const shadeId = String(formData.get("shadeId") || "");
+  const qualityId = String(formData.get("qualityId") || "");
+  const codeId = String(formData.get("codeId") || "");
+  const colourId = String(formData.get("colourId") || "");
   const finishTypeId = String(formData.get("finishTypeId") || "") || null;
   const width = String(formData.get("width") || "").trim() || null;
   const gsm = String(formData.get("gsm") || "").trim() || null;
@@ -41,9 +43,24 @@ export async function createProgram(formData: FormData) {
   const extraMods = String(formData.get("extraMods") || "").trim() || null;
   let remarks = String(formData.get("remarks") || "").trim() || null;
 
-  if (!fabricTypeId || !shadeId) {
-    throw new Error("Fabric type and shade are required");
+  if (!fabricTypeId) {
+    throw new Error("Fabric type is required");
   }
+  if (!qualityId || !codeId || !colourId) {
+    throw new Error("Quality, code and colour are required");
+  }
+
+  const [quality, code, colour] = await Promise.all([
+    prisma.quality.findUnique({ where: { id: qualityId } }),
+    prisma.code.findUnique({ where: { id: codeId } }),
+    prisma.colour.findUnique({ where: { id: colourId } }),
+  ]);
+  if (!quality) throw new Error("Quality not found");
+  if (!quality.active) throw new Error("Quality is not active");
+  if (!code) throw new Error("Code not found");
+  if (!code.active) throw new Error("Code is not active");
+  if (!colour) throw new Error("Colour not found");
+  if (!colour.active) throw new Error("Colour is not active");
 
   if (greyOrderId) {
     const grey = await prisma.greyPurchaseOrder.findUniqueOrThrow({
@@ -97,7 +114,9 @@ export async function createProgram(formData: FormData) {
       weaverId,
       greyOrderId,
       fabricTypeId,
-      shadeId,
+      qualityId,
+      codeId,
+      colourId,
       finishTypeId,
       width,
       gsm,
@@ -122,16 +141,17 @@ export async function sendProgramWhatsApp(formData: FormData) {
   }
 
   const cardUrl = programCardPublicUrl(program.id);
-  const shadeLabel = `${program.shade.colorFamily.name} / ${program.shade.name}`;
-  const hex = program.shade.hex?.toUpperCase() ?? "see card";
+  const schemeLabel =
+    program.quality && program.code && program.colour
+      ? `${program.quality.name} / ${program.code.name} / ${program.colour.name}`
+      : "Incomplete identity";
 
   const body = [
     `${COMPANY.shortName} — Mill program card`,
     `Program: ${program.programNo}`,
     `Mill: ${program.mill.name}`,
     `Fabric: ${program.fabricType.name}`,
-    `Colour: ${shadeLabel}`,
-    `Colour hex: ${hex}`,
+    `Quality / Code / Colour: ${schemeLabel}`,
     `GSM: ${program.gsm ?? "-"}`,
     `Width: ${program.width ?? "-"}`,
     `Finish: ${program.finishType?.name ?? "-"}`,
@@ -152,8 +172,7 @@ export async function sendProgramWhatsApp(formData: FormData) {
     variables: {
       programNo: program.programNo,
       fabric: program.fabricType.name,
-      color: shadeLabel,
-      hex,
+      color: schemeLabel,
       gsm: program.gsm ?? "-",
       width: program.width ?? "-",
       finish: program.finishType?.name ?? "-",

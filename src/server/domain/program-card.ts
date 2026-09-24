@@ -1,14 +1,6 @@
 import { prisma } from "@/lib/db";
 import { COMPANY } from "@/lib/company";
 
-export type ProgramCardShade = {
-  id: string;
-  code: string;
-  name: string;
-  hex: string | null;
-  colorFamily: { id: string; name: string };
-};
-
 export type ProgramCardData = {
   id: string;
   programNo: string;
@@ -28,12 +20,12 @@ export type ProgramCardData = {
   };
   weaver: { id: string; name: string } | null;
   fabricType: { id: string; name: string };
-  shade: ProgramCardShade;
+  quality: { id: string; name: string } | null;
+  code: { id: string; name: string } | null;
+  colour: { id: string; name: string } | null;
   finishType: { id: string; name: string } | null;
   greyOrder: { poNumber: string } | null;
   lots: { id: string; lotNumber: string }[];
-  /** Other active shades in the same colour family — visual reference strip. */
-  familyShades: ProgramCardShade[];
   company: typeof COMPANY;
 };
 
@@ -48,15 +40,9 @@ export async function getProgramCardData(
       },
       weaver: { select: { id: true, name: true } },
       fabricType: { select: { id: true, name: true } },
-      shade: {
-        select: {
-          id: true,
-          code: true,
-          name: true,
-          hex: true,
-          colorFamily: { select: { id: true, name: true } },
-        },
-      },
+      quality: { select: { id: true, name: true } },
+      code: { select: { id: true, name: true } },
+      colour: { select: { id: true, name: true } },
       finishType: { select: { id: true, name: true } },
       greyOrder: { select: { poNumber: true } },
       lots: {
@@ -68,22 +54,6 @@ export async function getProgramCardData(
   });
 
   if (!program) return null;
-
-  const familyShades = await prisma.shade.findMany({
-    where: {
-      colorFamilyId: program.shade.colorFamily.id,
-      active: true,
-    },
-    select: {
-      id: true,
-      code: true,
-      name: true,
-      hex: true,
-      colorFamily: { select: { id: true, name: true } },
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    take: 12,
-  });
 
   return {
     id: program.id,
@@ -99,11 +69,12 @@ export async function getProgramCardData(
     mill: program.mill,
     weaver: program.weaver,
     fabricType: program.fabricType,
-    shade: program.shade,
+    quality: program.quality,
+    code: program.code,
+    colour: program.colour,
     finishType: program.finishType,
     greyOrder: program.greyOrder,
     lots: program.lots,
-    familyShades,
     company: COMPANY,
   };
 }

@@ -11,15 +11,6 @@ function fmtDate(d: Date | null | undefined) {
   });
 }
 
-function contrastInk(hex: string | null | undefined) {
-  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return "#ffffff";
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luma > 0.62 ? "#1a1208" : "#ffffff";
-}
-
 function Spec({
   label,
   value,
@@ -38,16 +29,14 @@ function Spec({
 /**
  * Print-ready Mapps Creation program / swatch card.
  * Matches the physical letterhead: gold on charcoal, GSTIN, address,
- * and a large visual colour chip so the mill sees the intended shade.
+ * and Quality / Code / Colour so the mill sees the intended goods.
  */
 export function ProgramCard({ data }: { data: ProgramCardData }) {
   const c = data.company ?? COMPANY;
-  const hex = data.shade.hex || "#808080";
-  const ink = contrastInk(data.shade.hex);
-  const primaryInFamily = data.familyShades.find((s) => s.id === data.shade.id);
-  const strip = primaryInFamily
-    ? data.familyShades
-    : [data.shade, ...data.familyShades];
+  const scheme =
+    data.quality && data.code && data.colour
+      ? `${data.quality.name} / ${data.code.name} / ${data.colour.name}`
+      : "Incomplete identity";
 
   return (
     <article className="program-card-print pc-sheet">
@@ -89,6 +78,9 @@ export function ProgramCard({ data }: { data: ProgramCardData }) {
         <Spec label="Program no." value={data.programNo} />
         <Spec label="Date" value={fmtDate(data.sentAt ?? data.createdAt)} />
         <Spec label="Fabric" value={data.fabricType.name} />
+        <Spec label="Quality" value={data.quality?.name ?? "—"} />
+        <Spec label="Code" value={data.code?.name ?? "—"} />
+        <Spec label="Colour" value={data.colour?.name ?? "—"} />
         <Spec label="Mill" value={data.mill.name} />
         <Spec
           label="Weaver"
@@ -123,52 +115,13 @@ export function ProgramCard({ data }: { data: ProgramCardData }) {
       {/* Colour + process */}
       <section className="pc-body">
         <div className="pc-colour-col">
-          <p className="pc-section-label">Colour for mill</p>
-          <div
-            className="pc-swatch-hero"
-            style={{ background: hex, color: ink }}
-          >
-            <span className="pc-swatch-name">{data.shade.name}</span>
-            <span className="pc-swatch-meta">
-              {data.shade.colorFamily.name} · {data.shade.code}
+          <p className="pc-section-label">Quality / Code / Colour</p>
+          <div className="pc-swatch-hero">
+            <span className="pc-swatch-name">
+              {data.colour?.name ?? "—"}
             </span>
-            <span className="pc-swatch-hex">{hex.toUpperCase()}</span>
+            <span className="pc-swatch-meta">{scheme}</span>
           </div>
-
-          {strip.length > 1 ? (
-            <div className="pc-family">
-              <p className="pc-section-label">
-                {data.shade.colorFamily.name} family
-              </p>
-              <ul className="pc-family-list">
-                {strip.map((s, i) => {
-                  const isPrimary = s.id === data.shade.id;
-                  return (
-                    <li
-                      key={s.id}
-                      className={
-                        isPrimary ? "pc-family-item is-primary" : "pc-family-item"
-                      }
-                    >
-                      <span
-                        className="pc-family-chip"
-                        style={{ background: s.hex || "#ccc" }}
-                      />
-                      <span className="pc-family-text">
-                        <strong>
-                          {i + 1}. {s.name}
-                        </strong>
-                        <em>{(s.hex || "no hex").toUpperCase()}</em>
-                      </span>
-                      {isPrimary ? (
-                        <span className="pc-family-flag">THIS</span>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ) : null}
         </div>
 
         <div className="pc-notes-col">

@@ -107,15 +107,14 @@ export function GreyPurchaseFields({
             />
           </Field>
           <Field label="Unit">
-            <select className={inputClass} name="unit" defaultValue="m">
-              <option value="m">m</option>
+            <select className={inputClass} name="unit" defaultValue="kg">
               <option value="kg">kg</option>
             </select>
           </Field>
         </div>
         <Field
           label="Dyeing rate"
-          hint="Per the quantity unit (₹/m or ₹/kg)"
+          hint="₹/kg"
         >
           <input
             className={inputClass}

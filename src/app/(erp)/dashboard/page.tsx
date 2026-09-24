@@ -52,7 +52,9 @@ export default async function DashboardPage() {
           unit: true,
           returnPriority: true,
           fabricType: { select: { name: true } },
-          shade: { select: { name: true } },
+          quality: { select: { name: true } },
+          code: { select: { name: true } },
+          colour: { select: { name: true } },
           weaver: { select: { name: true } },
         },
         orderBy: [{ returnPriority: "desc" }, { updatedAt: "desc" }],
@@ -202,7 +204,7 @@ export default async function DashboardPage() {
                   <thead>
                     <tr>
                       <th>Lot</th>
-                      <th>Fabric / shade</th>
+                      <th>Fabric / Quality / Code / Colour</th>
                       <th>Weaver</th>
                       <th className="num">Qty</th>
                       <th>Pri</th>
@@ -214,7 +216,12 @@ export default async function DashboardPage() {
                       <tr key={lot.id}>
                         <td className="font-semibold">{lot.lotNumber}</td>
                         <td className="text-(--muted)">
-                          {lot.fabricType.name} / {lot.shade.name}
+                          {lot.fabricType.name} /{" "}
+                          {lot.quality?.name &&
+                          lot.code?.name &&
+                          lot.colour?.name
+                            ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
+                            : "Incomplete identity"}
                         </td>
                         <td>{lot.weaver?.name ?? "—"}</td>
                         <td className="num">

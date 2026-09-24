@@ -30,51 +30,6 @@ async function main() {
     create: { name: "PC Blend", code: "PC", defaultUnit: "m" },
   });
 
-  const black = await prisma.colorFamily.upsert({
-    where: { name: "Black" },
-    update: {},
-    create: { name: "Black", sortOrder: 1 },
-  });
-
-  const navy = await prisma.colorFamily.upsert({
-    where: { name: "Navy" },
-    update: {},
-    create: { name: "Navy", sortOrder: 2 },
-  });
-
-  const jetBlack = await prisma.shade.upsert({
-    where: { colorFamilyId_code: { colorFamilyId: black.id, code: "BLK-01" } },
-    update: {},
-    create: {
-      colorFamilyId: black.id,
-      code: "BLK-01",
-      name: "Jet Black",
-      hex: "#0d0d0d",
-    },
-  });
-
-  await prisma.shade.upsert({
-    where: { colorFamilyId_code: { colorFamilyId: black.id, code: "BLK-02" } },
-    update: {},
-    create: {
-      colorFamilyId: black.id,
-      code: "BLK-02",
-      name: "Soft Black",
-      hex: "#2a2a2a",
-    },
-  });
-
-  await prisma.shade.upsert({
-    where: { colorFamilyId_code: { colorFamilyId: navy.id, code: "NVY-01" } },
-    update: {},
-    create: {
-      colorFamilyId: navy.id,
-      code: "NVY-01",
-      name: "Deep Navy",
-      hex: "#0b1c3a",
-    },
-  });
-
   await prisma.finishType.upsert({
     where: { name: "Soft finish" },
     update: {},
@@ -122,7 +77,6 @@ async function main() {
         rollNumber: "R-01",
         marka: "RM-BUF",
         fabricTypeId: cotton.id,
-        shadeId: jetBlack.id,
         godownId: godown.id,
         width: 60,
         gsm: 180,

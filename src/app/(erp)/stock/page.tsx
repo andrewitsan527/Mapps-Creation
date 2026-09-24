@@ -18,10 +18,26 @@ import {
 } from "@/components/ui";
 import { Boxes, Layers, Search } from "lucide-react";
 
+function schemeLabel(row: {
+  quality?: { name: string } | null;
+  code?: { name: string } | null;
+  colour?: { name: string } | null;
+  qualityName?: string | null;
+  codeName?: string | null;
+  colourName?: string | null;
+}) {
+  const q = row.quality?.name ?? row.qualityName;
+  const c = row.code?.name ?? row.codeName;
+  const col = row.colour?.name ?? row.colourName;
+  if (q && c && col) return `${q} / ${c} / ${col}`;
+  return "Incomplete identity";
+}
+
 type SearchParams = Promise<{
   fabricTypeId?: string;
-  shadeId?: string;
-  colorFamilyId?: string;
+  qualityId?: string;
+  codeId?: string;
+  colourId?: string;
 }>;
 
 type StockLotRow = {
@@ -36,7 +52,9 @@ type StockLotRow = {
   onHand: { toString(): string };
   reserved: { toString(): string };
   fabricType: { name: string };
-  shade: { name: string; colorFamily: { name: string } };
+  quality: { name: string } | null;
+  code: { name: string } | null;
+  colour: { name: string } | null;
   finishType: { name: string } | null;
   millMarka: { code: string } | null;
   mill: { name: string } | null;
@@ -52,53 +70,53 @@ export default async function StockPage({
 }) {
   const params = await searchParams;
   const filtered = Boolean(
-    params.fabricTypeId || params.shadeId || params.colorFamilyId,
+    params.fabricTypeId ||
+      params.qualityId ||
+      params.codeId ||
+      params.colourId,
   );
 
-  const [fabrics, families, shades, availability, lots] = await Promise.all([
+  const [fabrics, qualities, codes, colours, availability, lots] =
+    await Promise.all([
     prisma.fabricType.findMany({
       where: { active: true },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    prisma.colorFamily.findMany({
+    prisma.quality.findMany({
       where: { active: true },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    prisma.shade.findMany({
-      where: {
-        active: true,
-        ...(params.colorFamilyId
-          ? { colorFamilyId: params.colorFamilyId }
-          : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-        colorFamily: { select: { name: true } },
-      },
+    prisma.code.findMany({
+      where: { active: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.colour.findMany({
+      where: { active: true },
+      select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
     getAvailability(prisma, {
       fabricTypeId: params.fabricTypeId,
-      shadeId: params.shadeId,
-      colorFamilyId: params.colorFamilyId,
+      qualityId: params.qualityId,
+      codeId: params.codeId,
+      colourId: params.colourId,
     }),
     prisma.lot.findMany({
       where: {
         active: true,
         ...(params.fabricTypeId ? { fabricTypeId: params.fabricTypeId } : {}),
-        ...(params.shadeId ? { shadeId: params.shadeId } : {}),
-        ...(params.colorFamilyId
-          ? { shade: { colorFamilyId: params.colorFamilyId } }
-          : {}),
+        ...(params.qualityId ? { qualityId: params.qualityId } : {}),
+        ...(params.codeId ? { codeId: params.codeId } : {}),
+        ...(params.colourId ? { colourId: params.colourId } : {}),
       },
       include: {
         fabricType: { select: { name: true } },
-        shade: {
-          select: { name: true, colorFamily: { select: { name: true } } },
-        },
+        quality: { select: { name: true } },
+        code: { select: { name: true } },
+        colour: { select: { name: true } },
         finishType: { select: { name: true } },
         millMarka: { select: { code: true } },
         mill: { select: { name: true } },
@@ -132,7 +150,7 @@ export default async function StockPage({
         title="Live stock"
         eyebrow="Inventory"
         icon={Boxes}
-        description="Everything that cleared QC, by fabric and shade. Reserved metres are already committed to a provisional order or an issued bill."
+        description="QC-passed lots by fabric plus Quality / Code / Colour. Reserved qty is already committed to a provisional or issued bill."
         actions={
           <Link href="/sales" className={buttonTinyClass}>
             Reserve or bill
@@ -164,12 +182,12 @@ export default async function StockPage({
         <Metric
           label="Combinations"
           value={availability.length}
-          hint="Fabric × shade"
+          hint="Fabric × identity"
         />
       </MetricStrip>
 
       <Panel title="Stock enquiry" icon={Search} compact>
-        <form className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
+        <form className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Fabric type">
             <select
               className={inputClass}
@@ -184,30 +202,44 @@ export default async function StockPage({
               ))}
             </select>
           </Field>
-          <Field label="Color family">
+          <Field label="Quality">
             <select
               className={inputClass}
-              name="colorFamilyId"
-              defaultValue={params.colorFamilyId ?? ""}
+              name="qualityId"
+              defaultValue={params.qualityId ?? ""}
             >
               <option value="">All</option>
-              {families.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
+              {qualities.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.name}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Shade">
+          <Field label="Code">
             <select
               className={inputClass}
-              name="shadeId"
-              defaultValue={params.shadeId ?? ""}
+              name="codeId"
+              defaultValue={params.codeId ?? ""}
             >
               <option value="">All</option>
-              {shades.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.colorFamily.name} / {s.name}
+              {codes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Colour">
+            <select
+              className={inputClass}
+              name="colourId"
+              defaultValue={params.colourId ?? ""}
+            >
+              <option value="">All</option>
+              {colours.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -257,7 +289,7 @@ export default async function StockPage({
                   <thead>
                     <tr>
                       <th>Fabric</th>
-                      <th>Shade</th>
+                      <th>Identity</th>
                       <th>GSM</th>
                       <th className="num">Available</th>
                       <th className="num">Reserved</th>
@@ -266,11 +298,11 @@ export default async function StockPage({
                   <tbody>
                     {availability.map((row) => (
                       <tr
-                        key={`${row.fabricTypeId}-${row.shadeId}-${row.gsm}-${row.width}`}
+                        key={`${row.identity}-${row.fabricTypeId}-${row.qualityId}-${row.codeId}-${row.colourId}-${row.gsm}-${row.width}-${row.unit}`}
                       >
                         <td className="font-medium">{row.fabricTypeName}</td>
                         <td className="text-(--muted)">
-                          {row.colorFamilyName} / {row.shadeName}
+                          {schemeLabel(row)}
                         </td>
                         <td className="text-(--muted)">{row.gsm ?? "—"}</td>
                         <td className="num font-semibold text-(--accent-strong)">
@@ -347,7 +379,7 @@ export default async function StockPage({
                           <td>
                             <div>{lot.fabricType.name}</div>
                             <div className="text-[10px] text-(--muted)">
-                              {lot.shade.colorFamily.name} / {lot.shade.name}
+                              {schemeLabel(lot)}
                               {lot.finishType ? ` · ${lot.finishType.name}` : ""}
                             </div>
                           </td>
