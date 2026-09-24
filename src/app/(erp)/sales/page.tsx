@@ -42,8 +42,9 @@ type SellableLot = LotGoods & {
 };
 
 export default async function SalesPage() {
-  const [clients, lots, bills] = await Promise.all([
+  const [clients, transporters, lots, bills] = await Promise.all([
     listPartyOptions("CLIENT"),
+    listPartyOptions("TRANSPORTER"),
     prisma.lot.findMany({
       where: { active: true },
       include: lotGoodsInclude,
@@ -189,6 +190,13 @@ export default async function SalesPage() {
                 <FieldGroup label="Customer & goods">
                   <Field label="Party">
                     <PartySelect name="partyId" options={clients} required />
+                  </Field>
+                  <Field label="Transporter">
+                    <PartySelect
+                      name="transporterId"
+                      options={transporters}
+                      placeholder="None"
+                    />
                   </Field>
                   <Field label="Lot / goods">
                     <select className={inputClass} name="lotId" required>

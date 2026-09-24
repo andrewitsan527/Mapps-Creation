@@ -23,6 +23,19 @@ async function requireUser() {
   return user;
 }
 
+async function resolveTransporterId(raw: string) {
+  const id = raw.trim();
+  if (!id) return null;
+  const transporter = await prisma.party.findFirst({
+    where: { id, type: "TRANSPORTER" },
+    select: { id: true },
+  });
+  if (!transporter) {
+    throw new Error("Select a transporter from Transport master");
+  }
+  return transporter.id;
+}
+
 async function nextBillNo(type: BillType) {
   const count = await prisma.saleBill.count({ where: { type } });
   const prefix = type === "PROVISIONAL" ? "PROV" : "SALE";
@@ -57,6 +70,9 @@ function lineCreateFromLot(
 export async function createProvisionalBill(formData: FormData) {
   const user = await requireUser();
   const partyId = String(formData.get("partyId") || "");
+  const transporterId = await resolveTransporterId(
+    String(formData.get("transporterId") || ""),
+  );
   const lotId = String(formData.get("lotId") || "");
   const quantity = String(formData.get("quantity") || "").trim();
   const rate = String(formData.get("rate") || "0").trim() || "0";
@@ -98,6 +114,7 @@ export async function createProvisionalBill(formData: FormData) {
         type: "PROVISIONAL",
         status: "ISSUED",
         partyId,
+        transporterId,
         subtotal: lineAmount,
         gstPct,
         gstAmount,
@@ -157,6 +174,9 @@ export async function createProvisionalBill(formData: FormData) {
 export async function createDirectSaleBill(formData: FormData) {
   const user = await requireUser();
   const partyId = String(formData.get("partyId") || "");
+  const transporterId = await resolveTransporterId(
+    String(formData.get("transporterId") || ""),
+  );
   const lotId = String(formData.get("lotId") || "");
   const quantity = String(formData.get("quantity") || "").trim();
   const rate = String(formData.get("rate") || "0").trim() || "0";
@@ -193,6 +213,7 @@ export async function createDirectSaleBill(formData: FormData) {
         type: "SALE",
         status: "ISSUED",
         partyId,
+        transporterId,
         paymentTermsDays: party.paymentTermsDays,
         interestRatePct: effectiveInterestRate(party.interestRatePct),
         // Due date starts at physical dispatch, not bill creation.
@@ -309,6 +330,7 @@ export async function convertProvisionalToSale(formData: FormData) {
         type: "SALE",
         status: "ISSUED",
         partyId: provisional.partyId,
+        transporterId: provisional.transporterId,
         billDate: new Date(),
         paymentTermsDays: provisional.party.paymentTermsDays,
         interestRatePct: effectiveInterestRate(

@@ -9,12 +9,15 @@ import {
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { applyStockMovement, toDecimal } from "@/server/domain/stock";
-import { parseRollLengths } from "@/server/domain/goods";
 import { nextProgramLotNo } from "@/lib/doc-numbers";
 import {
   openMillReturnAndNotify,
   primaryDefectFromChecklist,
 } from "@/server/domain/mill-return";
+import {
+  countPendingInwardQc,
+  programQtySummary,
+} from "@/server/domain/mill-inward";
 
 async function requireUser() {
   const user = await getSessionUser();
@@ -22,96 +25,10 @@ async function requireUser() {
   return user;
 }
 
-export async function createLotFromProgram(formData: FormData) {
-  await requireUser();
-  const programId = String(formData.get("programId") || "");
-  const marka = String(formData.get("marka") || "").trim() || null;
-  const rollNumber = String(formData.get("rollNumber") || "").trim() || null;
-  const weightKgRaw = String(formData.get("weightKg") || "").trim();
-  const widthRaw = String(formData.get("width") || "").trim();
-  const gsmRaw = String(formData.get("gsm") || "").trim();
-  const rollsRaw = String(formData.get("rollLengths") || "").trim();
-  const quantityRaw = String(formData.get("quantity") || "").trim();
-
-  if (!programId) throw new Error("Program required");
-
-  const program = await prisma.millProgram.findUniqueOrThrow({
-    where: { id: programId },
-    include: { finishType: true },
-  });
-
-  const parsedRolls = parseRollLengths(rollsRaw);
-  let totalLength = parsedRolls.reduce(
-    (s, r) => s + Number(r.lengthM || 0),
-    0,
-  );
-  if (!totalLength && quantityRaw) {
-    totalLength = Number(quantityRaw);
-  }
-  if (!totalLength || !Number.isFinite(totalLength) || totalLength <= 0) {
-    throw new Error("Enter total length (m) or per-roll lengths");
-  }
-
-  const rollCount =
-    parsedRolls.length > 0
-      ? parsedRolls.length
-      : Math.max(1, Number(formData.get("rollCount") || 1) || 1);
-
-  const quantity = toDecimal(totalLength);
-  const weightKg = weightKgRaw ? toDecimal(weightKgRaw) : null;
-  const width = widthRaw ? toDecimal(widthRaw) : program.width;
-  const gsm = gsmRaw ? toDecimal(gsmRaw) : program.gsm;
-
-  await prisma.lot.create({
-    data: {
-      lotNumber: await nextProgramLotNo(),
-      origin: "PROGRAM",
-      rollNumber:
-        rollNumber ??
-        (parsedRolls.length === 1 ? parsedRolls[0].rollNo : null),
-      marka,
-      fabricTypeId: program.fabricTypeId,
-      shadeId: program.shadeId,
-      finishTypeId: program.finishTypeId,
-      programId: program.id,
-      greyOrderId: program.greyOrderId,
-      millId: program.millId,
-      weaverId: program.weaverId,
-      width,
-      gsm,
-      quantity,
-      lengthM: quantity,
-      weightKg,
-      rollCount,
-      onHand: 0,
-      reserved: 0,
-      unit: "m",
-      rolls:
-        parsedRolls.length > 0
-          ? {
-              create: parsedRolls.map((r, i) => ({
-                rollNo: r.rollNo,
-                lengthM: r.lengthM,
-                sortOrder: i,
-              })),
-            }
-          : undefined,
-    },
-  });
-
-  await prisma.millProgram.update({
-    where: { id: programId },
-    data: { status: "RETURNED" },
-  });
-
-  revalidatePath("/qc");
-  revalidatePath("/programs");
-  revalidatePath("/stock");
-}
-
 export async function submitQc(formData: FormData) {
   const user = await requireUser();
-  const lotId = String(formData.get("lotId") || "");
+  const millInwardId = String(formData.get("millInwardId") || "") || null;
+  const lotId = String(formData.get("lotId") || "") || null;
   const passed = String(formData.get("passed") || "") === "true";
   const grade = (String(formData.get("grade") || "A") || "A") as QualityGrade;
   const remarks = String(formData.get("remarks") || "").trim() || null;
@@ -125,15 +42,7 @@ export async function submitQc(formData: FormData) {
   const checklistMinor =
     String(formData.get("checklistMinor") || "") === "true";
 
-  if (!lotId) throw new Error("Lot required");
-
-  const lot = await prisma.lot.findUniqueOrThrow({
-    where: { id: lotId },
-  });
-
-  if (lot.origin !== "PROGRAM") {
-    throw new Error("Program QC only — use Goods return for MCSR lots");
-  }
+  if (!millInwardId && !lotId) throw new Error("Mill inward or lot required");
 
   const defectType = passed
     ? "NONE"
@@ -156,52 +65,266 @@ export async function submitQc(formData: FormData) {
         ? (severityRaw as DefectSeverity)
         : "MEDIUM";
 
+  if (millInwardId) {
+    await submitInwardQc({
+      userId: user.id,
+      millInwardId,
+      passed,
+      grade,
+      remarks,
+      severity,
+      defectType,
+      checklistWeaver,
+      checklistMill,
+      checklistDying,
+      checklistMinor,
+    });
+  } else if (lotId) {
+    await submitLegacyLotQc({
+      userId: user.id,
+      lotId,
+      passed,
+      grade,
+      remarks,
+      severity,
+      defectType,
+      checklistWeaver,
+      checklistMill,
+      checklistDying,
+      checklistMinor,
+    });
+  }
+
+  revalidatePath("/qc");
+  revalidatePath("/programs");
+  revalidatePath("/stock");
+  revalidatePath("/returns");
+  revalidatePath("/dashboard");
+}
+
+async function submitInwardQc(input: {
+  userId: string;
+  millInwardId: string;
+  passed: boolean;
+  grade: QualityGrade;
+  remarks: string | null;
+  severity: DefectSeverity | null;
+  defectType: "NONE" | "MILL" | "WEAVER" | "DYEING" | "MINOR";
+  checklistWeaver: boolean;
+  checklistMill: boolean;
+  checklistDying: boolean;
+  checklistMinor: boolean;
+}) {
+  const inward = await prisma.millInward.findUniqueOrThrow({
+    where: { id: input.millInwardId },
+    include: {
+      lot: { select: { id: true } },
+      qualityChecks: { select: { id: true } },
+      program: true,
+    },
+  });
+
+  if (inward.lot) {
+    throw new Error("This mill inward already has a lot");
+  }
+  if (inward.qualityChecks.length > 0) {
+    throw new Error("This mill inward has already been inspected");
+  }
+
+  const program = inward.program;
+  const qty = toDecimal(inward.quantity);
+  const unit = inward.unit || "m";
+
   const qc = await prisma.$transaction(async (tx) => {
     const check = await tx.qualityCheck.create({
       data: {
-        lotId,
-        inspectorId: user.id,
-        passed,
-        defectType,
-        severity,
-        grade: passed ? grade : "REJECT",
-        remarks,
-        checklistWeaver,
-        checklistMill,
-        checklistDying,
-        checklistMinor,
+        millInwardId: inward.id,
+        inspectorId: input.userId,
+        passed: input.passed,
+        defectType: input.defectType,
+        severity: input.severity,
+        grade: input.passed ? input.grade : "REJECT",
+        remarks: input.remarks,
+        checklistWeaver: input.checklistWeaver,
+        checklistMill: input.checklistMill,
+        checklistDying: input.checklistDying,
+        checklistMinor: input.checklistMinor,
       },
     });
 
-    if (passed) {
+    if (input.passed) {
+      const lot = await tx.lot.create({
+        data: {
+          lotNumber: await nextProgramLotNo(),
+          origin: "PROGRAM",
+          fabricTypeId: program.fabricTypeId,
+          shadeId: program.shadeId,
+          finishTypeId: program.finishTypeId,
+          programId: program.id,
+          millInwardId: inward.id,
+          greyOrderId: program.greyOrderId,
+          millId: program.millId,
+          weaverId: program.weaverId,
+          width: program.width,
+          gsm: program.gsm,
+          quantity: qty,
+          lengthM: unit === "m" ? qty : null,
+          weightKg: unit === "kg" ? qty : null,
+          rollCount: 1,
+          onHand: 0,
+          reserved: 0,
+          unit,
+          qualityGrade: input.grade,
+          defectType: "NONE",
+          active: true,
+        },
+      });
+
+      await tx.qualityCheck.update({
+        where: { id: check.id },
+        data: { lotId: lot.id },
+      });
+
       await applyStockMovement(tx, {
-        lotId,
+        lotId: lot.id,
+        type: StockMovementType.IN,
+        quantity: qty,
+        referenceType: "QualityCheck",
+        referenceId: check.id,
+        notes: "QC pass inward",
+        createdById: input.userId,
+      });
+
+      const programQty = await tx.millProgram.findUnique({
+        where: { id: program.id },
+        select: {
+          greyOrder: { select: { quantity: true, unit: true } },
+          inwards: { select: { quantity: true } },
+        },
+      });
+      const remaining = programQty
+        ? programQtySummary(programQty).remaining
+        : null;
+      const pendingQc = await countPendingInwardQc(tx, program.id);
+      if (pendingQc === 0 && (remaining == null || remaining <= 0)) {
+        await tx.millProgram.update({
+          where: { id: program.id },
+          data: { status: "CLOSED" },
+        });
+      } else {
+        await tx.millProgram.update({
+          where: { id: program.id },
+          data: { status: "RETURNED" },
+        });
+      }
+    }
+
+    return check;
+  });
+
+  if (!input.passed) {
+    await openMillReturnAndNotify({
+      millInwardId: inward.id,
+      qualityCheckId: qc.id,
+      source: "PROGRAM",
+      defectType: input.defectType,
+      checklistMill: input.checklistMill,
+      checklistWeaver: input.checklistWeaver,
+      checklistDying: input.checklistDying,
+      checklistMinor: input.checklistMinor,
+      severity: input.severity,
+      remarks: input.remarks,
+      forAnyDefect: true,
+    });
+  }
+}
+
+async function submitLegacyLotQc(input: {
+  userId: string;
+  lotId: string;
+  passed: boolean;
+  grade: QualityGrade;
+  remarks: string | null;
+  severity: DefectSeverity | null;
+  defectType: "NONE" | "MILL" | "WEAVER" | "DYEING" | "MINOR";
+  checklistWeaver: boolean;
+  checklistMill: boolean;
+  checklistDying: boolean;
+  checklistMinor: boolean;
+}) {
+  const lot = await prisma.lot.findUniqueOrThrow({
+    where: { id: input.lotId },
+  });
+
+  if (lot.origin !== "PROGRAM") {
+    throw new Error("Program QC only — use Goods return for MCSR lots");
+  }
+
+  const qc = await prisma.$transaction(async (tx) => {
+    const check = await tx.qualityCheck.create({
+      data: {
+        lotId: input.lotId,
+        inspectorId: input.userId,
+        passed: input.passed,
+        defectType: input.defectType,
+        severity: input.severity,
+        grade: input.passed ? input.grade : "REJECT",
+        remarks: input.remarks,
+        checklistWeaver: input.checklistWeaver,
+        checklistMill: input.checklistMill,
+        checklistDying: input.checklistDying,
+        checklistMinor: input.checklistMinor,
+      },
+    });
+
+    if (input.passed) {
+      await applyStockMovement(tx, {
+        lotId: input.lotId,
         type: StockMovementType.IN,
         quantity: lot.quantity,
         referenceType: "QualityCheck",
-        referenceId: lotId,
+        referenceId: input.lotId,
         notes: "QC pass inward",
-        createdById: user.id,
+        createdById: input.userId,
       });
       await tx.lot.update({
-        where: { id: lotId },
-        data: { qualityGrade: grade, defectType: "NONE", active: true },
+        where: { id: input.lotId },
+        data: {
+          qualityGrade: input.grade,
+          defectType: "NONE",
+          active: true,
+        },
       });
       if (lot.programId) {
-        await tx.millProgram.update({
+        const program = await tx.millProgram.findUnique({
           where: { id: lot.programId },
-          data: { status: "CLOSED" },
+          select: {
+            greyOrder: { select: { quantity: true, unit: true } },
+            inwards: { select: { quantity: true } },
+          },
         });
+        const remaining = program
+          ? programQtySummary(program).remaining
+          : null;
+        const pendingQc = await countPendingInwardQc(tx, lot.programId);
+        if (
+          pendingQc === 0 &&
+          (remaining == null || remaining <= 0)
+        ) {
+          await tx.millProgram.update({
+            where: { id: lot.programId },
+            data: { status: "CLOSED" },
+          });
+        }
       }
     } else {
-      // Mill defect → hold for RF. Weaver stays visible for priority follow-up.
       await tx.lot.update({
-        where: { id: lotId },
+        where: { id: input.lotId },
         data: {
-          defectType,
+          defectType: input.defectType,
           qualityGrade: "REJECT",
-          returnPriority: severity,
-          active: defectType === "WEAVER" || checklistWeaver,
+          returnPriority: input.severity,
+          active: input.defectType === "WEAVER" || input.checklistWeaver,
         },
       });
     }
@@ -209,24 +332,19 @@ export async function submitQc(formData: FormData) {
     return check;
   });
 
-  if (!passed) {
+  if (!input.passed) {
     await openMillReturnAndNotify({
-      lotId,
+      lotId: input.lotId,
       qualityCheckId: qc.id,
       source: "PROGRAM",
-      defectType,
-      checklistMill,
-      checklistWeaver,
-      checklistDying,
-      checklistMinor,
-      severity,
-      remarks,
+      defectType: input.defectType,
+      checklistMill: input.checklistMill,
+      checklistWeaver: input.checklistWeaver,
+      checklistDying: input.checklistDying,
+      checklistMinor: input.checklistMinor,
+      severity: input.severity,
+      remarks: input.remarks,
       forAnyDefect: true,
     });
   }
-
-  revalidatePath("/qc");
-  revalidatePath("/stock");
-  revalidatePath("/returns");
-  revalidatePath("/dashboard");
 }

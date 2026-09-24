@@ -138,7 +138,8 @@ function millContact(lot: LotForMillReturn): {
  * SLA dueAt = qcAt + 1 day.
  */
 export async function openMillReturnAndNotify(input: {
-  lotId: string;
+  lotId?: string | null;
+  millInwardId?: string | null;
   qualityCheckId: string;
   source: LotOrigin;
   defectType: DefectType;
@@ -159,6 +160,7 @@ export async function openMillReturnAndNotify(input: {
 
   if (!shouldOpen) return null;
 
+  if (input.lotId) {
   const lot = await prisma.lot.findUniqueOrThrow({
     where: { id: input.lotId },
     include: lotForMillReturnInclude,
@@ -237,20 +239,160 @@ export async function openMillReturnAndNotify(input: {
   }
 
   return { rf, whatsappSent, dueAt };
+  }
+
+  if (!input.millInwardId) {
+    throw new Error("Lot or mill inward required to open mill RF");
+  }
+
+  const inward = await prisma.millInward.findUniqueOrThrow({
+    where: { id: input.millInwardId },
+    include: {
+      program: {
+        include: {
+          mill: { select: { id: true, name: true, whatsapp: true, phone: true } },
+          weaver: { select: { name: true } },
+          fabricType: { select: { name: true } },
+          shade: {
+            select: { name: true, colorFamily: { select: { name: true } } },
+          },
+        },
+      },
+    },
+  });
+
+  const mill = inward.program.mill;
+  if (!mill?.id) {
+    throw new Error("Inward program has no connected mill — cannot open mill RF");
+  }
+
+  const qcAt = new Date();
+  const dueAt = new Date(qcAt.getTime() + MILL_RETURN_SLA_MS);
+  const rfNo = await nextMillRfNo();
+  const defects = defectFlagsLabel(input);
+  const shade = inward.program.shade;
+  const goodsSummary = [
+    inward.inwardNo,
+    inward.program.programNo,
+    inward.program.fabricType.name,
+    `${shade.colorFamily.name}/${shade.name}`,
+    `${inward.quantity} ${inward.unit}`,
+  ].join(" · ");
+
+  const rf = await prisma.millReturn.create({
+    data: {
+      rfNo,
+      millInwardId: inward.id,
+      millId: mill.id,
+      qualityCheckId: input.qualityCheckId,
+      source: input.source,
+      status: "OPEN",
+      qcAt,
+      dueAt,
+      goodsSummary,
+      remarks: input.remarks,
+      whatsappSent: false,
+    },
+  });
+
+  let whatsappSent = false;
+  const notifyMillNow =
+    input.checklistMill || input.defectType === "MILL";
+  const whatsapp = mill.whatsapp ?? mill.phone ?? null;
+  if (notifyMillNow && whatsapp) {
+    const body = [
+      `Mapps Creation — Mill RF ${rfNo}`,
+      `Source: Program QC`,
+      `Inward: ${inward.inwardNo}`,
+      `Program: ${inward.program.programNo}`,
+      `Fabric: ${inward.program.fabricType.name}`,
+      `Colour: ${shade.colorFamily.name} / ${shade.name}`,
+      `Qty: ${inward.quantity} ${inward.unit}`,
+      mill.name ? `Mill: ${mill.name}` : null,
+      inward.program.weaver?.name
+        ? `Weaver: ${inward.program.weaver.name}`
+        : null,
+      `Defects: ${defects}`,
+      input.severity ? `Priority: ${input.severity}` : null,
+      input.remarks ? `Remarks: ${input.remarks}` : null,
+      `Send-by (SLA): ${dueAt.toLocaleString("en-IN")}`,
+    ]
+      .filter((line) => line !== null)
+      .join("\n");
+
+    await sendWhatsApp({
+      to: whatsapp,
+      template: "qc_return",
+      entityType: "MillReturn",
+      entityId: rf.id,
+      variables: {
+        rfNo,
+        lotNumber: inward.inwardNo,
+        defectType: defects,
+        severity: String(input.severity ?? "MEDIUM"),
+        remarks: input.remarks ?? "-",
+        body,
+        mill: mill.name,
+        fabric: inward.program.fabricType.name,
+        colour: `${shade.colorFamily.name} / ${shade.name}`,
+        length: `${inward.quantity} ${inward.unit}`,
+        dueAt: dueAt.toLocaleString("en-IN"),
+      },
+    });
+    whatsappSent = true;
+    await prisma.millReturn.update({
+      where: { id: rf.id },
+      data: { whatsappSent: true },
+    });
+    await prisma.qualityCheck.update({
+      where: { id: input.qualityCheckId },
+      data: { whatsappSent: true },
+    });
+  }
+
+  return { rf, whatsappSent, dueAt };
 }
 
 /** Mark RF sent (physical dispatch to mill) and optionally re-notify. */
 export async function markMillReturnSent(input: {
-  lotId: string;
+  lotId?: string | null;
+  millInwardId?: string | null;
   remarks?: string | null;
   resendWhatsApp?: boolean;
 }) {
+  if (!input.lotId && !input.millInwardId) {
+    throw new Error("Lot or mill inward required");
+  }
+
   const open = await prisma.millReturn.findFirst({
-    where: { lotId: input.lotId, status: "OPEN" },
+    where: {
+      status: "OPEN",
+      ...(input.lotId ? { lotId: input.lotId } : {}),
+      ...(input.millInwardId && !input.lotId
+        ? { millInwardId: input.millInwardId }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     include: {
       mill: { select: { whatsapp: true, phone: true, name: true } },
       lot: { include: lotForMillReturnInclude },
+      millInward: {
+        include: {
+          program: {
+            include: {
+              mill: { select: { name: true } },
+              weaver: { select: { name: true } },
+              fabricType: { select: { name: true } },
+              shade: {
+                select: {
+                  name: true,
+                  colorFamily: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -264,7 +406,7 @@ export async function markMillReturnSent(input: {
       },
     });
 
-    if (input.resendWhatsApp) {
+    if (input.resendWhatsApp && open.lot) {
       const to = open.mill.whatsapp ?? open.mill.phone;
       if (to) {
         const body = formatMillRfWhatsAppBody({
@@ -295,8 +437,58 @@ export async function markMillReturnSent(input: {
           data: { whatsappSent: true },
         });
       }
+    } else if (input.resendWhatsApp && open.millInward) {
+      const inward = open.millInward;
+      const mill = inward.program.mill;
+      const shade = inward.program.shade;
+      const to = open.mill.whatsapp ?? open.mill.phone;
+      if (to) {
+        const body = [
+          `Mapps Creation — Mill RF ${open.rfNo}`,
+          `Source: Program QC`,
+          `Inward: ${inward.inwardNo}`,
+          `Program: ${inward.program.programNo}`,
+          `Fabric: ${inward.program.fabricType.name}`,
+          `Colour: ${shade.colorFamily.name} / ${shade.name}`,
+          `Qty: ${inward.quantity} ${inward.unit}`,
+          mill?.name ? `Mill: ${mill.name}` : null,
+          inward.program.weaver?.name
+            ? `Weaver: ${inward.program.weaver.name}`
+            : null,
+          `Remarks: ${input.remarks ?? open.remarks ?? "Goods sent to mill"}`,
+          `Status: SENT`,
+        ]
+          .filter((line) => line !== null)
+          .join("\n");
+        await sendWhatsApp({
+          to,
+          template: "qc_return",
+          entityType: "MillReturn",
+          entityId: open.id,
+          variables: {
+            rfNo: open.rfNo,
+            lotNumber: inward.inwardNo,
+            defectType: "MILL",
+            remarks: input.remarks ?? "Goods sent to mill",
+            body,
+            status: "SENT",
+            mill: mill?.name ?? open.mill.name,
+            fabric: inward.program.fabricType.name,
+            colour: `${shade.colorFamily.name} / ${shade.name}`,
+            length: `${inward.quantity} ${inward.unit}`,
+          },
+        });
+        await prisma.millReturn.update({
+          where: { id: open.id },
+          data: { whatsappSent: true },
+        });
+      }
     }
     return open;
+  }
+
+  if (!input.lotId) {
+    throw new Error("Open mill RF not found for this inward");
   }
 
   // Fallback: no RF yet — open one as SENT after notifying

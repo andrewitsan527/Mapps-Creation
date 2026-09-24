@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { createLotFromProgram, submitQc } from "@/server/actions/qc";
+import { submitQc } from "@/server/actions/qc";
+import { programQtySummary } from "@/server/domain/mill-inward";
 import { formatDateTime, formatQty, relativeDays } from "@/lib/utils";
 import { statusBadge } from "@/lib/format";
 import { DefectChecklist } from "@/components/defect-checklist";
@@ -22,14 +23,13 @@ import {
 import {
   AlertTriangle,
   ClipboardCheck,
-  Inbox,
   MessageCircle,
   RotateCcw,
 } from "lucide-react";
 
 export default async function QcPage() {
   const now = new Date();
-  const [programs, pendingLots, weaverHigh, openRfs, recentQc, grPending] =
+  const [programs, openInwards, pendingLots, weaverHigh, openRfs, recentQc, grPending] =
     await Promise.all([
       prisma.millProgram.findMany({
         where: { status: { in: ["SENT_TO_MILL", "IN_PROCESS", "RETURNED"] } },
@@ -43,8 +43,30 @@ export default async function QcPage() {
           shade: {
             select: { name: true, colorFamily: { select: { name: true } } },
           },
+          greyOrder: { select: { quantity: true, unit: true } },
+          inwards: { select: { quantity: true } },
         },
         orderBy: { updatedAt: "desc" },
+      }),
+      prisma.millInward.findMany({
+        where: { lot: { is: null }, qualityChecks: { none: {} } },
+        select: {
+          id: true,
+          inwardNo: true,
+          quantity: true,
+          unit: true,
+          program: {
+            select: {
+              programNo: true,
+              mill: { select: { name: true } },
+              fabricType: { select: { name: true } },
+              shade: {
+                select: { name: true, colorFamily: { select: { name: true } } },
+              },
+            },
+          },
+        },
+        orderBy: { inwardDate: "desc" },
       }),
       prisma.lot.findMany({
         where: {
@@ -92,6 +114,7 @@ export default async function QcPage() {
           dueAt: true,
           whatsappSent: true,
           lot: { select: { lotNumber: true, origin: true } },
+          millInward: { select: { inwardNo: true } },
           mill: { select: { name: true } },
         },
         orderBy: { dueAt: "asc" },
@@ -104,6 +127,7 @@ export default async function QcPage() {
           defectType: true,
           checkedAt: true,
           lot: { select: { id: true, lotNumber: true } },
+          millInward: { select: { inwardNo: true } },
         },
         orderBy: { checkedAt: "desc" },
         take: 12,
@@ -112,14 +136,28 @@ export default async function QcPage() {
     ]);
 
   const rfOverdue = openRfs.filter((rf) => rf.dueAt < now).length;
+  const inwardable = programs
+    .map((p) => {
+      const summary = programQtySummary(p);
+      return {
+        id: p.id,
+        programNo: p.programNo,
+        millName: p.mill.name,
+        unit: summary.unit,
+        remaining: summary.remaining,
+      };
+    })
+    .filter((p) => p.remaining == null || p.remaining > 0);
 
   return (
-    <div className="space-y-3">
+    <div className="tx-page tx-page-qc">
+      <div className="tx-stage space-y-3">
+      <div className="tx-chrome">
       <PageHeader
         title="Quality check"
         eyebrow="Produce"
         icon={ClipboardCheck}
-        description="Inward the mill return as a lot, inspect it, then let the result route itself — pass takes stock in, mill defect opens an RF, weaver defect escalates."
+        description="Record each mill inward, inspect it, then PASS creates the lot and stock. FAIL opens mill RF with no lot."
         actions={
           <Link href="/returns" className={buttonTinyClass}>
             <RotateCcw className="h-3 w-3" />
@@ -127,18 +165,19 @@ export default async function QcPage() {
           </Link>
         }
       />
+      </div>
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+      <MetricStrip className="tx-metrics divide-x-0 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <Metric
           label="Awaiting inward"
-          value={programs.length}
-          hint="Programs at mill"
+          value={inwardable.length}
+          hint="Programs with remaining qty"
         />
         <Metric
           label="Pending QC"
-          value={pendingLots.length}
-          tone={pendingLots.length ? "warn" : "neutral"}
-          hint="Lots not inspected"
+          value={openInwards.length + pendingLots.length}
+          tone={openInwards.length + pendingLots.length ? "warn" : "neutral"}
+          hint="Inwards and leftover lots"
         />
         <Metric
           label="Weaver HIGH"
@@ -163,152 +202,58 @@ export default async function QcPage() {
         title="Inspection desk"
         icon={ClipboardCheck}
         tone="accent"
-        description="Two steps: bring goods in, then judge them"
+        description="Inspect pending mill inwards. PASS creates the lot and stock."
       >
-        <div className="grid gap-1.5 xl:grid-cols-2">
+        <div className="grid gap-1.5">
           <Panel
-            title="Mill return → create lot"
-            subtitle="Step 1"
-            icon={Inbox}
-            tone="info"
-            compact
-          >
-            {programs.length === 0 ? (
-              <EmptyState
-                icon={Inbox}
-                text="No programs awaiting mill return. Send a program to a mill first."
-                action={
-                  <Link href="/programs" className={buttonTinyClass}>
-                    Go to programs
-                  </Link>
-                }
-              />
-            ) : (
-              <form action={createLotFromProgram} className="space-y-2.5">
-                <FieldGroup label="Source">
-                  <Field label="Program">
-                    <select className={inputClass} name="programId" required>
-                      <option value="">Select…</option>
-                      {programs.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.programNo} · {p.fabricType.name} ·{" "}
-                          {p.shade.colorFamily.name}/{p.shade.name}
-                          {p.finishType ? ` · ${p.finishType.name}` : ""} · mill{" "}
-                          {p.mill.name}
-                          {p.weaver ? ` · weaver ${p.weaver.name}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                </FieldGroup>
-
-                <FieldGroup label="Measurement">
-                  <Field
-                    label="Roll lengths (m)"
-                    hint="Each value is one roll; total = sum. Leave blank to enter a single total."
-                  >
-                    <input
-                      className={inputClass}
-                      name="rollLengths"
-                      placeholder="45, 48.5, 50  or  R1:45, R2:48"
-                    />
-                  </Field>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <Field label="Total (m)">
-                      <input
-                        className={inputClass}
-                        name="quantity"
-                        type="number"
-                        step="any"
-                        placeholder="if no rolls"
-                      />
-                    </Field>
-                    <Field label="Rolls">
-                      <input
-                        className={inputClass}
-                        name="rollCount"
-                        type="number"
-                        min={1}
-                        defaultValue={1}
-                      />
-                    </Field>
-                    <Field label="Weight (kg)">
-                      <input
-                        className={inputClass}
-                        name="weightKg"
-                        type="number"
-                        step="any"
-                      />
-                    </Field>
-                  </div>
-                </FieldGroup>
-
-                <FieldGroup label="Identity">
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <Field label="Width">
-                      <input
-                        className={inputClass}
-                        name="width"
-                        type="number"
-                        step="any"
-                        placeholder="from program"
-                      />
-                    </Field>
-                    <Field label="GSM">
-                      <input
-                        className={inputClass}
-                        name="gsm"
-                        type="number"
-                        step="any"
-                        placeholder="from program"
-                      />
-                    </Field>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <Field label="Marka">
-                      <input className={inputClass} name="marka" />
-                    </Field>
-                    <Field label="Primary roll no">
-                      <input className={inputClass} name="rollNumber" />
-                    </Field>
-                  </div>
-                </FieldGroup>
-
-                <button className={buttonClass + " w-full"} type="submit">
-                  Create lot for QC
-                </button>
-              </form>
-            )}
-          </Panel>
-
-          <Panel
-            title="Program QC"
-            subtitle="Step 2"
+            title="QC inspection"
             icon={ClipboardCheck}
             tone="accent"
             compact
           >
-            {pendingLots.length === 0 ? (
+            {openInwards.length === 0 && pendingLots.length === 0 ? (
               <EmptyState
                 icon={ClipboardCheck}
-                text="No program lots waiting for QC. Create a lot from a mill return first."
+                text="No mill inwards waiting for QC. Record an inward first."
               />
             ) : (
               <form action={submitQc} className="space-y-2.5">
                 <FieldGroup label="Subject">
-                  <Field label="Lot">
-                    <select className={inputClass} name="lotId" required>
-                      <option value="">Select…</option>
-                      {pendingLots.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.lotNumber} · {l.fabricType.name} ·{" "}
-                          {l.shade.colorFamily.name}/{l.shade.name} ·{" "}
-                          {formatQty(l.lengthM ?? l.quantity)}m · {l.rollCount}r
-                          {l.mill ? ` · ${l.mill.name}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
+                  {openInwards.length > 0 ? (
+                    <Field label="Mill inward waiting for QC">
+                      <select className={inputClass} name="millInwardId" required={pendingLots.length === 0}>
+                        <option value="">Select…</option>
+                        {openInwards.map((row) => (
+                          <option key={row.id} value={row.id}>
+                            {row.inwardNo} · {row.program.programNo} ·{" "}
+                            {formatQty(row.quantity)} {row.unit} ·{" "}
+                            {row.program.fabricType.name} ·{" "}
+                            {row.program.shade.colorFamily.name}/
+                            {row.program.shade.name} · mill{" "}
+                            {row.program.mill.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  ) : null}
+                  {pendingLots.length > 0 ? (
+                    <Field
+                      label="Existing lot (created before this workflow)"
+                      hint="Only leftover lots with no QC"
+                    >
+                      <select className={inputClass} name="lotId">
+                        <option value="">Select…</option>
+                        {pendingLots.map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.lotNumber} · {l.fabricType.name} ·{" "}
+                            {l.shade.colorFamily.name}/{l.shade.name} ·{" "}
+                            {formatQty(l.lengthM ?? l.quantity)}
+                            {l.mill ? ` · ${l.mill.name}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  ) : null}
                   <Field label="Result">
                     <select
                       className={inputClass}
@@ -316,7 +261,7 @@ export default async function QcPage() {
                       required
                       defaultValue="true"
                     >
-                      <option value="true">Pass → stock IN</option>
+                      <option value="true">Pass → create lot + stock IN</option>
                       <option value="false">Fail → defect / mill RF</option>
                     </select>
                   </Field>
@@ -462,14 +407,20 @@ export default async function QcPage() {
                           <tr key={rf.id}>
                             <td className="font-semibold">{rf.rfNo}</td>
                             <td>
-                              <Link
-                                href={`/stock/${rf.lotId}`}
-                                className="text-(--accent) hover:underline"
-                              >
-                                {rf.lot.lotNumber}
-                              </Link>
+                              {rf.lot && rf.lotId ? (
+                                <Link
+                                  href={`/stock/${rf.lotId}`}
+                                  className="text-(--accent) hover:underline"
+                                >
+                                  {rf.lot.lotNumber}
+                                </Link>
+                              ) : (
+                                <span>
+                                  {rf.millInward?.inwardNo ?? "Inward"}
+                                </span>
+                              )}
                               <div className="text-[10px] text-(--faint)">
-                                {rf.lot.origin === "SALES_RETURN"
+                                {rf.lot?.origin === "SALES_RETURN"
                                   ? "GR QC"
                                   : "Program"}
                               </div>
@@ -532,12 +483,18 @@ export default async function QcPage() {
                   {recentQc.map((q) => (
                     <tr key={q.id}>
                       <td>
+                        {q.lot ? (
                         <Link
                           href={`/stock/${q.lot.id}`}
                           className="font-semibold text-(--accent) hover:underline"
                         >
                           {q.lot.lotNumber}
                         </Link>
+                        ) : (
+                          <span className="font-semibold">
+                            {q.millInward?.inwardNo ?? "Inward QC"}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span
@@ -560,6 +517,7 @@ export default async function QcPage() {
           )}
         </Panel>
 
+        <div className="tx-next">
         <NextStep
           steps={[
             {
@@ -580,7 +538,9 @@ export default async function QcPage() {
             },
           ]}
         />
+        </div>
       </Section>
+      </div>
     </div>
   );
 }

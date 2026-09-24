@@ -123,6 +123,7 @@ export default async function ReturnsPage() {
             },
           },
           mill: { select: { name: true, whatsapp: true } },
+          millInward: { select: { inwardNo: true, quantity: true, unit: true } },
         },
         orderBy: { dueAt: "asc" },
         take: 40,
@@ -478,23 +479,38 @@ export default async function ReturnsPage() {
                           : "border-(--line) bg-(--panel-alt)"
                       }`}
                     >
-                      <input type="hidden" name="lotId" value={rf.lotId} />
+                      {rf.lotId ? (
+                        <input type="hidden" name="lotId" value={rf.lotId} />
+                      ) : null}
+                      {rf.millInwardId ? (
+                        <input
+                          type="hidden"
+                          name="millInwardId"
+                          value={rf.millInwardId}
+                        />
+                      ) : null}
                       <div className="min-w-40 flex-1 text-[12px]">
                         <p className="font-semibold">
                           {rf.rfNo} ·{" "}
+                          {rf.lot ? (
                           <Link
                             href={`/stock/${rf.lot.id}`}
                             className="text-(--accent) hover:underline"
                           >
                             {rf.lot.lotNumber}
                           </Link>
+                          ) : (
+                            rf.millInward?.inwardNo ?? "Inward"
+                          )}
                         </p>
                         <p className="text-[11px] text-(--muted)">
                           {rf.mill.name}
                           {rf.mill.whatsapp ? ` · WA ${rf.mill.whatsapp}` : ""} ·{" "}
-                          {formatQty(rf.lot.quantity)} {rf.lot.unit} ·{" "}
-                          {rf.lot.origin === "SALES_RETURN" ? "GR" : "Program"} ·{" "}
-                          {rf.lot.defectType}
+                          {rf.lot
+                            ? `${formatQty(rf.lot.quantity)} ${rf.lot.unit} · ${rf.lot.origin === "SALES_RETURN" ? "GR" : "Program"} · ${rf.lot.defectType}`
+                            : rf.millInward
+                              ? `${formatQty(rf.millInward.quantity)} ${rf.millInward.unit} · Inward QC`
+                              : "Inward QC"}
                         </p>
                         <p
                           className={

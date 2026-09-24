@@ -91,7 +91,7 @@ async function main() {
     { name: "Sunrise Textiles", type: "CLIENT", whatsapp: "919800000001" },
     { name: "Rajkot Process Mill", type: "MILL", whatsapp: "919800000002" },
     { name: "Patel Weaver", type: "WEAVER" },
-    { name: "Grey Mart Suppliers", type: "GREY_SUPPLIER" },
+    { name: "Grey Mart Suppliers", type: "WEAVER" },
     { name: "Agency Mehta", type: "AGENT" },
   ];
 

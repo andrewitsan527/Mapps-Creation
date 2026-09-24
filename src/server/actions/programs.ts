@@ -4,11 +4,16 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { COMPANY } from "@/lib/company";
+import { requireMillWeaverLink } from "@/lib/parties";
 import {
   getProgramCardData,
   programCardPublicUrl,
 } from "@/server/domain/program-card";
 import { sendWhatsApp } from "@/server/whatsapp";
+import {
+  countPendingInwardQc,
+  programQtySummary,
+} from "@/server/domain/mill-inward";
 
 async function requireUser() {
   const user = await getSessionUser();
@@ -24,8 +29,8 @@ async function nextProgramNo() {
 
 export async function createProgram(formData: FormData) {
   await requireUser();
-  const millId = String(formData.get("millId") || "");
-  const weaverId = String(formData.get("weaverId") || "") || null;
+  let millId = String(formData.get("millId") || "");
+  let weaverId = String(formData.get("weaverId") || "") || null;
   const greyOrderId = String(formData.get("greyOrderId") || "") || null;
   const fabricTypeId = String(formData.get("fabricTypeId") || "");
   const shadeId = String(formData.get("shadeId") || "");
@@ -34,10 +39,55 @@ export async function createProgram(formData: FormData) {
   const gsm = String(formData.get("gsm") || "").trim() || null;
   const feelFallNotes = String(formData.get("feelFallNotes") || "").trim() || null;
   const extraMods = String(formData.get("extraMods") || "").trim() || null;
-  const remarks = String(formData.get("remarks") || "").trim() || null;
+  let remarks = String(formData.get("remarks") || "").trim() || null;
 
-  if (!millId || !fabricTypeId || !shadeId) {
-    throw new Error("Mill, fabric type and shade are required");
+  if (!fabricTypeId || !shadeId) {
+    throw new Error("Fabric type and shade are required");
+  }
+
+  if (greyOrderId) {
+    const grey = await prisma.greyPurchaseOrder.findUniqueOrThrow({
+      where: { id: greyOrderId },
+      select: {
+        supplierId: true,
+        millId: true,
+        fabricNotes: true,
+        supplier: { select: { type: true } },
+        mill: { select: { type: true } },
+      },
+    });
+    if (grey.supplier.type !== "WEAVER") {
+      throw new Error("Grey purchase weaver is invalid");
+    }
+    weaverId = grey.supplierId;
+    if (grey.millId) {
+      if (grey.mill?.type !== "MILL") {
+        throw new Error("Grey purchase mill is invalid");
+      }
+      millId = grey.millId;
+    }
+    if (!remarks && grey.fabricNotes) {
+      remarks = grey.fabricNotes;
+    }
+  }
+
+  if (!millId) {
+    throw new Error("Mill is required");
+  }
+
+  const mill = await prisma.party.findUniqueOrThrow({ where: { id: millId } });
+  if (mill.type !== "MILL") {
+    throw new Error("Program mill must be a Mill party");
+  }
+
+  if (weaverId) {
+    const weaver = await prisma.party.findUniqueOrThrow({
+      where: { id: weaverId },
+    });
+    if (weaver.type !== "WEAVER") {
+      throw new Error("Program weaver must be a Weaver");
+    }
+    await requireMillWeaverLink(millId, weaverId);
   }
 
   await prisma.millProgram.create({
@@ -120,4 +170,57 @@ export async function sendProgramWhatsApp(formData: FormData) {
 
   revalidatePath("/programs");
   revalidatePath(`/programs/${id}/card`);
+}
+
+export async function completeMillReturn(formData: FormData) {
+  await requireUser();
+  const id = String(formData.get("id") || "");
+  if (!id) throw new Error("Program required");
+
+  const program = await prisma.millProgram.findUniqueOrThrow({
+    where: { id },
+    select: {
+      id: true,
+      status: true,
+      greyOrder: { select: { quantity: true, unit: true } },
+      inwards: { select: { quantity: true } },
+    },
+  });
+
+  if (program.status === "CLOSED" || program.status === "CANCELLED") {
+    throw new Error("Program is already closed");
+  }
+  if (program.status === "DRAFT") {
+    throw new Error("Send the program to the mill before completing mill return");
+  }
+
+  const summary = programQtySummary(program);
+  if (summary.planned == null) {
+    throw new Error("Program has no planned quantity");
+  }
+
+  const pendingQc = await countPendingInwardQc(prisma, id);
+  if (pendingQc > 0) {
+    throw new Error(
+      `Cannot complete mill return: ${pendingQc} inward(s) are still pending QC.`,
+    );
+  }
+
+  const difference = summary.planned - summary.received;
+  if (difference < -1e-9) {
+    throw new Error("Received quantity exceeds planned quantity");
+  }
+
+  await prisma.millProgram.update({
+    where: { id },
+    data: {
+      status: "CLOSED",
+      returnCompletedAt: new Date(),
+      shortageQty: String(Math.max(0, difference)),
+    },
+  });
+
+  revalidatePath("/programs");
+  revalidatePath("/qc");
+  revalidatePath("/inward");
 }

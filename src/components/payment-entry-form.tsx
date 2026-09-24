@@ -24,12 +24,11 @@ type CommissionOption = {
 
 const CATEGORY_PARTY_TYPE: Record<
   PaymentCategory,
-  "CLIENT" | "MILL" | "WEAVER" | "GREY_SUPPLIER" | "AGENT" | null
+  "CLIENT" | "MILL" | "WEAVER" | "AGENT" | null
 > = {
   CUSTOMER_RECEIPT: "CLIENT",
   MILL_PAYMENT: "MILL",
   WEAVER_PAYMENT: "WEAVER",
-  GREY_SUPPLIER_PAYMENT: "GREY_SUPPLIER",
   AGENT_COMMISSION: "AGENT",
   OTHER: null,
 };
@@ -102,9 +101,7 @@ export function PaymentEntryForm({
               ? "Mill"
               : category === "WEAVER_PAYMENT"
                 ? "Weaver"
-                : category === "GREY_SUPPLIER_PAYMENT"
-                  ? "Grey supplier"
-                  : category === "AGENT_COMMISSION"
+                : category === "AGENT_COMMISSION"
                     ? "Agent"
                     : "Party"
         }

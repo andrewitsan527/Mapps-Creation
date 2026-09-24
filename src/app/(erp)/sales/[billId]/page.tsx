@@ -45,6 +45,7 @@ export default async function SaleBillDetailPage({
     where: { id: billId },
     include: {
       party: true,
+      transporter: { select: { id: true, name: true, gstin: true } },
       lines: { orderBy: { id: "asc" } },
       dispatches: {
         include: { lines: true },
@@ -172,6 +173,14 @@ export default async function SaleBillDetailPage({
                 value: bill.party.whatsapp ?? "not on file",
               },
               { label: "GST", value: bill.party.gstin ?? "—" },
+              {
+                label: "Transporter",
+                value: bill.transporter
+                  ? bill.transporter.gstin
+                    ? `${bill.transporter.name} · ${bill.transporter.gstin}`
+                    : bill.transporter.name
+                  : "—",
+              },
             ]}
           />
         </Panel>

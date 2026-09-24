@@ -108,6 +108,14 @@ export function ErpShell({
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const pathname = usePathname();
+  const hideSidebar = pathname === "/menu";
+  const textileHeader =
+    pathname === "/grey" ||
+    pathname === "/programs" ||
+    pathname === "/inward" ||
+    pathname === "/qc" ||
+    pathname === "/stock";
+  const darkHeader = hideSidebar;
   const waLive = whatsappProvider === "meta";
   const cluster = clusterForPath(pathname);
   const link = linkForPath(pathname);
@@ -115,6 +123,7 @@ export function ErpShell({
   return (
     <div className="erp-shell min-h-screen text-(--ink)">
       <div className="flex min-h-screen">
+        {hideSidebar ? null : (
         <aside className="no-print sticky top-0 hidden h-screen w-52 shrink-0 flex-col border-r border-white/6 bg-(--sidebar) text-(--sidebar-ink) md:flex">
           <Link
             href="/dashboard"
@@ -172,10 +181,21 @@ export function ErpShell({
             </form>
           </div>
         </aside>
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="no-print sticky top-0 z-30 flex h-12 items-center justify-between gap-2 border-b border-(--line) bg-(--panel)/90 px-3 backdrop-blur-md sm:px-4">
+          <header
+            className={cn(
+              "no-print sticky top-0 z-30 flex h-12 items-center justify-between gap-2 px-3 sm:px-4",
+              hideSidebar
+                ? "menu-app-header"
+                : textileHeader
+                  ? "tx-app-header"
+                  : "border-b border-(--line) bg-(--panel)/90 backdrop-blur-md",
+            )}
+          >
             <div className="flex min-w-0 items-center gap-2">
+              {hideSidebar ? null : (
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
@@ -184,6 +204,12 @@ export function ErpShell({
               >
                 <Menu className="h-3.5 w-3.5" />
               </button>
+              )}
+              {darkHeader ? (
+                <span className="font-serif text-[15px] text-[#f6efe2] md:hidden">
+                  Mapps
+                </span>
+              ) : (
               <div className="flex min-w-0 items-center gap-1 text-[11.5px]">
                 <span className="font-serif text-[15px] md:hidden">Mapps</span>
                 {cluster ? (
@@ -200,7 +226,23 @@ export function ErpShell({
                   </span>
                 ) : null}
               </div>
+              )}
             </div>
+            {darkHeader ? (
+              <div className="menu-app-crumb hidden md:flex">
+                {cluster ? (
+                  <span className="font-semibold tracking-[0.12em] uppercase">
+                    {cluster.title}
+                  </span>
+                ) : null}
+                {cluster && link ? (
+                  <ChevronRight className="h-3 w-3 opacity-55" />
+                ) : null}
+                {link ? (
+                  <span className="truncate font-semibold">{link.label}</span>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="flex min-w-0 items-center gap-1.5">
               <Suspense fallback={null}>
@@ -212,16 +254,23 @@ export function ErpShell({
             </div>
           </header>
 
-          <main className="animate-fade-up flex-1 px-3 py-3.5 pb-20 sm:px-4 md:pb-5">
+          <main
+            className={cn(
+              "animate-fade-up flex-1 px-3 py-3.5 sm:px-4",
+              hideSidebar ? "pb-5" : "pb-20 md:pb-5",
+            )}
+          >
             {children}
           </main>
         </div>
       </div>
 
+      {hideSidebar ? null : (
       <div className="no-print">
         <MobileBottomNav onMore={() => setMoreOpen(true)} />
         <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
       </div>
+      )}
     </div>
   );
 }

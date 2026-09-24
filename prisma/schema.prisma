@@ -21,8 +21,8 @@ enum PartyType {
   CLIENT
   MILL
   WEAVER
-  GREY_SUPPLIER
   AGENT
+  TRANSPORTER
   OTHER
 }
 
@@ -92,7 +92,6 @@ enum PaymentCategory {
   CUSTOMER_RECEIPT
   MILL_PAYMENT
   WEAVER_PAYMENT
-  GREY_SUPPLIER_PAYMENT
   AGENT_COMMISSION
   OTHER
 }
@@ -166,11 +165,16 @@ model Party {
   updatedAt     DateTime  @updatedAt
 
   greyPurchasesAsSupplier GreyPurchaseOrder[] @relation("GreySupplier")
+  greyPurchasesAsMill     GreyPurchaseOrder[] @relation("GreyDestinationMill")
+  greyPurchasesAsAgent    GreyPurchaseOrder[] @relation("GreyAgent")
+  millWeaversAsMill       MillWeaver[]        @relation("MillWeaverMill")
+  millWeaversAsWeaver     MillWeaver[]        @relation("MillWeaverWeaver")
   programsAsMill          MillProgram[]       @relation("ProgramMill")
   programsAsWeaver        MillProgram[]       @relation("ProgramWeaver")
   lotsAsMill              Lot[]               @relation("LotMill")
   lotsAsWeaver            Lot[]               @relation("LotWeaver")
-  saleBills               SaleBill[]
+  saleBills               SaleBill[]          @relation("SaleBillCustomer")
+  transportedSaleBills    SaleBill[]          @relation("SaleBillTransporter")
   dispatches              Dispatch[]
   payments                Payment[]
   accountNotes            AccountNote[]
@@ -220,6 +224,19 @@ model AgentLink {
   @@unique([agentId, relatedPartyId])
   @@index([agentId])
   @@index([relatedPartyId])
+}
+
+/// Mill-specific weavers. A weaver may be linked to one or more mills.
+model MillWeaver {
+  id        String   @id @default(cuid())
+  millId    String
+  mill      Party    @relation("MillWeaverMill", fields: [millId], references: [id], onDelete: Cascade)
+  weaverId  String
+  weaver    Party    @relation("MillWeaverWeaver", fields: [weaverId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([millId, weaverId])
+  @@index([weaverId])
 }
 
 model FabricType {
@@ -312,10 +329,15 @@ model GreyPurchaseOrder {
   poNumber     String   @unique
   supplierId   String
   supplier     Party    @relation("GreySupplier", fields: [supplierId], references: [id])
+  millId       String?
+  mill         Party?   @relation("GreyDestinationMill", fields: [millId], references: [id])
+  agentId      String?
+  agent        Party?   @relation("GreyAgent", fields: [agentId], references: [id])
   orderDate    DateTime @default(now())
   fabricNotes  String?
   quantity     Decimal?
   unit         String   @default("m")
+  dyeingRate   Decimal?
   status       String   @default("OPEN")
   whatsappNote String?
   createdAt    DateTime @default(now())
@@ -326,6 +348,8 @@ model GreyPurchaseOrder {
   lots     Lot[]
 
   @@index([supplierId, orderDate])
+  @@index([millId])
+  @@index([agentId])
 }
 
 model GreyPurchaseBill {
@@ -365,13 +389,38 @@ model MillProgram {
   photoUrl      String?
   status        ProgramStatus @default(DRAFT)
   sentAt        DateTime?
+  /// Set only when a user confirms Mill Return Completed (no more inward expected).
+  returnCompletedAt DateTime?
+  /// Planned − received at confirmation. Null if never explicitly completed.
+  shortageQty   Decimal?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  lots Lot[]
+  lots    Lot[]
+  inwards MillInward[]
 
   @@index([status, millId])
   @@index([shadeId, fabricTypeId])
+}
+
+/// Partial physical receipt from the mill against a program (before QC / lot).
+model MillInward {
+  id         String      @id @default(cuid())
+  inwardNo   String      @unique
+  programId  String
+  program    MillProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  inwardDate DateTime    @default(now())
+  quantity   Decimal
+  unit       String      @default("m")
+  remarks    String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  lot            Lot?
+  qualityChecks  QualityCheck[]
+  millReturns    MillReturn[]
+
+  @@index([programId, inwardDate])
 }
 
 model Lot {
@@ -389,6 +438,8 @@ model Lot {
   finishType      FinishType?    @relation(fields: [finishTypeId], references: [id])
   programId       String?
   program         MillProgram?   @relation(fields: [programId], references: [id])
+  millInwardId    String?        @unique
+  millInward      MillInward?    @relation(fields: [millInwardId], references: [id])
   greyOrderId     String?
   greyOrder       GreyPurchaseOrder? @relation(fields: [greyOrderId], references: [id])
   millId          String?
@@ -460,8 +511,10 @@ model LotRoll {
 
 model QualityCheck {
   id          String          @id @default(cuid())
-  lotId       String
-  lot         Lot             @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  lotId       String?
+  lot         Lot?            @relation(fields: [lotId], references: [id], onDelete: SetNull)
+  millInwardId String?
+  millInward   MillInward?    @relation(fields: [millInwardId], references: [id], onDelete: SetNull)
   inspectorId String?
   inspector   User?           @relation("QcInspector", fields: [inspectorId], references: [id])
   checkedAt   DateTime        @default(now())
@@ -483,6 +536,7 @@ model QualityCheck {
 
   @@index([defectType, severity])
   @@index([checkedAt])
+  @@index([millInwardId])
 }
 
 model StockMovement {
@@ -507,7 +561,9 @@ model SaleBill {
   type            BillType
   status          BillStatus @default(DRAFT)
   partyId         String
-  party           Party      @relation(fields: [partyId], references: [id])
+  party           Party      @relation("SaleBillCustomer", fields: [partyId], references: [id])
+  transporterId   String?
+  transporter     Party?     @relation("SaleBillTransporter", fields: [transporterId], references: [id])
   billDate        DateTime   @default(now())
   /// Credit period is snapshotted from the party when the sale is created.
   paymentTermsDays Int?
@@ -539,6 +595,7 @@ model SaleBill {
   returnSourceLots Lot[]           @relation("ReturnSourceBill")
 
   @@index([partyId, billDate])
+  @@index([transporterId])
   @@index([type, status])
   @@index([dueDate])
 }
@@ -760,8 +817,10 @@ model MillReturn {
   id              String          @id @default(cuid())
   rfNo            String          @unique
   status          MillReturnStatus @default(OPEN)
-  lotId           String
-  lot             Lot             @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  lotId           String?
+  lot             Lot?            @relation(fields: [lotId], references: [id], onDelete: SetNull)
+  millInwardId    String?
+  millInward      MillInward?     @relation(fields: [millInwardId], references: [id], onDelete: SetNull)
   millId          String
   mill            Party           @relation("MillReturnMill", fields: [millId], references: [id])
   qualityCheckId  String?

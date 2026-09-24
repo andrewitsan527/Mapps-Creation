@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { createProgram, sendProgramWhatsApp } from "@/server/actions/programs";
-import { listPartyOptions, type PartyOption } from "@/lib/parties";
+import { MillInwardForm } from "@/components/mill-inward-form";
+import { MillReturnCompleteForm } from "@/components/mill-return-complete-form";
+import { programQtySummary } from "@/server/domain/mill-inward";
+import { listMillWeaverLinks, listPartyOptions } from "@/lib/parties";
 import { statusBadge } from "@/lib/format";
-import { formatDate } from "@/lib/utils";
-import { PartySelect } from "@/components/party-select";
+import { formatDate, formatQty } from "@/lib/utils";
+import { ProgramGreyWeaverFields } from "@/components/program-grey-weaver-fields";
 import {
   EmptyState,
   Field,
@@ -24,6 +27,7 @@ import {
 import {
   ClipboardCheck,
   Eye,
+  Inbox,
   MessageCircle,
   PlusCircle,
   ScrollText,
@@ -37,7 +41,18 @@ type ShadeOption = {
   hex: string | null;
   colorFamily: { name: string };
 };
-type GreyOption = { id: string; poNumber: string };
+type GreyOption = {
+  id: string;
+  poNumber: string;
+  weaverId: string;
+  weaverName: string;
+  millId: string | null;
+  millName: string | null;
+  quantity: string | null;
+  unit: string;
+  dyeingRate: string | null;
+  fabricNotes: string | null;
+};
 type ProgramRow = {
   id: string;
   programNo: string;
@@ -53,6 +68,10 @@ type ProgramRow = {
   finishType: IdName | null;
   greyOrder: { poNumber: string } | null;
   lots: { id: string; lotNumber: string }[];
+  qty: { unit: string; planned: number | null; received: number; remaining: number | null };
+  returnCompletedAt: Date | null;
+  shortageQty: number | null;
+  inwards: { id: string; inwardNo: string; quantity: string; unit: string; inwardDate: Date }[];
 };
 
 const stageGroups = [
@@ -92,8 +111,8 @@ const stageGroups = [
 ];
 
 export default async function ProgramsPage() {
-  const [mills, weavers, fabrics, shades, finishes, greys, programs] =
-    (await Promise.all([
+  const [mills, weavers, fabrics, shades, finishes, greyRows, millWeaverLinks, programs] =
+    await Promise.all([
       listPartyOptions("MILL"),
       listPartyOptions("WEAVER"),
       prisma.fabricType.findMany({
@@ -119,10 +138,20 @@ export default async function ProgramsPage() {
       }),
       prisma.greyPurchaseOrder.findMany({
         where: { status: "OPEN" },
-        select: { id: true, poNumber: true },
+        select: {
+          id: true,
+          poNumber: true,
+          quantity: true,
+          unit: true,
+          dyeingRate: true,
+          fabricNotes: true,
+          supplier: { select: { id: true, name: true } },
+          mill: { select: { id: true, name: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 30,
       }),
+      listMillWeaverLinks(),
       prisma.millProgram.findMany({
         select: {
           id: true,
@@ -145,37 +174,90 @@ export default async function ProgramsPage() {
             },
           },
           finishType: { select: { id: true, name: true } },
-          greyOrder: { select: { poNumber: true } },
+          greyOrder: { select: { poNumber: true, quantity: true, unit: true } },
+          returnCompletedAt: true,
+          shortageQty: true,
           lots: { select: { id: true, lotNumber: true } },
+          inwards: {
+            select: {
+              id: true,
+              inwardNo: true,
+              quantity: true,
+              unit: true,
+              inwardDate: true,
+            },
+            orderBy: { inwardDate: "asc" },
+          },
         },
         orderBy: { createdAt: "desc" },
         take: 60,
       }),
-    ])) as [
-      PartyOption[],
-      PartyOption[],
-      IdName[],
-      ShadeOption[],
-      IdName[],
-      GreyOption[],
-      ProgramRow[],
-    ];
+    ]);
+
+  const programRows: ProgramRow[] = programs.map((p) => {
+    const qty = programQtySummary(p);
+    return {
+      ...p,
+      greyOrder: p.greyOrder ? { poNumber: p.greyOrder.poNumber } : null,
+      qty,
+      shortageQty:
+        p.shortageQty != null ? Number(p.shortageQty.toString()) : null,
+      inwards: p.inwards.map((row) => ({
+        id: row.id,
+        inwardNo: row.inwardNo,
+        quantity: row.quantity.toString(),
+        unit: row.unit,
+        inwardDate: row.inwardDate,
+      })),
+    };
+  });
+
+  const inwardable = programRows
+    .filter(
+      (p) =>
+        p.status !== "DRAFT" &&
+        p.status !== "CLOSED" &&
+        p.status !== "CANCELLED" &&
+        (p.qty.remaining == null || p.qty.remaining > 0),
+    )
+    .map((p) => ({
+      id: p.id,
+      programNo: p.programNo,
+      millName: p.mill.name,
+      unit: p.qty.unit,
+      remaining: p.qty.remaining,
+    }));
+
+  const greys: GreyOption[] = greyRows.map((g) => ({
+    id: g.id,
+    poNumber: g.poNumber,
+    weaverId: g.supplier.id,
+    weaverName: g.supplier.name,
+    millId: g.mill?.id ?? null,
+    millName: g.mill?.name ?? null,
+    quantity: g.quantity != null ? g.quantity.toString() : null,
+    unit: g.unit,
+    dyeingRate: g.dyeingRate != null ? g.dyeingRate.toString() : null,
+    fabricNotes: g.fabricNotes,
+  }));
 
   const grouped = stageGroups.map((group) => ({
     ...group,
-    rows: programs.filter(group.match),
+    rows: programRows.filter(group.match),
   }));
   const counts = Object.fromEntries(
     grouped.map((g) => [g.id, g.rows.length]),
   ) as Record<string, number>;
 
   return (
-    <div className="space-y-3">
+    <div className="tx-page tx-page-programs">
+      <div className="tx-stage space-y-3">
+      <div className="tx-chrome">
       <PageHeader
         title="Mill programs"
         eyebrow="Produce"
         icon={ScrollText}
-        description="One card per mill instruction. Send it on WhatsApp, track it at the mill, then hand it to QC when the fabric returns."
+        description="One card per mill instruction. Send it on WhatsApp, record mill inwards as goods return, then hand each inward to QC."
         actions={
           <Link href="/qc" className={buttonTinyClass}>
             <ClipboardCheck className="h-3 w-3" />
@@ -183,8 +265,9 @@ export default async function ProgramsPage() {
           </Link>
         }
       />
+      </div>
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-4">
+      <MetricStrip className="tx-metrics divide-x-0 grid-cols-2 sm:grid-cols-4">
         <Metric
           label="Draft"
           value={counts.draft ?? 0}
@@ -211,26 +294,12 @@ export default async function ProgramsPage() {
           <Panel compact>
             <form action={createProgram} className="space-y-2.5">
               <FieldGroup label="Who makes it">
-                <Field label="Mill">
-                  <PartySelect name="millId" options={mills} required />
-                </Field>
-                <Field label="Weaver (optional)">
-                  <PartySelect
-                    name="weaverId"
-                    options={weavers}
-                    placeholder="—"
-                  />
-                </Field>
-                <Field label="Grey PO (optional)" hint="Links program to procurement">
-                  <select className={inputClass} name="greyOrderId">
-                    <option value="">—</option>
-                    {greys.map((g: GreyOption) => (
-                      <option key={g.id} value={g.id}>
-                        {g.poNumber}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <ProgramGreyWeaverFields
+                  greys={greys}
+                  mills={mills}
+                  weavers={weavers}
+                  millWeaverLinks={millWeaverLinks}
+                />
               </FieldGroup>
 
               <FieldGroup label="What to make">
@@ -291,9 +360,6 @@ export default async function ProgramsPage() {
                 <Field label="Extra mods">
                   <input className={inputClass} name="extraMods" />
                 </Field>
-                <Field label="Remarks">
-                  <textarea className={inputClass} name="remarks" rows={2} />
-                </Field>
               </FieldGroup>
 
               <button className={buttonClass + " w-full"} type="submit">
@@ -342,6 +408,7 @@ export default async function ProgramsPage() {
                             <th>Shade</th>
                             <th>Spec</th>
                             <th>Mill / weaver</th>
+                            <th>Inward</th>
                             <th>Lot</th>
                             <th />
                           </tr>
@@ -387,6 +454,41 @@ export default async function ProgramsPage() {
                                   <div className="text-[10.5px] text-(--muted)">
                                     {p.weaver.name}
                                   </div>
+                                ) : null}
+                              </td>
+                              <td className="text-[11px] tabular-nums text-(--muted)">
+                                {p.qty.planned != null ? (
+                                  <>
+                                    {formatQty(p.qty.planned)} {p.qty.unit} planned
+                                    <div>
+                                      {formatQty(p.qty.received)} recv
+                                      {p.status === "CLOSED"
+                                        ? ` · ${formatQty(
+                                            p.shortageQty ??
+                                              Math.max(
+                                                0,
+                                                p.qty.planned - p.qty.received,
+                                              ),
+                                          )} difference`
+                                        : ` · ${formatQty(p.qty.remaining ?? 0)} left`}
+                                    </div>
+                                  </>
+                                ) : p.qty.received > 0 ? (
+                                  <>
+                                    {formatQty(p.qty.received)} {p.qty.unit} recv
+                                  </>
+                                ) : (
+                                  "—"
+                                )}
+                                {p.inwards.length > 0 ? (
+                                  <ul className="mt-0.5 text-[10px] text-(--faint)">
+                                    {p.inwards.map((row) => (
+                                      <li key={row.id}>
+                                        {row.inwardNo} · {formatQty(row.quantity)}{" "}
+                                        {row.unit}
+                                      </li>
+                                    ))}
+                                  </ul>
                                 ) : null}
                               </td>
                               <td>
@@ -437,6 +539,21 @@ export default async function ProgramsPage() {
                                       QC
                                     </Link>
                                   )}
+                                  {p.qty.planned != null &&
+                                  p.qty.remaining != null &&
+                                  p.qty.remaining > 0 &&
+                                  p.status !== "DRAFT" &&
+                                  p.status !== "CLOSED" &&
+                                  p.status !== "CANCELLED" ? (
+                                    <MillReturnCompleteForm
+                                      programId={p.id}
+                                      programNo={p.programNo}
+                                      planned={p.qty.planned}
+                                      received={p.qty.received}
+                                      remaining={p.qty.remaining}
+                                      unit={p.qty.unit}
+                                    />
+                                  ) : null}
                                 </div>
                               </td>
                             </tr>
@@ -449,13 +566,27 @@ export default async function ProgramsPage() {
             </div>
           )}
 
+          {inwardable.length > 0 ? (
+            <Section
+              title="Mill inward"
+              step={3}
+              icon={Inbox}
+              description="Record each physical return. Remaining is not treated as shortage."
+            >
+              <Panel compact>
+                <MillInwardForm programs={inwardable} />
+              </Panel>
+            </Section>
+          ) : null}
+
+          <div className="tx-next">
           <NextStep
             steps={[
               {
-                label: "Log mill return & run QC",
+                label: "Record mill inward & run QC",
                 href: "/qc",
-                hint: "Create the lot, inspect it",
-                count: counts["at-mill"] || undefined,
+                hint: "Inward, then QC; lot is created on PASS",
+                count: inwardable.length || undefined,
               },
               {
                 label: "Check live stock",
@@ -464,7 +595,9 @@ export default async function ProgramsPage() {
               },
             ]}
           />
+          </div>
         </Section>
+      </div>
       </div>
     </div>
   );

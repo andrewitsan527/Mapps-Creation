@@ -65,6 +65,7 @@ export default async function DashboardPage() {
           rfNo: true,
           dueAt: true,
           lot: { select: { lotNumber: true } },
+          millInward: { select: { inwardNo: true } },
           mill: { select: { name: true } },
         },
         orderBy: { dueAt: "asc" },
@@ -280,7 +281,7 @@ export default async function DashboardPage() {
                       return (
                         <tr key={rf.id}>
                           <td className="font-semibold">{rf.rfNo}</td>
-                          <td>{rf.lot.lotNumber}</td>
+                          <td>{rf.lot?.lotNumber ?? rf.millInward?.inwardNo ?? "—"}</td>
                           <td className="text-(--muted)">{rf.mill.name}</td>
                           <td className="text-[11px]">
                             {formatDateTime(rf.dueAt)}

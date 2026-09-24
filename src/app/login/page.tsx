@@ -1,122 +1,36 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  ArrowRight,
-  Banknote,
-  Boxes,
-  ClipboardCheck,
-  MessageCircle,
-  Package,
-  ScrollText,
-  ShieldCheck,
-  Truck,
-} from "lucide-react";
 import { loginAction, type AuthActionState } from "@/server/actions/auth";
-import { buttonClass, Field, inputClass } from "@/components/ui";
+import { buttonClass, Field } from "@/components/ui";
+import { LoginRecord } from "./login-record";
 
 const initial: AuthActionState = {};
-
-const chain = [
-  { icon: Package, label: "Grey" },
-  { icon: ScrollText, label: "Program" },
-  { icon: ClipboardCheck, label: "QC" },
-  { icon: Boxes, label: "Stock" },
-  { icon: Truck, label: "Delivery" },
-  { icon: Banknote, label: "Payment" },
-];
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(loginAction, initial);
 
   return (
-    <div className="login-weave relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
-      <div className="animate-soft-rise relative z-10 grid w-full max-w-[880px] overflow-hidden rounded-2xl border border-white/10 login-card lg:grid-cols-[1.08fr_1fr]">
-        <div className="relative hidden flex-col justify-between overflow-hidden p-8 text-white lg:flex">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40"
-            style={{
-              background:
-                "radial-gradient(ellipse 80% 60% at 20% 0%, rgba(201,162,39,0.18), transparent 55%)",
-            }}
-          />
-          <div className="relative">
-            <div className="mb-5 flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-full border border-[#c9a227]/60 bg-linear-to-br from-[#2f281f] to-[#0c0a08] font-serif text-[13px] font-bold tracking-wide text-[#e8c547]">
-                MC
-              </span>
-              <div>
-                <p className="text-[10px] font-semibold tracking-[0.18em] text-white/45 uppercase">
-                  Est. Surat
-                </p>
-                <p className="text-[11px] text-[#e8c547]/90">
-                  Knitting dreams into reality
-                </p>
-              </div>
-            </div>
-            <p className="font-serif text-[44px] leading-[0.95] tracking-tight">
-              Mapps
-              <span className="mt-1 block text-[28px] text-white/65">
-                Creation
-              </span>
-            </p>
-            <div className="login-gold-line my-5 max-w-[220px]" />
-            <p className="max-w-sm text-[13.5px] leading-relaxed text-white/68">
-              One connected desk for RFD fabric — grey purchase through mill
-              programs, quality, stock, sale, delivery and recovery.
-            </p>
-          </div>
-
-          <div className="relative">
-            <p className="mb-2.5 text-[10px] font-semibold tracking-[0.16em] text-white/40 uppercase">
-              Order-to-cash
-            </p>
-            <ul className="flex flex-wrap items-center gap-1.5">
-              {chain.map((step, i) => {
-                const Icon = step.icon;
-                return (
-                  <li key={step.label} className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/6 px-2 py-1 text-[11.5px] text-white/85 backdrop-blur-sm">
-                      <Icon className="h-3 w-3 text-[#7ddec8]" />
-                      {step.label}
-                    </span>
-                    {i < chain.length - 1 ? (
-                      <ArrowRight className="h-3 w-3 text-white/20" />
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="mt-5 flex items-center gap-1.5 text-[11.5px] text-white/50">
-              <MessageCircle className="h-3.5 w-3.5 text-[#7ddec8]" />
-              WhatsApp on every handoff — mill cards, bills, RF & reminders
-            </p>
-          </div>
+    <div className="login-weave relative flex min-h-svh items-center justify-center px-4 py-6">
+      <LoginRecord />
+      <div className="relative z-10 w-full max-w-[440px]">
+        <div className="mb-8 text-center">
+          <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full border border-[#c9a227]/70 bg-[#0c0a08] font-serif text-[14px] font-bold tracking-wide text-[#e8c547]">
+            MC
+          </span>
+          <h1 className="font-serif text-[30px] font-semibold leading-none tracking-tight text-white">
+            Mapps Creation
+          </h1>
+          <div className="login-gold-line mx-auto mt-5 max-w-[88px]" />
         </div>
 
-        <div className="relative bg-[#fcfdfd] p-6 sm:p-8">
-          <div className="mb-6 flex items-start justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-semibold tracking-[0.16em] text-(--muted) uppercase">
-                Secure sign in
-              </p>
-              <h1 className="mt-1 font-serif text-[26px] font-semibold tracking-tight text-(--ink)">
-                Operations desk
-              </h1>
-              <p className="mt-1.5 text-[12px] text-(--muted) lg:hidden">
-                Mapps Creation · RFD ERP
-              </p>
-            </div>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-(--accent)/15 bg-(--accent-soft) px-2.5 py-1 text-[10px] font-semibold text-(--accent-strong)">
-              <ShieldCheck className="h-3 w-3" />
-              ERP
-            </span>
-          </div>
+        <div className="login-panel mx-auto w-full max-w-[368px] px-6 pt-8 pb-6 sm:px-7">
+          <h2 className="login-heading font-serif">Sign in</h2>
 
-          <form action={action} className="space-y-3">
+          <form action={action} className="login-form">
             <Field label="Email">
               <input
-                className={inputClass}
+                className="login-input"
                 name="email"
                 type="email"
                 autoComplete="username"
@@ -126,7 +40,7 @@ export default function LoginPage() {
             </Field>
             <Field label="Password">
               <input
-                className={inputClass}
+                className="login-input"
                 name="password"
                 type="password"
                 autoComplete="current-password"
@@ -134,22 +48,17 @@ export default function LoginPage() {
               />
             </Field>
             {state.error ? (
-              <p className="rounded-md border border-(--danger)/25 bg-(--danger-soft) px-2.5 py-2 text-[12px] text-(--danger)">
+              <p className="rounded-sm border border-(--danger)/25 bg-(--danger-soft) px-2.5 py-2 text-[12px] text-(--danger)">
                 {state.error}
               </p>
             ) : null}
             <button
-              className={`${buttonClass} pressable w-full py-2.5 text-[13px]`}
+              className={`${buttonClass} login-submit`}
               disabled={pending}
             >
-              {pending ? "Signing in…" : "Enter workspace"}
-              {pending ? null : <ArrowRight className="h-3.5 w-3.5" />}
+              {pending ? "Signing in…" : "Sign in"}
             </button>
           </form>
-
-          <p className="mt-6 border-t border-(--line-soft) pt-3.5 text-center text-[10.5px] text-(--faint)">
-            Authorised users only · every action is logged to your account
-          </p>
         </div>
       </div>
     </div>

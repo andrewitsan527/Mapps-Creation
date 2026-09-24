@@ -8,10 +8,11 @@ import {
   ClipboardCheck,
   CreditCard,
   Factory,
+  Inbox,
   LayoutDashboard,
+  LayoutGrid,
   MessageSquare,
   Package,
-  PackageOpen,
   Palette,
   RotateCcw,
   Scissors,
@@ -44,6 +45,12 @@ export type NavCluster = {
 
 export const navClusters: NavCluster[] = [
   {
+    id: "main-menu",
+    title: "",
+    caption: "Main menu",
+    items: [{ href: "/menu", label: "Main Menu", icon: LayoutGrid }],
+  },
+  {
     id: "command",
     title: "Command",
     caption: "Daily control",
@@ -68,6 +75,7 @@ export const navClusters: NavCluster[] = [
     caption: "Mill & quality",
     items: [
       { href: "/programs", label: "Mill programs", icon: ScrollText, mobile: true },
+      { href: "/inward", label: "Mill Inward", icon: Inbox, mobile: true },
       { href: "/qc", label: "Quality check", icon: ClipboardCheck, mobile: true },
     ],
   },
@@ -116,7 +124,7 @@ export const navClusters: NavCluster[] = [
       { href: "/masters/mills", label: "Mills", icon: Building2 },
       { href: "/masters/weavers", label: "Weavers", icon: Scissors },
       { href: "/masters/agents", label: "Agents", icon: Briefcase },
-      { href: "/masters/suppliers", label: "Suppliers", icon: PackageOpen },
+      { href: "/masters/transporters", label: "Transport", icon: Truck },
       { href: "/masters/fabrics", label: "Fabrics", icon: Shirt },
       { href: "/masters/colors", label: "Colors & shades", icon: Palette },
       { href: "/masters/finishes", label: "Finishes", icon: Factory },
@@ -126,7 +134,15 @@ export const navClusters: NavCluster[] = [
 
 export const allNavLinks: NavLink[] = navClusters.flatMap((c) => c.items);
 
+const mainMenuCluster: NavCluster = {
+  id: "main-menu",
+  title: "Main menu",
+  caption: "Shortcuts",
+  items: [{ href: "/menu", label: "Main menu", icon: LayoutDashboard }],
+};
+
 export function clusterForPath(pathname: string): NavCluster | undefined {
+  if (pathname === "/menu") return mainMenuCluster;
   return navClusters.find((cluster) =>
     cluster.items.some(
       (item) =>
@@ -136,6 +152,7 @@ export function clusterForPath(pathname: string): NavCluster | undefined {
 }
 
 export function linkForPath(pathname: string): NavLink | undefined {
+  if (pathname === "/menu") return mainMenuCluster.items[0];
   return allNavLinks
     .filter(
       (item) =>

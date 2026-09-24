@@ -391,16 +391,24 @@ export async function submitGoodsReturnQc(formData: FormData) {
 /** Confirm physical send to mill (closes 1-day SLA) and WhatsApp mill. */
 export async function returnLotToMill(formData: FormData) {
   await requireUser();
-  const lotId = String(formData.get("lotId") || "");
+  const lotId = String(formData.get("lotId") || "") || null;
+  const millInwardId = String(formData.get("millInwardId") || "") || null;
   const remarks = String(formData.get("remarks") || "").trim() || null;
 
-  await prisma.lot.update({
-    where: { id: lotId },
-    data: { defectType: "MILL", active: false },
-  });
+  if (!lotId && !millInwardId) {
+    throw new Error("Lot or mill inward required");
+  }
+
+  if (lotId) {
+    await prisma.lot.update({
+      where: { id: lotId },
+      data: { defectType: "MILL", active: false },
+    });
+  }
 
   await markMillReturnSent({
     lotId,
+    millInwardId,
     remarks,
     resendWhatsApp: true,
   });

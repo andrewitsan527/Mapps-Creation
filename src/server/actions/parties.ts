@@ -6,6 +6,67 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { isPartyType, masterHref } from "@/lib/parties";
 
+async function syncMillWeaverAssignments(
+  type: PartyType,
+  partyId: string,
+  counterpartIds: string[],
+) {
+  if (type !== "MILL" && type !== "WEAVER") return;
+
+  const otherType = type === "MILL" ? "WEAVER" : "MILL";
+
+  if (counterpartIds.length > 0) {
+    const counterparts = await prisma.party.findMany({
+      where: { id: { in: counterpartIds } },
+      select: { id: true, type: true },
+    });
+    if (counterparts.length !== counterpartIds.length) {
+      throw new Error("Unknown mill/weaver assignment");
+    }
+    if (counterparts.some((p) => p.type !== otherType)) {
+      throw new Error(
+        type === "MILL"
+          ? "Only Weavers can be assigned to a Mill"
+          : "Only Mills can be assigned to a Weaver",
+      );
+    }
+  }
+
+  const owner = await prisma.party.findUniqueOrThrow({
+    where: { id: partyId },
+    select: { type: true },
+  });
+  if (owner.type !== type) {
+    throw new Error("Mill/weaver assignment owner is invalid");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (type === "MILL") {
+      await tx.millWeaver.deleteMany({ where: { millId: partyId } });
+      if (counterpartIds.length > 0) {
+        await tx.millWeaver.createMany({
+          data: counterpartIds.map((weaverId) => ({
+            millId: partyId,
+            weaverId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    } else {
+      await tx.millWeaver.deleteMany({ where: { weaverId: partyId } });
+      if (counterpartIds.length > 0) {
+        await tx.millWeaver.createMany({
+          data: counterpartIds.map((millId) => ({
+            millId,
+            weaverId: partyId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+  });
+}
+
 async function requireUser() {
   const user = await getSessionUser();
   if (!user) throw new Error("Unauthorized");
@@ -44,7 +105,7 @@ function revalidatePartyPaths(type: PartyType, id?: string) {
   revalidatePath("/masters/mills");
   revalidatePath("/masters/weavers");
   revalidatePath("/masters/agents");
-  revalidatePath("/masters/suppliers");
+  revalidatePath("/masters/transporters");
   revalidatePath(masterHref(type));
   if (id) revalidatePath(`/masters/parties/${id}`);
   revalidatePath("/programs");
@@ -109,6 +170,12 @@ export async function createPartyMaster(formData: FormData) {
     });
   }
 
+  const millWeaverIds = formData
+    .getAll("millWeaverIds")
+    .map(String)
+    .filter(Boolean);
+  await syncMillWeaverAssignments(data.type, party.id, millWeaverIds);
+
   revalidatePartyPaths(data.type, party.id);
 }
 
@@ -141,6 +208,14 @@ export async function updatePartyMaster(formData: FormData) {
         });
       }
     });
+  }
+
+  if (data.type === "MILL" || data.type === "WEAVER") {
+    const millWeaverIds = formData
+      .getAll("millWeaverIds")
+      .map(String)
+      .filter(Boolean);
+    await syncMillWeaverAssignments(data.type, id, millWeaverIds);
   }
 
   revalidatePartyPaths(data.type, id);

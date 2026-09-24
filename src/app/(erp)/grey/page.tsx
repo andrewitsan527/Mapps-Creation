@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { addGreyBill, createGreyPo } from "@/server/actions/grey";
-import { listPartyOptions } from "@/lib/parties";
+import {
+  listAgentWeaverLinks,
+  listMillWeaverLinks,
+  listPartyOptions,
+} from "@/lib/parties";
 import { formatDate, formatMoney, formatMoneyShort, formatQty } from "@/lib/utils";
 import { statusBadge } from "@/lib/format";
-import { PartySelect } from "@/components/party-select";
+import { GreyPurchaseFields } from "@/components/grey-purchase-fields";
 import {
   EmptyState,
   Field,
@@ -30,8 +34,13 @@ import {
 } from "lucide-react";
 
 export default async function GreyPage() {
-  const [suppliers, orders] = await Promise.all([
-    listPartyOptions("GREY_SUPPLIER"),
+  const [suppliers, mills, agents, millWeaverLinks, agentWeaverLinks, orders] =
+    await Promise.all([
+    listPartyOptions("WEAVER"),
+    listPartyOptions("MILL"),
+    listPartyOptions("AGENT"),
+    listMillWeaverLinks(),
+    listAgentWeaverLinks(),
     prisma.greyPurchaseOrder.findMany({
       select: {
         id: true,
@@ -40,8 +49,11 @@ export default async function GreyPage() {
         orderDate: true,
         quantity: true,
         unit: true,
+        dyeingRate: true,
         fabricNotes: true,
         supplier: { select: { id: true, name: true } },
+        mill: { select: { id: true, name: true } },
+        agent: { select: { id: true, name: true } },
         bills: {
           select: { id: true, billNo: true, amount: true, billDate: true, notes: true },
           orderBy: { billDate: "desc" },
@@ -68,20 +80,23 @@ export default async function GreyPage() {
   ).length;
 
   return (
-    <div className="space-y-3">
+    <div className="tx-page tx-page-grey">
+      <div className="tx-stage space-y-3">
+      <div className="tx-chrome">
       <PageHeader
         title="Grey purchase"
         eyebrow="Procure"
         icon={Package}
-        description="Raise the PO, WhatsApp it to the supplier, book supplier bills against it, then hand the grey over to a mill program."
+        description="Raise the PO, WhatsApp it to the weaver, book their bills against it, then hand the grey over to a mill program."
         actions={
-          <Link href="/masters/suppliers" className={buttonTinyClass}>
-            Suppliers
+          <Link href="/masters/weavers" className={buttonTinyClass}>
+            Weavers
           </Link>
         }
       />
+      </div>
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+      <MetricStrip className="tx-metrics divide-x-0 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <Metric label="Open POs" value={openCount} hint={`${orders.length} total`} />
         <Metric label="Ordered qty" value={formatQty(orderedQty)} hint="all units" />
         <Metric label="Billed value" value={formatMoneyShort(billedValue)} />
@@ -103,31 +118,13 @@ export default async function GreyPage() {
         <Section title="Raise a PO" step={1} icon={PlusCircle} tone="accent">
           <Panel compact>
             <form action={createGreyPo} className="space-y-2.5">
-              <FieldGroup label="Supplier">
-                <Field label="Grey supplier">
-                  <PartySelect name="supplierId" options={suppliers} required />
-                </Field>
-              </FieldGroup>
-
-              <FieldGroup label="Quantity">
-                <div className="grid grid-cols-[1fr_84px] gap-1.5">
-                  <Field label="Quantity">
-                    <input
-                      className={inputClass}
-                      name="quantity"
-                      type="number"
-                      step="any"
-                      placeholder="0"
-                    />
-                  </Field>
-                  <Field label="Unit">
-                    <select className={inputClass} name="unit" defaultValue="m">
-                      <option value="m">m</option>
-                      <option value="kg">kg</option>
-                    </select>
-                  </Field>
-                </div>
-              </FieldGroup>
+              <GreyPurchaseFields
+                weavers={suppliers}
+                mills={mills}
+                agents={agents}
+                millWeaverLinks={millWeaverLinks}
+                agentWeaverLinks={agentWeaverLinks}
+              />
 
               <FieldGroup label="Details">
                 <Field label="Fabric notes">
@@ -160,10 +157,10 @@ export default async function GreyPage() {
             <Panel compact>
               <EmptyState
                 icon={Package}
-                text="No grey POs yet. Add a grey supplier in masters first."
+                text="No grey POs yet. Add a weaver in masters first."
                 action={
-                  <Link href="/masters/suppliers" className={buttonTinyClass}>
-                    Add supplier
+                  <Link href="/masters/weavers" className={buttonTinyClass}>
+                    Add weaver
                   </Link>
                 }
               />
@@ -175,8 +172,11 @@ export default async function GreyPage() {
                   <thead>
                     <tr>
                       <th>PO</th>
-                      <th>Supplier</th>
+                      <th>Weaver</th>
+                      <th>Mill</th>
+                      <th>Agent</th>
                       <th className="num">Qty</th>
+                      <th className="num">Dyeing</th>
                       <th className="num">Billed</th>
                       <th>Program</th>
                       <th>Bills & notes</th>
@@ -202,8 +202,17 @@ export default async function GreyPage() {
                             </div>
                           </td>
                           <td className="text-(--muted)">{o.supplier.name}</td>
+                          <td className="text-(--muted)">{o.mill?.name ?? "—"}</td>
+                          <td className="text-(--muted)">
+                            {o.agent?.name ?? "Direct"}
+                          </td>
                           <td className="num">
                             {o.quantity ? formatQty(o.quantity) : "—"} {o.unit}
+                          </td>
+                          <td className="num">
+                            {o.dyeingRate
+                              ? `${formatMoney(o.dyeingRate)}/${o.unit}`
+                              : "—"}
                           </td>
                           <td className="num font-semibold">
                             {billed > 0 ? formatMoney(billed) : "—"}
@@ -300,6 +309,7 @@ export default async function GreyPage() {
             </Panel>
           )}
 
+          <div className="tx-next">
           <NextStep
             steps={[
               {
@@ -311,11 +321,13 @@ export default async function GreyPage() {
               {
                 label: "Record supplier payment",
                 href: "/payments",
-                hint: "Grey supplier payout",
+                hint: "Weaver payout",
               },
             ]}
           />
+          </div>
         </Section>
+      </div>
       </div>
     </div>
   );

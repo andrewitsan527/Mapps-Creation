@@ -125,7 +125,9 @@ export default async function StockPage({
   ).length;
 
   return (
-    <div className="space-y-3">
+    <div className="tx-page tx-page-stock">
+      <div className="tx-stage space-y-3">
+      <div className="tx-chrome">
       <PageHeader
         title="Live stock"
         eyebrow="Inventory"
@@ -137,8 +139,9 @@ export default async function StockPage({
           </Link>
         }
       />
+      </div>
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+      <MetricStrip className="tx-metrics divide-x-0 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <Metric
           label="Available"
           value={formatQty(totalAvailable)}
@@ -397,6 +400,7 @@ export default async function StockPage({
           </Panel>
         </div>
 
+        <div className="tx-next">
         <NextStep
           steps={[
             {
@@ -417,7 +421,9 @@ export default async function StockPage({
             },
           ]}
         />
+        </div>
       </Section>
+      </div>
     </div>
   );
 }

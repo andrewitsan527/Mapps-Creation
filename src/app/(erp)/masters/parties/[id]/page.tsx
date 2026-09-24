@@ -39,6 +39,8 @@ export default async function EditPartyPage({
         include: { agent: { select: { id: true, name: true } } },
       },
       millMarkas: { orderBy: [{ active: "desc" }, { code: "asc" }] },
+      millWeaversAsMill: { select: { weaverId: true } },
+      millWeaversAsWeaver: { select: { millId: true } },
     },
   });
 
@@ -49,14 +51,34 @@ export default async function EditPartyPage({
       ? await prisma.party.findMany({
           where: {
             active: true,
-            type: { in: ["CLIENT", "MILL", "WEAVER", "GREY_SUPPLIER"] },
+            type: { in: ["CLIENT", "MILL", "WEAVER"] },
           },
           select: { id: true, name: true, type: true },
           orderBy: [{ type: "asc" }, { name: "asc" }],
         })
       : [];
 
+  const millWeaverOptions =
+    party.type === "MILL"
+      ? await prisma.party.findMany({
+          where: { active: true, type: "WEAVER" },
+          select: { id: true, name: true, type: true },
+          orderBy: { name: "asc" },
+        })
+      : party.type === "WEAVER"
+        ? await prisma.party.findMany({
+            where: { active: true, type: "MILL" },
+            select: { id: true, name: true, type: true },
+            orderBy: { name: "asc" },
+          })
+        : [];
+
   const selected = new Set(party.agentLinks.map((l) => l.relatedPartyId));
+  const selectedMillWeaver = new Set(
+    party.type === "MILL"
+      ? party.millWeaversAsMill.map((l) => l.weaverId)
+      : party.millWeaversAsWeaver.map((l) => l.millId),
+  );
 
   return (
     <div className="space-y-3">
@@ -75,7 +97,11 @@ export default async function EditPartyPage({
         title={party.name}
         eyebrow="Masters"
         icon={UserCog}
-        description={`${PARTY_TYPE_LABELS[party.type]} · ${party.paymentTermsDays}d terms · ${String(party.interestRatePct)}% p.a. after due`}
+        description={
+          party.type === "TRANSPORTER"
+            ? `${PARTY_TYPE_LABELS[party.type]}${party.gstin ? ` · ${party.gstin}` : ""}`
+            : `${PARTY_TYPE_LABELS[party.type]} · ${party.paymentTermsDays}d terms · ${String(party.interestRatePct)}% p.a. after due`
+        }
         actions={
           <Link href={masterHref(party.type)} className={buttonGhostClass}>
             Back
@@ -123,6 +149,46 @@ export default async function EditPartyPage({
                                 ({PARTY_TYPE_LABELS[p.type]})
                               </span>
                             </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </Field>
+                </FieldGroup>
+              ) : null}
+
+              {party.type === "MILL" || party.type === "WEAVER" ? (
+                <FieldGroup
+                  label={party.type === "MILL" ? "Weavers" : "Mills"}
+                >
+                  <Field
+                    label={
+                      party.type === "MILL"
+                        ? "Weavers for this mill"
+                        : "Mills this weaver works with"
+                    }
+                  >
+                    {millWeaverOptions.length === 0 ? (
+                      <p className="text-[11px] text-(--muted)">
+                        {party.type === "MILL"
+                          ? "Add weavers first, then assign them here."
+                          : "Add mills first, then assign them here."}
+                      </p>
+                    ) : (
+                      <div className="max-h-56 space-y-0.5 overflow-y-auto rounded-md border border-(--line) bg-(--panel-alt) p-1.5">
+                        {millWeaverOptions.map((p) => (
+                          <label
+                            key={p.id}
+                            className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-[11px] hover:bg-white"
+                          >
+                            <input
+                              type="checkbox"
+                              name="millWeaverIds"
+                              value={p.id}
+                              defaultChecked={selectedMillWeaver.has(p.id)}
+                              className="accent-(--accent)"
+                            />
+                            <span className="truncate">{p.name}</span>
                           </label>
                         ))}
                       </div>

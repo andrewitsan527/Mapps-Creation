@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { requireAgentWeaverLink, requireMillWeaverLink } from "@/lib/parties";
 import { sendWhatsApp } from "@/server/whatsapp";
 
 async function requireUser() {
@@ -20,15 +21,42 @@ async function nextPoNumber() {
 export async function createGreyPo(formData: FormData) {
   await requireUser();
   const supplierId = String(formData.get("supplierId") || "");
+  const millId = String(formData.get("millId") || "");
+  const agentId = String(formData.get("agentId") || "") || null;
   const fabricNotes = String(formData.get("fabricNotes") || "").trim() || null;
   const quantityRaw = String(formData.get("quantity") || "").trim();
   const unit = String(formData.get("unit") || "m");
+  const dyeingRateRaw = String(formData.get("dyeingRate") || "").trim();
   const whatsappNote = String(formData.get("whatsappNote") || "").trim() || null;
   const notify = String(formData.get("notifyWhatsapp") || "") === "true";
 
-  if (!supplierId) throw new Error("Supplier required");
+  if (!supplierId) throw new Error("Weaver required");
+  if (!millId) throw new Error("Destination mill required");
 
-  const supplier = await prisma.party.findUniqueOrThrow({ where: { id: supplierId } });
+  const supplier = await prisma.party.findUniqueOrThrow({
+    where: { id: supplierId },
+  });
+  if (supplier.type !== "WEAVER") {
+    throw new Error("Grey purchase must use a Weaver");
+  }
+
+  const mill = await prisma.party.findUniqueOrThrow({ where: { id: millId } });
+  if (mill.type !== "MILL") {
+    throw new Error("Destination mill must be a Mill party");
+  }
+
+  if (agentId) {
+    const agent = await prisma.party.findUniqueOrThrow({
+      where: { id: agentId },
+    });
+    if (agent.type !== "AGENT") {
+      throw new Error("Grey agent must be an Agent party");
+    }
+    await requireAgentWeaverLink(agentId, supplierId);
+  }
+
+  await requireMillWeaverLink(millId, supplierId);
+
   if (notify && !supplier.whatsapp) {
     throw new Error(
       "Supplier has no WhatsApp number — update supplier master or untick WhatsApp",
@@ -38,9 +66,12 @@ export async function createGreyPo(formData: FormData) {
     data: {
       poNumber: await nextPoNumber(),
       supplierId,
+      millId,
+      agentId,
       fabricNotes,
       quantity: quantityRaw ? quantityRaw : null,
       unit,
+      dyeingRate: dyeingRateRaw ? dyeingRateRaw : null,
       whatsappNote,
       status: "OPEN",
     },
@@ -62,6 +93,7 @@ export async function createGreyPo(formData: FormData) {
   }
 
   revalidatePath("/grey");
+  revalidatePath("/programs");
 }
 
 export async function addGreyBill(formData: FormData) {

@@ -23,9 +23,11 @@ export function SideNav({ badges = {} }: { badges?: NavBadges }) {
     <nav className="flex flex-1 flex-col gap-3 overflow-y-auto px-1.5 py-2.5">
       {navClusters.map((cluster) => (
         <div key={cluster.id}>
-          <p className="mb-1 px-1.5 text-[9px] font-semibold tracking-[0.14em] text-(--sidebar-muted) uppercase">
-            {cluster.title}
-          </p>
+          {cluster.title ? (
+            <p className="mb-1 px-1.5 text-[9px] font-semibold tracking-[0.14em] text-(--sidebar-muted) uppercase">
+              {cluster.title}
+            </p>
+          ) : null}
           <ul className="space-y-px">
             {cluster.items.map((item) => {
               const active = isActive(pathname, item.href);

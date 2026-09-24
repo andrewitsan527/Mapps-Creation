@@ -41,12 +41,11 @@ export async function recordPayment(formData: FormData) {
   }
 
   const expectedPartyType: Partial<
-    Record<PaymentCategory, "CLIENT" | "MILL" | "WEAVER" | "GREY_SUPPLIER" | "AGENT">
+    Record<PaymentCategory, "CLIENT" | "MILL" | "WEAVER" | "AGENT">
   > = {
     CUSTOMER_RECEIPT: "CLIENT",
     MILL_PAYMENT: "MILL",
     WEAVER_PAYMENT: "WEAVER",
-    GREY_SUPPLIER_PAYMENT: "GREY_SUPPLIER",
     AGENT_COMMISSION: "AGENT",
   };
 

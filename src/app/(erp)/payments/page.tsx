@@ -41,7 +41,7 @@ import {
 export default async function PaymentsPage() {
   const now = new Date();
   const [parties, receivables, commissions, recentPayments] = await Promise.all([
-    listPartyOptions(["CLIENT", "MILL", "GREY_SUPPLIER", "AGENT", "WEAVER"]),
+    listPartyOptions(["CLIENT", "MILL", "AGENT", "WEAVER"]),
     listDispatchedReceivables(),
     listOpenCommissions(),
     prisma.payment.findMany({

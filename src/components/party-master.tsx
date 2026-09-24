@@ -27,8 +27,8 @@ import {
 import {
   Briefcase,
   Building2,
-  PackageOpen,
   Scissors,
+  Truck,
   UserPlus,
   Users,
   type LucideIcon,
@@ -54,14 +54,15 @@ const TAB_META: {
     label: "Mills",
     addLabel: "Add mill",
     blurb:
-      "Processing mills used on program cards and mill RF. WhatsApp is required to send programs.",
+      "Processing mills used on program cards and mill RF. Assign the weavers that belong to each mill.",
     icon: Building2,
   },
   {
     type: "WEAVER",
     label: "Weavers",
     addLabel: "Add weaver",
-    blurb: "Weavers linked to grey, programs and QC escalations.",
+    blurb:
+      "Weavers who supply grey fabric. Link each weaver to the mill(s) they work with.",
     icon: Scissors,
   },
   {
@@ -72,18 +73,18 @@ const TAB_META: {
     icon: Briefcase,
   },
   {
-    type: "GREY_SUPPLIER",
-    label: "Suppliers",
-    addLabel: "Add supplier",
-    blurb: "Grey fabric suppliers for purchase orders.",
-    icon: PackageOpen,
+    type: "TRANSPORTER",
+    label: "Transport",
+    addLabel: "Add transporter",
+    blurb: "Transporters selected on sale bills. Vehicle and driver stay on delivery.",
+    icon: Truck,
   },
 ];
 
 export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
   const meta = TAB_META.find((t) => t.type === type) ?? TAB_META[0];
 
-  const [rows, linkable] = await Promise.all([
+  const [rows, linkable, millWeaverOptions] = await Promise.all([
     prisma.party.findMany({
       where: { type },
       orderBy: [{ active: "desc" }, { name: "asc" }],
@@ -101,13 +102,21 @@ export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
             agent: { select: { id: true, name: true } },
           },
         },
+        millWeaversAsMill: {
+          include: { weaver: { select: { id: true, name: true } } },
+          orderBy: { weaver: { name: "asc" } },
+        },
+        millWeaversAsWeaver: {
+          include: { mill: { select: { id: true, name: true } } },
+          orderBy: { mill: { name: "asc" } },
+        },
       },
     }),
     type === "AGENT"
       ? prisma.party.findMany({
           where: {
             active: true,
-            type: { in: ["CLIENT", "MILL", "WEAVER", "GREY_SUPPLIER"] },
+            type: { in: ["CLIENT", "MILL", "WEAVER"] },
           },
           select: { id: true, name: true, type: true },
           orderBy: [{ type: "asc" }, { name: "asc" }],
@@ -115,6 +124,21 @@ export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
       : Promise.resolve(
           [] as { id: string; name: string; type: PartyType }[],
         ),
+    type === "MILL"
+      ? prisma.party.findMany({
+          where: { active: true, type: "WEAVER" },
+          select: { id: true, name: true, type: true },
+          orderBy: { name: "asc" },
+        })
+      : type === "WEAVER"
+        ? prisma.party.findMany({
+            where: { active: true, type: "MILL" },
+            select: { id: true, name: true, type: true },
+            orderBy: { name: "asc" },
+          })
+        : Promise.resolve(
+            [] as { id: string; name: string; type: PartyType }[],
+          ),
   ]);
 
   const active = rows.filter((p) => p.active).length;
@@ -168,7 +192,11 @@ export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
               : "all reachable"
           }
         />
-        <Metric label="Avg terms" value={`${avgTerms}d`} />
+        {type === "TRANSPORTER" ? (
+          <Metric label="With GSTIN" value={rows.filter((p) => p.gstin).length} />
+        ) : (
+          <Metric label="Avg terms" value={`${avgTerms}d`} />
+        )}
       </MetricStrip>
 
       <div className="grid gap-3 lg:grid-cols-[300px_1fr]">
@@ -205,6 +233,37 @@ export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
                   </Field>
                 </FieldGroup>
               ) : null}
+              {(type === "MILL" || type === "WEAVER") &&
+              millWeaverOptions.length > 0 ? (
+                <FieldGroup
+                  label={type === "MILL" ? "Weavers" : "Mills"}
+                >
+                  <Field
+                    label={
+                      type === "MILL"
+                        ? "Weavers for this mill"
+                        : "Mills this weaver works with"
+                    }
+                  >
+                    <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-md border border-(--line) bg-(--panel-alt) p-1.5">
+                      {millWeaverOptions.map((p) => (
+                        <label
+                          key={p.id}
+                          className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-[11px] hover:bg-white"
+                        >
+                          <input
+                            type="checkbox"
+                            name="millWeaverIds"
+                            value={p.id}
+                            className="accent-(--accent)"
+                          />
+                          <span className="truncate">{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+                </FieldGroup>
+              ) : null}
               <button className={buttonClass + " w-full"} type="submit">
                 Save
               </button>
@@ -232,8 +291,16 @@ export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
                     <tr>
                       <th>Name</th>
                       <th>Contact</th>
-                      <th>Terms</th>
-                      <th>{type === "AGENT" ? "Linked to" : "Agents"}</th>
+                      <th>{type === "TRANSPORTER" ? "GSTIN" : "Terms"}</th>
+                      <th>
+                        {type === "AGENT"
+                          ? "Linked to"
+                          : type === "MILL"
+                            ? "Weavers"
+                            : type === "WEAVER"
+                              ? "Mills"
+                              : "Agents"}
+                      </th>
                       <th>Status</th>
                       <th />
                     </tr>
@@ -246,7 +313,11 @@ export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
                               (l) =>
                                 `${l.relatedParty.name} (${PARTY_TYPE_LABELS[l.relatedParty.type]})`,
                             )
-                          : p.linkedFromAgents.map((l) => l.agent.name);
+                          : type === "MILL"
+                            ? p.millWeaversAsMill.map((l) => l.weaver.name)
+                            : type === "WEAVER"
+                              ? p.millWeaversAsWeaver.map((l) => l.mill.name)
+                              : p.linkedFromAgents.map((l) => l.agent.name);
 
                       return (
                         <tr key={p.id} className={p.active ? "" : "opacity-55"}>
@@ -266,10 +337,16 @@ export async function PartyMasterScreen({ type }: { type: MasterPartyType }) {
                             ) : null}
                           </td>
                           <td className="text-[11px] tabular-nums">
-                            {p.paymentTermsDays}d
-                            <div className="text-[10px] text-(--faint)">
-                              {String(p.interestRatePct)}% p.a.
-                            </div>
+                            {type === "TRANSPORTER" ? (
+                              p.gstin ?? "—"
+                            ) : (
+                              <>
+                                {p.paymentTermsDays}d
+                                <div className="text-[10px] text-(--faint)">
+                                  {String(p.interestRatePct)}% p.a.
+                                </div>
+                              </>
+                            )}
                           </td>
                           <td className="max-w-52 text-[11px] text-(--muted)">
                             {links.length === 0 ? (
@@ -350,6 +427,9 @@ export function PartyFields({
     active?: boolean;
   };
 }) {
+  const hideCredit =
+    defaultType === "TRANSPORTER" || values?.type === "TRANSPORTER";
+
   return (
     <>
       <FieldGroup label="Identity">
@@ -374,7 +454,7 @@ export function PartyFields({
                   "MILL",
                   "WEAVER",
                   "AGENT",
-                  "GREY_SUPPLIER",
+                  "TRANSPORTER",
                   "OTHER",
                 ] as PartyType[]
               ).map((t) => (
@@ -433,6 +513,29 @@ export function PartyFields({
         </Field>
       </FieldGroup>
 
+      {hideCredit ? (
+        <FieldGroup label="Details">
+          <Field label="Notes">
+            <input
+              className={inputClass}
+              name="notes"
+              defaultValue={values?.notes ?? ""}
+            />
+          </Field>
+          {values ? (
+            <Field label="Status">
+              <select
+                className={inputClass}
+                name="active"
+                defaultValue={values.active === false ? "false" : "true"}
+              >
+                <option value="true">Active</option>
+                <option value="false">Disabled</option>
+              </select>
+            </Field>
+          ) : null}
+        </FieldGroup>
+      ) : (
       <FieldGroup label="Credit">
         <div className="grid grid-cols-2 gap-1.5">
           <Field label="Payment terms (days)" hint="From dispatch">
@@ -477,6 +580,7 @@ export function PartyFields({
           </Field>
         ) : null}
       </FieldGroup>
+      )}
     </>
   );
 }
