@@ -33,10 +33,6 @@ function Spec({
  */
 export function ProgramCard({ data }: { data: ProgramCardData }) {
   const c = data.company ?? COMPANY;
-  const scheme =
-    data.quality && data.code && data.colour
-      ? `${data.quality.name} / ${data.code.name} / ${data.colour.name}`
-      : "Incomplete identity";
 
   return (
     <article className="program-card-print pc-sheet">
@@ -77,19 +73,6 @@ export function ProgramCard({ data }: { data: ProgramCardData }) {
       <section className="pc-specs">
         <Spec label="Program no." value={data.programNo} />
         <Spec label="Date" value={fmtDate(data.sentAt ?? data.createdAt)} />
-        <Spec label="Fabric" value={data.fabricType.name} />
-        <Spec label="Quality" value={data.quality?.name ?? "—"} />
-        <Spec label="Code" value={data.code?.name ?? "—"} />
-        <Spec label="Colour" value={data.colour?.name ?? "—"} />
-        <Spec label="Mill" value={data.mill.name} />
-        <Spec
-          label="Weaver"
-          value={data.weaver?.name ?? "—"}
-        />
-        <Spec
-          label="Finish"
-          value={data.finishType?.name ?? "—"}
-        />
         <Spec
           label="Width"
           value={data.width ? `${data.width}"` : "—"}
@@ -115,24 +98,15 @@ export function ProgramCard({ data }: { data: ProgramCardData }) {
       {/* Colour + process */}
       <section className="pc-body">
         <div className="pc-colour-col">
-          <p className="pc-section-label">Quality / Code / Colour</p>
+          <p className="pc-section-label">Goods</p>
           <div className="pc-swatch-hero">
-            <span className="pc-swatch-name">
-              {data.colour?.name ?? "—"}
-            </span>
-            <span className="pc-swatch-meta">{scheme}</span>
+            <span className="pc-swatch-name">{data.programNo}</span>
           </div>
         </div>
 
         <div className="pc-notes-col">
           <p className="pc-section-label">Process instructions</p>
           <div className="pc-notes">
-            {data.finishType ? (
-              <p>
-                <strong>Finish</strong>
-                {data.finishType.name}
-              </p>
-            ) : null}
             {data.feelFallNotes ? (
               <p>
                 <strong>Feel / fall</strong>
@@ -151,8 +125,7 @@ export function ProgramCard({ data }: { data: ProgramCardData }) {
                 {data.remarks}
               </p>
             ) : null}
-            {!data.finishType &&
-            !data.feelFallNotes &&
+            {!data.feelFallNotes &&
             !data.extraMods &&
             !data.remarks ? (
               <p className="pc-notes-empty">Standard process as discussed.</p>

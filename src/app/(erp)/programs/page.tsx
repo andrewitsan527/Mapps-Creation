@@ -3,10 +3,8 @@ import { prisma } from "@/lib/db";
 import { createProgram, sendProgramWhatsApp } from "@/server/actions/programs";
 import { MillReturnCompleteForm } from "@/components/mill-return-complete-form";
 import { programQtySummary } from "@/server/domain/mill-inward";
-import { listMillWeaverLinks, listPartyOptions } from "@/lib/parties";
 import { statusBadge } from "@/lib/format";
 import { formatDate, formatQty } from "@/lib/utils";
-import { ProgramGreyWeaverFields } from "@/components/program-grey-weaver-fields";
 import {
   EmptyState,
   Field,
@@ -31,18 +29,9 @@ import {
   ScrollText,
 } from "lucide-react";
 
-type IdName = { id: string; name: string };
 type GreyOption = {
   id: string;
   poNumber: string;
-  weaverId: string;
-  weaverName: string;
-  millId: string | null;
-  millName: string | null;
-  quantity: string | null;
-  unit: string;
-  dyeingRate: string | null;
-  fabricNotes: string | null;
 };
 type ProgramRow = {
   id: string;
@@ -52,13 +41,6 @@ type ProgramRow = {
   createdAt: Date;
   gsm: { toString(): string } | null;
   width: { toString(): string } | null;
-  mill: IdName;
-  weaver: IdName | null;
-  fabricType: IdName;
-  quality: { name: string } | null;
-  code: { name: string } | null;
-  colour: { name: string } | null;
-  finishType: IdName | null;
   greyOrder: { poNumber: string } | null;
   lots: { id: string; lotNumber: string }[];
   qty: { unit: string; planned: number | null; received: number; remaining: number | null };
@@ -104,51 +86,16 @@ const stageGroups = [
 ];
 
 export default async function ProgramsPage() {
-  const [mills, weavers, fabrics, qualities, codes, colours, finishes, greyRows, millWeaverLinks, programs] =
-    await Promise.all([
-      listPartyOptions("MILL"),
-      listPartyOptions("WEAVER"),
-      prisma.fabricType.findMany({
-        where: { active: true },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.quality.findMany({
-        where: { active: true },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.code.findMany({
-        where: { active: true },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.colour.findMany({
-        where: { active: true },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.finishType.findMany({
-        where: { active: true },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      }),
+  const [greyRows, programs] = await Promise.all([
       prisma.greyPurchaseOrder.findMany({
         where: { status: "OPEN" },
         select: {
           id: true,
           poNumber: true,
-          quantity: true,
-          unit: true,
-          dyeingRate: true,
-          fabricNotes: true,
-          supplier: { select: { id: true, name: true } },
-          mill: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 30,
       }),
-      listMillWeaverLinks(),
       prisma.millProgram.findMany({
         select: {
           id: true,
@@ -158,13 +105,6 @@ export default async function ProgramsPage() {
           createdAt: true,
           gsm: true,
           width: true,
-          mill: { select: { id: true, name: true } },
-          weaver: { select: { id: true, name: true } },
-          fabricType: { select: { id: true, name: true } },
-          quality: { select: { name: true } },
-          code: { select: { name: true } },
-          colour: { select: { name: true } },
-          finishType: { select: { id: true, name: true } },
           greyOrder: { select: { poNumber: true, quantity: true, unit: true } },
           returnCompletedAt: true,
           shortageQty: true,
@@ -206,14 +146,6 @@ export default async function ProgramsPage() {
   const greys: GreyOption[] = greyRows.map((g) => ({
     id: g.id,
     poNumber: g.poNumber,
-    weaverId: g.supplier.id,
-    weaverName: g.supplier.name,
-    millId: g.mill?.id ?? null,
-    millName: g.mill?.name ?? null,
-    quantity: g.quantity != null ? g.quantity.toString() : null,
-    unit: g.unit,
-    dyeingRate: g.dyeingRate != null ? g.dyeingRate.toString() : null,
-    fabricNotes: g.fabricNotes,
   }));
 
   const grouped = stageGroups.map((group) => ({
@@ -268,62 +200,13 @@ export default async function ProgramsPage() {
         <Section title="New program card" step={1} icon={PlusCircle} tone="accent">
           <Panel compact>
             <form action={createProgram} className="space-y-2.5">
-              <FieldGroup label="Who makes it">
-                <ProgramGreyWeaverFields
-                  greys={greys}
-                  mills={mills}
-                  weavers={weavers}
-                  millWeaverLinks={millWeaverLinks}
-                />
-              </FieldGroup>
-
-              <FieldGroup label="What to make">
-                <Field label="Fabric type">
-                  <select className={inputClass} name="fabricTypeId" required>
-                    <option value="">Select…</option>
-                    {fabrics.map((f: IdName) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Quality">
-                  <select className={inputClass} name="qualityId" required>
-                    <option value="">Select…</option>
-                    {qualities.map((q: IdName) => (
-                      <option key={q.id} value={q.id}>
-                        {q.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Code">
-                  <select className={inputClass} name="codeId" required>
-                    <option value="">Select…</option>
-                    {codes.map((c: IdName) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Colour">
-                  <select className={inputClass} name="colourId" required>
-                    <option value="">Select…</option>
-                    {colours.map((c: IdName) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Finish">
-                  <select className={inputClass} name="finishTypeId">
+              <FieldGroup label="Grey">
+                <Field label="Open grey PO">
+                  <select className={inputClass} name="greyOrderId">
                     <option value="">—</option>
-                    {finishes.map((f: IdName) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
+                    {greys.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.poNumber}
                       </option>
                     ))}
                   </select>
@@ -396,7 +279,7 @@ export default async function ProgramsPage() {
                     }
                   >
                     <TableWrap maxHeight={340}>
-                      <table className="erp-table">
+                      <table className="erp-table erp-register">
                         <thead>
                           <tr>
                             <th>Program</th>
@@ -411,13 +294,10 @@ export default async function ProgramsPage() {
                         <tbody>
                           {group.rows.map((p) => (
                             <tr key={p.id}>
-                              <td>
+                              <td className="erp-stack">
                                 <p className="font-semibold">{p.programNo}</p>
                                 <p className="text-[10.5px] text-(--muted)">
-                                  {p.fabricType.name}
-                                  {p.greyOrder
-                                    ? ` · ${p.greyOrder.poNumber}`
-                                    : ""}
+                                  {p.greyOrder ? p.greyOrder.poNumber : "—"}
                                 </p>
                                 <p className="text-[10px] text-(--faint)">
                                   {p.sentAt
@@ -425,32 +305,13 @@ export default async function ProgramsPage() {
                                     : formatDate(p.createdAt)}
                                 </p>
                               </td>
-                              <td>
-                                {p.quality && p.code && p.colour ? (
-                                  <span className="truncate">
-                                    {p.quality.name} / {p.code.name} /{" "}
-                                    {p.colour.name}
-                                  </span>
-                                ) : (
-                                  "Incomplete identity"
-                                )}
-                              </td>
-                              <td className="text-[11px] text-(--muted)">
+                              <td>—</td>
+                              <td className="erp-stack text-[11px] text-(--muted)">
                                 {p.gsm ? `${p.gsm} GSM` : "—"} ·{" "}
                                 {p.width ? `${p.width}"` : "—"}
-                                {p.finishType ? (
-                                  <div>{p.finishType.name}</div>
-                                ) : null}
                               </td>
-                              <td>
-                                {p.mill.name}
-                                {p.weaver ? (
-                                  <div className="text-[10.5px] text-(--muted)">
-                                    {p.weaver.name}
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td className="text-[11px] tabular-nums text-(--muted)">
+                              <td>—</td>
+                              <td className="erp-stack text-[11px] tabular-nums text-(--muted)">
                                 {p.qty.planned != null ? (
                                   <>
                                     {formatQty(p.qty.planned)} {p.qty.unit} planned

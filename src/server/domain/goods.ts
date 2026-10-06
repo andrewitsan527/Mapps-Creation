@@ -1,22 +1,12 @@
 import type { Decimal } from "@prisma/client/runtime/library";
 
 export const lotGoodsInclude = {
-  fabricType: { select: { id: true, name: true } },
-  quality: { select: { id: true, name: true } },
-  code: { select: { id: true, name: true } },
-  colour: { select: { id: true, name: true } },
-  finishType: { select: { id: true, name: true } },
-  mill: { select: { id: true, name: true, whatsapp: true } },
-  weaver: { select: { id: true, name: true, whatsapp: true } },
   program: {
     select: {
       id: true,
       programNo: true,
       width: true,
       gsm: true,
-      finishType: { select: { name: true } },
-      mill: { select: { id: true, name: true } },
-      weaver: { select: { id: true, name: true } },
     },
   },
   rolls: {
@@ -46,18 +36,8 @@ export type LotGoods = {
   qualityGrade?: string | null;
   origin?: string | null;
   returnPriority?: string | null;
-  fabricType: { name: string };
-  quality?: { name: string } | null;
-  code?: { name: string } | null;
-  colour?: { name: string } | null;
-  finishType?: { name: string } | null;
-  mill?: { name: string } | null;
-  weaver?: { name: string } | null;
   program?: {
     programNo: string;
-    finishType?: { name: string } | null;
-    mill?: { name: string } | null;
-    weaver?: { name: string } | null;
   } | null;
   rolls?: Array<{
     rollNo: string;
@@ -98,11 +78,8 @@ export function rollsDetailText(lot: LotGoods): string {
   return `${lot.rollCount ?? 1} roll(s)`;
 }
 
-export function colorScheme(lot: LotGoods): string {
-  if (lot.quality?.name && lot.code?.name && lot.colour?.name) {
-    return `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`;
-  }
-  return "Incomplete identity";
+export function colorScheme(_lot: LotGoods): string {
+  return "—";
 }
 
 export function billLineIdentity(line: {
@@ -116,16 +93,16 @@ export function billLineIdentity(line: {
   return "Incomplete identity";
 }
 
-export function millNameOf(lot: LotGoods): string {
-  return lot.mill?.name ?? lot.program?.mill?.name ?? "—";
+export function millNameOf(_lot: LotGoods): string {
+  return "—";
 }
 
-export function weaverNameOf(lot: LotGoods): string {
-  return lot.weaver?.name ?? lot.program?.weaver?.name ?? "—";
+export function weaverNameOf(_lot: LotGoods): string {
+  return "—";
 }
 
-export function finishNameOf(lot: LotGoods): string {
-  return lot.finishType?.name ?? lot.program?.finishType?.name ?? "—";
+export function finishNameOf(_lot: LotGoods): string {
+  return "—";
 }
 
 /** One-line goods identity for dropdowns and compact lists. */
@@ -145,8 +122,6 @@ export function lotLabel(lot: LotGoods, available?: number | string | null): str
   return [
     lot.lotNumber,
     returnTag,
-    lot.fabricType.name,
-    colorScheme(lot),
     `${formatDec(lot.lengthM ?? lot.quantity)}m`,
     `${lot.rollCount ?? 1}r`,
     millNameOf(lot) !== "—" ? `mill ${millNameOf(lot)}` : null,
@@ -160,8 +135,6 @@ export function lotLabel(lot: LotGoods, available?: number | string | null): str
 export function goodsDescription(lot: LotGoods): string {
   const parts = [
     `Lot ${lot.lotNumber}`,
-    lot.fabricType.name,
-    colorScheme(lot),
     finishNameOf(lot) !== "—" ? `Finish ${finishNameOf(lot)}` : null,
     num(lot.width) !== null ? `W ${formatDec(lot.width)}"` : null,
     num(lot.gsm) !== null ? `GSM ${formatDec(lot.gsm)}` : null,
@@ -177,15 +150,12 @@ export function goodsDescription(lot: LotGoods): string {
 }
 
 export function snapshotBillLine(lot: LotGoods) {
-  const fullScheme = Boolean(
-    lot.quality?.name && lot.code?.name && lot.colour?.name,
-  );
   return {
     lotNumber: lot.lotNumber,
-    fabricName: lot.fabricType.name,
-    quality: fullScheme ? lot.quality!.name : null,
-    code: fullScheme ? lot.code!.name : null,
-    colour: fullScheme ? lot.colour!.name : null,
+    fabricName: null,
+    quality: null,
+    code: null,
+    colour: null,
     finishName: finishNameOf(lot) === "—" ? null : finishNameOf(lot),
     millName: millNameOf(lot) === "—" ? null : millNameOf(lot),
     weaverName: weaverNameOf(lot) === "—" ? null : weaverNameOf(lot),

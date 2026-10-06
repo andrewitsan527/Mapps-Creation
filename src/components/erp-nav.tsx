@@ -16,19 +16,30 @@ function isActive(pathname: string, href: string) {
 /** Counts rendered as pills next to nav links, keyed by href. */
 export type NavBadges = Record<string, number>;
 
-export function SideNav({ badges = {} }: { badges?: NavBadges }) {
+export function SideNav({
+  badges = {},
+  collapsed = false,
+}: {
+  badges?: NavBadges;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-1 flex-col gap-3 overflow-y-auto px-1.5 py-2.5">
+    <nav
+      className={cn(
+        "flex min-h-0 flex-1 flex-col overflow-y-auto px-1.5 py-2.5",
+        collapsed ? "gap-2" : "gap-3",
+      )}
+    >
       {navClusters.map((cluster) => (
         <div key={cluster.id}>
-          {cluster.title ? (
+          {cluster.title && !collapsed ? (
             <p className="mb-1 px-1.5 text-[9px] font-semibold tracking-[0.14em] text-(--sidebar-muted) uppercase">
               {cluster.title}
             </p>
           ) : null}
-          <ul className="space-y-px">
+          <ul className={collapsed ? "space-y-1" : "space-y-px"}>
             {cluster.items.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = item.icon;
@@ -38,8 +49,11 @@ export function SideNav({ badges = {} }: { badges?: NavBadges }) {
                   <Link
                     href={item.href}
                     prefetch
+                    title={collapsed ? item.label : undefined}
+                    aria-label={collapsed ? item.label : undefined}
                     className={cn(
-                      "group relative flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] transition",
+                      "group relative flex items-center rounded-md text-[12px] transition",
+                      collapsed ? "h-8 justify-center" : "gap-1.5 px-2 py-1.5",
                       active
                         ? "bg-(--sidebar-active) font-semibold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
                         : "text-(--sidebar-ink) hover:bg-(--sidebar-hover) hover:text-white",
@@ -49,8 +63,10 @@ export function SideNav({ badges = {} }: { badges?: NavBadges }) {
                       <span className="absolute top-1.5 bottom-1.5 -left-1.5 w-0.5 rounded-r bg-[#e8c547]" />
                     ) : null}
                     <Icon className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                    <span className="truncate">{item.label}</span>
-                    {badge ? (
+                    {collapsed ? null : (
+                      <span className="truncate">{item.label}</span>
+                    )}
+                    {!collapsed && badge ? (
                       <span className="ml-auto rounded-full bg-white/10 px-1.5 text-[10px] font-semibold tabular-nums text-white">
                         {badge}
                       </span>

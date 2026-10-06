@@ -51,11 +51,6 @@ export default async function DashboardPage() {
           quantity: true,
           unit: true,
           returnPriority: true,
-          fabricType: { select: { name: true } },
-          quality: { select: { name: true } },
-          code: { select: { name: true } },
-          colour: { select: { name: true } },
-          weaver: { select: { name: true } },
         },
         orderBy: [{ returnPriority: "desc" }, { updatedAt: "desc" }],
         take: 6,
@@ -68,7 +63,6 @@ export default async function DashboardPage() {
           dueAt: true,
           lot: { select: { lotNumber: true } },
           millInward: { select: { inwardNo: true } },
-          mill: { select: { name: true } },
         },
         orderBy: { dueAt: "asc" },
         take: 6,
@@ -84,7 +78,6 @@ export default async function DashboardPage() {
           billNo: true,
           total: true,
           billDate: true,
-          party: { select: { name: true } },
         },
         orderBy: { billDate: "asc" },
         take: 6,
@@ -200,7 +193,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <TableWrap maxHeight={240}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Lot</th>
@@ -215,15 +208,8 @@ export default async function DashboardPage() {
                     {weaverPriority.map((lot) => (
                       <tr key={lot.id}>
                         <td className="font-semibold">{lot.lotNumber}</td>
-                        <td className="text-(--muted)">
-                          {lot.fabricType.name} /{" "}
-                          {lot.quality?.name &&
-                          lot.code?.name &&
-                          lot.colour?.name
-                            ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
-                            : "Incomplete identity"}
-                        </td>
-                        <td>{lot.weaver?.name ?? "—"}</td>
+                        <td className="text-(--muted)">—</td>
+                        <td>—</td>
                         <td className="num">
                           {formatQty(lot.quantity)} {lot.unit}
                         </td>
@@ -272,7 +258,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <TableWrap maxHeight={240}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>RF</th>
@@ -289,8 +275,8 @@ export default async function DashboardPage() {
                         <tr key={rf.id}>
                           <td className="font-semibold">{rf.rfNo}</td>
                           <td>{rf.lot?.lotNumber ?? rf.millInward?.inwardNo ?? "—"}</td>
-                          <td className="text-(--muted)">{rf.mill.name}</td>
-                          <td className="text-[11px]">
+                          <td className="text-(--muted)">—</td>
+                          <td className="erp-stack text-[11px]">
                             {formatDateTime(rf.dueAt)}
                             <div
                               className={
@@ -346,7 +332,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <TableWrap maxHeight={220}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Bill</th>
@@ -366,7 +352,7 @@ export default async function DashboardPage() {
                             {bill.billNo}
                           </Link>
                         </td>
-                        <td className="text-(--muted)">{bill.party.name}</td>
+                        <td className="text-(--muted)">—</td>
                         <td className="num">
                           {formatMoneyShort(Number(bill.total))}
                         </td>
@@ -399,7 +385,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <TableWrap maxHeight={220}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Bill</th>

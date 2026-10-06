@@ -3,13 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { COMPANY } from "@/lib/company";
-import { requireMillWeaverLink } from "@/lib/parties";
-import {
-  getProgramCardData,
-  programCardPublicUrl,
-} from "@/server/domain/program-card";
-import { sendWhatsApp } from "@/server/whatsapp";
+import { getProgramCardData } from "@/server/domain/program-card";
 import {
   countPendingInwardQc,
   programQtySummary,
@@ -29,95 +23,27 @@ async function nextProgramNo() {
 
 export async function createProgram(formData: FormData) {
   await requireUser();
-  let millId = String(formData.get("millId") || "");
-  let weaverId = String(formData.get("weaverId") || "") || null;
   const greyOrderId = String(formData.get("greyOrderId") || "") || null;
-  const fabricTypeId = String(formData.get("fabricTypeId") || "");
-  const qualityId = String(formData.get("qualityId") || "");
-  const codeId = String(formData.get("codeId") || "");
-  const colourId = String(formData.get("colourId") || "");
-  const finishTypeId = String(formData.get("finishTypeId") || "") || null;
   const width = String(formData.get("width") || "").trim() || null;
   const gsm = String(formData.get("gsm") || "").trim() || null;
   const feelFallNotes = String(formData.get("feelFallNotes") || "").trim() || null;
   const extraMods = String(formData.get("extraMods") || "").trim() || null;
   let remarks = String(formData.get("remarks") || "").trim() || null;
 
-  if (!fabricTypeId) {
-    throw new Error("Fabric type is required");
-  }
-  if (!qualityId || !codeId || !colourId) {
-    throw new Error("Quality, code and colour are required");
-  }
-
-  const [quality, code, colour] = await Promise.all([
-    prisma.quality.findUnique({ where: { id: qualityId } }),
-    prisma.code.findUnique({ where: { id: codeId } }),
-    prisma.colour.findUnique({ where: { id: colourId } }),
-  ]);
-  if (!quality) throw new Error("Quality not found");
-  if (!quality.active) throw new Error("Quality is not active");
-  if (!code) throw new Error("Code not found");
-  if (!code.active) throw new Error("Code is not active");
-  if (!colour) throw new Error("Colour not found");
-  if (!colour.active) throw new Error("Colour is not active");
-
   if (greyOrderId) {
     const grey = await prisma.greyPurchaseOrder.findUniqueOrThrow({
       where: { id: greyOrderId },
-      select: {
-        supplierId: true,
-        millId: true,
-        fabricNotes: true,
-        supplier: { select: { type: true } },
-        mill: { select: { type: true } },
-      },
+      select: { fabricNotes: true },
     });
-    if (grey.supplier.type !== "WEAVER") {
-      throw new Error("Grey purchase weaver is invalid");
-    }
-    weaverId = grey.supplierId;
-    if (grey.millId) {
-      if (grey.mill?.type !== "MILL") {
-        throw new Error("Grey purchase mill is invalid");
-      }
-      millId = grey.millId;
-    }
     if (!remarks && grey.fabricNotes) {
       remarks = grey.fabricNotes;
     }
   }
 
-  if (!millId) {
-    throw new Error("Mill is required");
-  }
-
-  const mill = await prisma.party.findUniqueOrThrow({ where: { id: millId } });
-  if (mill.type !== "MILL") {
-    throw new Error("Program mill must be a Mill party");
-  }
-
-  if (weaverId) {
-    const weaver = await prisma.party.findUniqueOrThrow({
-      where: { id: weaverId },
-    });
-    if (weaver.type !== "WEAVER") {
-      throw new Error("Program weaver must be a Weaver");
-    }
-    await requireMillWeaverLink(millId, weaverId);
-  }
-
   await prisma.millProgram.create({
     data: {
       programNo: await nextProgramNo(),
-      millId,
-      weaverId,
       greyOrderId,
-      fabricTypeId,
-      qualityId,
-      codeId,
-      colourId,
-      finishTypeId,
       width,
       gsm,
       feelFallNotes,
@@ -135,52 +61,6 @@ export async function sendProgramWhatsApp(formData: FormData) {
   const id = String(formData.get("id") || "");
   const program = await getProgramCardData(id);
   if (!program) throw new Error("Program not found");
-
-  if (!program.mill.whatsapp) {
-    throw new Error("Mill has no WhatsApp number — update party master");
-  }
-
-  const cardUrl = programCardPublicUrl(program.id);
-  const schemeLabel =
-    program.quality && program.code && program.colour
-      ? `${program.quality.name} / ${program.code.name} / ${program.colour.name}`
-      : "Incomplete identity";
-
-  const body = [
-    `${COMPANY.shortName} — Mill program card`,
-    `Program: ${program.programNo}`,
-    `Mill: ${program.mill.name}`,
-    `Fabric: ${program.fabricType.name}`,
-    `Quality / Code / Colour: ${schemeLabel}`,
-    `GSM: ${program.gsm ?? "-"}`,
-    `Width: ${program.width ?? "-"}`,
-    `Finish: ${program.finishType?.name ?? "-"}`,
-    program.feelFallNotes ? `Feel / fall: ${program.feelFallNotes}` : null,
-    program.extraMods ? `Extra process: ${program.extraMods}` : null,
-    program.remarks ? `Remarks: ${program.remarks}` : null,
-    "",
-    `Open / print / PDF card: ${cardUrl}`,
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
-
-  await sendWhatsApp({
-    to: program.mill.whatsapp,
-    template: "mill_program",
-    entityType: "MillProgram",
-    entityId: program.id,
-    variables: {
-      programNo: program.programNo,
-      fabric: program.fabricType.name,
-      color: schemeLabel,
-      gsm: program.gsm ?? "-",
-      width: program.width ?? "-",
-      finish: program.finishType?.name ?? "-",
-      remarks: program.remarks ?? "-",
-      cardUrl,
-      body,
-    },
-  });
 
   await prisma.millProgram.update({
     where: { id },

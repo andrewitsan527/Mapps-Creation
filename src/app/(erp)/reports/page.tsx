@@ -41,10 +41,7 @@ export default async function ReportsPage() {
       select: {
         onHand: true,
         reserved: true,
-        fabricType: { select: { name: true } },
-        quality: { select: { name: true } },
-        code: { select: { name: true } },
-        colour: { select: { name: true } },
+        lotNumber: true,
       },
       take: 200,
     }),
@@ -63,11 +60,7 @@ export default async function ReportsPage() {
     { onHand: number; reserved: number; available: number }
   >();
   for (const lot of lots) {
-    const identity =
-      lot.quality?.name && lot.code?.name && lot.colour?.name
-        ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
-        : "Incomplete identity";
-    const key = `${lot.fabricType.name} / ${identity}`;
+    const key = lot.lotNumber;
     const onHand = Number(lot.onHand);
     const reserved = Number(lot.reserved);
     const cur = stockByIdentity.get(key) ?? {
@@ -182,7 +175,7 @@ export default async function ReportsPage() {
             </div>
           ) : (
             <TableWrap maxHeight={300}>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>Status</th>
@@ -235,7 +228,7 @@ export default async function ReportsPage() {
             </div>
           ) : (
             <TableWrap maxHeight={300}>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>Fabric / Quality / Code / Colour</th>
@@ -247,7 +240,11 @@ export default async function ReportsPage() {
                 <tbody>
                   {stockRows.map((r) => (
                     <tr key={r.name}>
-                      <td className="max-w-56 truncate">{r.name}</td>
+                      <td>
+                        <div className="erp-clip" title={r.name}>
+                          {r.name}
+                        </div>
+                      </td>
                       <td className="w-20">
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-(--line-soft)">
                           <div

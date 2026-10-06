@@ -31,14 +31,6 @@ export default async function DispatchPage() {
         dispatches: { none: { status: "DISPATCHED" } },
       },
       include: {
-        party: {
-          select: {
-            id: true,
-            name: true,
-            whatsapp: true,
-            paymentTermsDays: true,
-          },
-        },
         lines: true,
       },
       orderBy: { billDate: "asc" },
@@ -51,7 +43,6 @@ export default async function DispatchPage() {
         driverName: true,
         whatsappSent: true,
         dispatchedAt: true,
-        party: { select: { name: true } },
         saleBill: { select: { id: true, billNo: true, total: true } },
         lines: {
           select: {
@@ -73,7 +64,7 @@ export default async function DispatchPage() {
     (sum, b) => sum + Number(b.total),
     0,
   );
-  const noWhatsapp = pendingBills.filter((b) => !b.party.whatsapp).length;
+  const noWhatsapp = pendingBills.length;
 
   return (
     <div className="space-y-3">
@@ -138,10 +129,10 @@ export default async function DispatchPage() {
             {pendingBills.map((b) => (
               <Panel
                 key={b.id}
-                title={`${b.billNo} → ${b.party.name}`}
+                title={b.billNo}
                 icon={Truck}
                 tone="info"
-                subtitle={`${formatMoney(b.total)} · ${b.party.paymentTermsDays}d terms`}
+                subtitle={formatMoney(b.total)}
                 compact
                 action={
                   <Link href={`/sales/${b.id}`} className={buttonTinyClass}>
@@ -154,16 +145,9 @@ export default async function DispatchPage() {
                     billed {formatDate(b.billDate)} ·{" "}
                     {relativeDays(b.billDate, now)}
                   </span>
-                  {b.party.whatsapp ? (
-                    <span className="badge badge-wa">
-                      <MessageCircle className="h-2.5 w-2.5" />
-                      {b.party.whatsapp}
-                    </span>
-                  ) : (
-                    <span className="badge badge-danger">
-                      No WhatsApp on file
-                    </span>
-                  )}
+                  <span className="badge badge-danger">
+                    No WhatsApp on file
+                  </span>
                 </div>
 
                 <GoodsTable rows={b.lines} showMoney />
@@ -210,7 +194,7 @@ export default async function DispatchPage() {
             </div>
           ) : (
             <TableWrap maxHeight={360}>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>Sale bill</th>
@@ -237,22 +221,40 @@ export default async function DispatchPage() {
                           "—"
                         )}
                       </td>
-                      <td className="text-(--muted)">{d.party.name}</td>
-                      <td className="max-w-52 truncate text-[11px] text-(--muted)">
-                        {d.lines
-                          .map((l) =>
-                            [
-                              l.lotNumber,
-                              l.fabricName,
-                              billLineIdentity(l),
-                              l.rollsDetail,
-                            ]
-                              .filter(Boolean)
-                              .join(" · "),
-                          )
-                          .join("; ") || "—"}
+                      <td className="text-(--muted)">—</td>
+                      <td className="text-[11px] text-(--muted)">
+                        <div
+                          className="erp-clip"
+                          title={
+                            d.lines
+                              .map((l) =>
+                                [
+                                  l.lotNumber,
+                                  l.fabricName,
+                                  billLineIdentity(l),
+                                  l.rollsDetail,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · "),
+                              )
+                              .join("; ") || undefined
+                          }
+                        >
+                          {d.lines
+                            .map((l) =>
+                              [
+                                l.lotNumber,
+                                l.fabricName,
+                                billLineIdentity(l),
+                                l.rollsDetail,
+                              ]
+                                .filter(Boolean)
+                                .join(" · "),
+                            )
+                            .join("; ") || "—"}
+                        </div>
                       </td>
-                      <td className="text-[11px]">
+                      <td className="erp-stack text-[11px]">
                         {d.vehicleNo ?? "—"}
                         {d.driverName ? (
                           <div className="text-[10px] text-(--faint)">

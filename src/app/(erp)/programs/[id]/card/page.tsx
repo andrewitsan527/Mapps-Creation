@@ -13,9 +13,7 @@ export default async function ProgramCardPage({
   const data = await getProgramCardData(id);
   if (!data) notFound();
 
-  const canWhatsApp =
-    Boolean(data.mill.whatsapp) &&
-    (data.status === "DRAFT" || data.status === "SENT_TO_MILL");
+  const canWhatsApp = false;
 
   return (
     <div className="mx-auto max-w-[820px]">

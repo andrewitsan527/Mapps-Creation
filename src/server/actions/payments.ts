@@ -4,12 +4,7 @@ import { revalidatePath } from "next/cache";
 import { PaymentCategory, PaymentDirection } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { sendWhatsApp } from "@/server/whatsapp";
-import {
-  effectiveInterestRate,
-  formatPaymentReminderBody,
-  toDec,
-} from "@/server/domain/finance";
+import { toDec } from "@/server/domain/finance";
 
 async function requireUser() {
   const user = await getSessionUser();
@@ -19,7 +14,6 @@ async function requireUser() {
 
 export async function recordPayment(formData: FormData) {
   await requireUser();
-  const partyId = String(formData.get("partyId") || "");
   const saleBillId = String(formData.get("saleBillId") || "") || null;
   const commissionEntryId =
     String(formData.get("commissionEntryId") || "") || null;
@@ -31,31 +25,13 @@ export async function recordPayment(formData: FormData) {
   const reference = String(formData.get("reference") || "").trim() || null;
   const notes = String(formData.get("notes") || "").trim() || null;
 
-  if (!partyId || !amountRaw) throw new Error("Party and amount required");
+  if (!amountRaw) throw new Error("Amount required");
   const amount = toDec(amountRaw);
   if (!amount.isPositive()) throw new Error("Payment amount must be positive");
 
   const allowedCategories = Object.values(PaymentCategory);
   if (!allowedCategories.includes(category)) {
     throw new Error("Invalid payment category");
-  }
-
-  const expectedPartyType: Partial<
-    Record<PaymentCategory, "CLIENT" | "MILL" | "WEAVER" | "AGENT">
-  > = {
-    CUSTOMER_RECEIPT: "CLIENT",
-    MILL_PAYMENT: "MILL",
-    WEAVER_PAYMENT: "WEAVER",
-    AGENT_COMMISSION: "AGENT",
-  };
-
-  const party = await prisma.party.findUniqueOrThrow({
-    where: { id: partyId },
-    select: { id: true, type: true },
-  });
-  const requiredType = expectedPartyType[category];
-  if (requiredType && party.type !== requiredType) {
-    throw new Error(`${category} requires a ${requiredType} party`);
   }
 
   const direction: PaymentDirection =
@@ -79,8 +55,8 @@ export async function recordPayment(formData: FormData) {
         },
       },
     });
-    if (bill.partyId !== partyId || bill.type !== "SALE") {
-      throw new Error("Sale bill does not belong to this client");
+    if (bill.type !== "SALE") {
+      throw new Error("Sale bill is not a sale");
     }
     if (bill.dispatches.length === 0) {
       throw new Error("Payment can be allocated after goods are dispatched");
@@ -119,9 +95,6 @@ export async function recordPayment(formData: FormData) {
         },
       },
     });
-    if (commission.agentId !== partyId) {
-      throw new Error("Commission does not belong to this agent");
-    }
     const paid = commission.payments.reduce(
       (sum, payment) => sum.plus(payment.amount),
       toDec(0),
@@ -138,7 +111,6 @@ export async function recordPayment(formData: FormData) {
 
   await prisma.payment.create({
     data: {
-      partyId,
       saleBillId,
       commissionEntryId,
       direction,
@@ -160,7 +132,6 @@ async function getBillReminderData(saleBillId: string) {
   const bill = await prisma.saleBill.findUniqueOrThrow({
     where: { id: saleBillId },
     include: {
-      party: true,
       payments: {
         where: { direction: "RECEIPT" },
         select: { amount: true },
@@ -191,43 +162,12 @@ async function getBillReminderData(saleBillId: string) {
 
 async function sendBillReminder(saleBillId: string, kind: ReminderKind) {
   const { bill, outstanding } = await getBillReminderData(saleBillId);
-  if (!bill.party.whatsapp) throw new Error("Party has no WhatsApp number");
   if (!bill.dueDate || !bill.creditStartsAt || bill.dispatches.length === 0) {
     throw new Error("Payment terms start only after dispatch");
   }
   if (!outstanding.isPositive()) return false;
 
-  const paymentTermsDays =
-    bill.paymentTermsDays ?? bill.party.paymentTermsDays;
-  const interestRatePct = effectiveInterestRate(
-    bill.interestRatePct ?? bill.party.interestRatePct,
-  );
-  const body = formatPaymentReminderBody({
-    partyName: bill.party.name,
-    billNo: bill.billNo,
-    outstanding,
-    dueDate: bill.dueDate,
-    paymentTermsDays,
-    interestRatePct,
-    reminderKind: kind,
-  });
-
-  await sendWhatsApp({
-    to: bill.party.whatsapp,
-    template: "payment_reminder",
-    entityType: "SaleBill",
-    entityId: bill.id,
-    variables: {
-      billNo: bill.billNo,
-      partyName: bill.party.name,
-      due: outstanding.toFixed(2),
-      dueDate: bill.dueDate.toLocaleDateString("en-IN"),
-      paymentTermsDays: String(paymentTermsDays),
-      interestRatePct: String(interestRatePct),
-      reminderKind: kind,
-      body,
-    },
-  });
+  throw new Error("This bill has no WhatsApp number");
 
   if (kind === "PRE_DUE_10") {
     await prisma.saleBill.update({

@@ -44,8 +44,6 @@ export default async function SaleBillDetailPage({
   const bill = await prisma.saleBill.findUnique({
     where: { id: billId },
     include: {
-      party: true,
-      transporter: { select: { id: true, name: true, gstin: true } },
       lines: { orderBy: { id: "asc" } },
       dispatches: {
         include: { lines: true },
@@ -89,10 +87,8 @@ export default async function SaleBillDetailPage({
   );
   const outstanding = Number(bill.total) + noteBalance - paid;
   const settled = outstanding <= 0.009;
-  const termsDays = bill.paymentTermsDays ?? bill.party.paymentTermsDays;
-  const interestRate = Number(
-    bill.interestRatePct ?? bill.party.interestRatePct ?? 28.5,
-  );
+  const termsDays = bill.paymentTermsDays ?? 0;
+  const interestRate = Number(bill.interestRatePct ?? 0);
 
   const stages = [
     { label: "Issued", done: true, detail: formatDate(bill.billDate) },
@@ -123,7 +119,7 @@ export default async function SaleBillDetailPage({
       <PageHeader
         title={bill.billNo}
         icon={CreditCard}
-        description={`${bill.party.name} · ${bill.type} · ${bill.status}`}
+        description={`${bill.type} · ${bill.status}`}
         actions={
           <>
             <Link href="/sales" className={buttonGhostClass}>
@@ -167,20 +163,10 @@ export default async function SaleBillDetailPage({
         <Panel title="Party" icon={FileText} compact>
           <KeyValue
             items={[
-              { label: "Name", value: bill.party.name },
-              {
-                label: "WhatsApp",
-                value: bill.party.whatsapp ?? "not on file",
-              },
-              { label: "GST", value: bill.party.gstin ?? "—" },
-              {
-                label: "Transporter",
-                value: bill.transporter
-                  ? bill.transporter.gstin
-                    ? `${bill.transporter.name} · ${bill.transporter.gstin}`
-                    : bill.transporter.name
-                  : "—",
-              },
+              { label: "Name", value: "—" },
+              { label: "WhatsApp", value: "not on file" },
+              { label: "GST", value: "—" },
+              { label: "Transporter", value: "—" },
             ]}
           />
         </Panel>
@@ -325,7 +311,7 @@ export default async function SaleBillDetailPage({
               </div>
             ) : (
               <TableWrap>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Ref</th>
@@ -341,7 +327,7 @@ export default async function SaleBillDetailPage({
                         <td className="text-[11px]">
                           {formatDateTime(d.dispatchedAt)}
                         </td>
-                        <td className="text-[11px]">
+                        <td className="erp-stack text-[11px]">
                           {d.vehicleNo ?? "—"}
                           {d.driverName ? (
                             <div className="text-[10px] text-(--faint)">
@@ -380,7 +366,7 @@ export default async function SaleBillDetailPage({
                 </div>
               ) : (
                 <TableWrap maxHeight={220}>
-                  <table className="erp-table">
+                  <table className="erp-table erp-register">
                     <thead>
                       <tr>
                         <th>Date</th>
@@ -411,7 +397,7 @@ export default async function SaleBillDetailPage({
                 </div>
               ) : (
                 <TableWrap maxHeight={220}>
-                  <table className="erp-table">
+                  <table className="erp-table erp-register">
                     <thead>
                       <tr>
                         <th>Note</th>
@@ -422,7 +408,7 @@ export default async function SaleBillDetailPage({
                     <tbody>
                       {bill.accountNotes.map((n) => (
                         <tr key={n.id}>
-                          <td>
+                          <td className="erp-stack">
                             <span className="font-semibold">{n.noteNo}</span>
                             <div>
                               <span
@@ -436,7 +422,11 @@ export default async function SaleBillDetailPage({
                               </span>
                             </div>
                           </td>
-                          <td className="text-(--muted)">{n.reason ?? "—"}</td>
+                          <td className="text-(--muted)">
+                            <div className="erp-clip" title={n.reason ?? undefined}>
+                              {n.reason ?? "—"}
+                            </div>
+                          </td>
                           <td className="num font-semibold">
                             {formatMoney(n.amount)}
                           </td>

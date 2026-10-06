@@ -10,7 +10,6 @@ import { lotGoodsInclude, lotLabel } from "@/server/domain/goods";
 import {
   GoodsReturnIntakeForm,
   type GrBillOption,
-  type GrMarkaOption,
 } from "@/components/goods-return-intake";
 import { DefectChecklist } from "@/components/defect-checklist";
 import {
@@ -38,14 +37,13 @@ import {
 
 export default async function ReturnsPage() {
   const now = new Date();
-  const [bills, millMarkas, pending, returnStock, openMillRfs, history] =
+  const [bills, pending, returnStock, openMillRfs, history] =
     await Promise.all([
       prisma.saleBill.findMany({
         where: { type: "SALE", status: "ISSUED" },
         select: {
           id: true,
           billNo: true,
-          party: { select: { name: true } },
           lines: {
             select: {
               id: true,
@@ -62,36 +60,17 @@ export default async function ReturnsPage() {
               gsm: true,
               quantity: true,
               unit: true,
-              lot: { select: { millId: true } },
             },
           },
         },
         orderBy: { createdAt: "desc" },
         take: 80,
       }),
-      prisma.millMarka.findMany({
-        where: { active: true, mill: { active: true, type: "MILL" } },
-        select: { id: true, millId: true, code: true, label: true },
-        orderBy: [{ mill: { name: "asc" } }, { code: "asc" }],
-      }),
       prisma.salesReturn.findMany({
         where: { status: "PENDING_QC" },
         include: {
-          party: { select: { name: true } },
           saleBill: { select: { billNo: true } },
-          millMarka: {
-            select: { code: true, label: true, mill: { select: { name: true } } },
-          },
-          newLot: {
-            include: {
-              fabricType: { select: { name: true } },
-              quality: { select: { name: true } },
-              code: { select: { name: true } },
-              colour: { select: { name: true } },
-              mill: { select: { name: true } },
-              weaver: { select: { name: true } },
-            },
-          },
+          newLot: true,
         },
         orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
       }),
@@ -120,7 +99,6 @@ export default async function ReturnsPage() {
               defectType: true,
             },
           },
-          mill: { select: { name: true, whatsapp: true } },
           millInward: { select: { inwardNo: true, quantity: true, unit: true } },
         },
         orderBy: { dueAt: "asc" },
@@ -128,10 +106,8 @@ export default async function ReturnsPage() {
       }),
       prisma.salesReturn.findMany({
         include: {
-          party: { select: { name: true } },
           saleBill: { select: { billNo: true } },
           newLot: { select: { lotNumber: true, qualityGrade: true } },
-          millMarka: { select: { code: true, mill: { select: { name: true } } } },
           originalLot: { select: { lotNumber: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -142,7 +118,7 @@ export default async function ReturnsPage() {
   const billOptions: GrBillOption[] = bills.map((b) => ({
     id: b.id,
     billNo: b.billNo,
-    partyName: b.party.name,
+    partyName: b.billNo,
     lines: b.lines.map((l) => ({
       id: l.id,
       lotNumber: l.lotNumber,
@@ -151,7 +127,6 @@ export default async function ReturnsPage() {
       code: l.code,
       colour: l.colour,
       millName: l.millName,
-      millId: l.lot?.millId ?? null,
       weaverName: l.weaverName,
       finishName: l.finishName,
       width: l.width?.toString() ?? null,
@@ -161,8 +136,6 @@ export default async function ReturnsPage() {
       lotId: l.lotId,
     })),
   }));
-  const markaOptions: GrMarkaOption[] = millMarkas;
-
   const rfOverdue = openMillRfs.filter((rf) => rf.dueAt < now).length;
   const resaleQty = returnStock.reduce(
     (sum, lot) => sum + (Number(lot.onHand) - Number(lot.reserved)),
@@ -230,7 +203,7 @@ export default async function ReturnsPage() {
                 }
               />
             ) : (
-              <GoodsReturnIntakeForm bills={billOptions} markas={markaOptions} />
+              <GoodsReturnIntakeForm bills={billOptions} />
             )}
           </Panel>
 
@@ -260,28 +233,18 @@ export default async function ReturnsPage() {
                         {r.priority}
                       </span>
                       <span className="text-(--muted)">
-                        {r.party.name}
-                        {r.saleBill ? ` · ${r.saleBill.billNo}` : ""}
+                        {r.saleBill?.billNo ?? "—"}
                       </span>
                       <span className="tabular-nums">
                         {formatQty(r.quantity)} m
                       </span>
                       <span className="badge badge-info">
-                        Marka {r.millMarka?.code ?? "missing"}
+                        Marka {r.newLot?.marka ?? "—"}
                       </span>
                     </div>
                     {r.newLot ? (
                       <p className="mb-1.5 text-[11px] text-(--muted)">
-                        {r.newLot.fabricType.name} ·{" "}
-                        {r.newLot.quality?.name &&
-                        r.newLot.code?.name &&
-                        r.newLot.colour?.name
-                          ? `${r.newLot.quality.name} / ${r.newLot.code.name} / ${r.newLot.colour.name}`
-                          : "Incomplete identity"}
-                        {r.newLot.mill ? ` · mill ${r.newLot.mill.name}` : ""}
-                        {r.newLot.weaver
-                          ? ` · weaver ${r.newLot.weaver.name}`
-                          : ""}
+                        {r.newLot.lotNumber}
                       </p>
                     ) : null}
 
@@ -336,9 +299,7 @@ export default async function ReturnsPage() {
 
                       <Field
                         label="Marka photo (required)"
-                        hint={`Must clearly show marka ${
-                          r.millMarka?.code ?? "—"
-                        } from ${r.millMarka?.mill.name ?? "the connected mill"}.`}
+                        hint="Must clearly show the marka."
                       >
                         <input
                           className={inputClass}
@@ -392,7 +353,7 @@ export default async function ReturnsPage() {
               </div>
             ) : (
               <TableWrap maxHeight={300}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Lot</th>
@@ -416,8 +377,10 @@ export default async function ReturnsPage() {
                               {lot.lotNumber}
                             </Link>
                           </td>
-                          <td className="max-w-56 truncate text-[11px] text-(--muted)">
-                            {lotLabel(lot)}
+                          <td className="text-[11px] text-(--muted)">
+                            <div className="erp-clip" title={lotLabel(lot)}>
+                              {lotLabel(lot)}
+                            </div>
                           </td>
                           <td>{lot.qualityGrade}</td>
                           <td>
@@ -507,8 +470,7 @@ export default async function ReturnsPage() {
                           )}
                         </p>
                         <p className="text-[11px] text-(--muted)">
-                          {rf.mill.name}
-                          {rf.mill.whatsapp ? ` · WA ${rf.mill.whatsapp}` : ""} ·{" "}
+                          — ·{" "}
                           {rf.lot
                             ? `${formatQty(rf.lot.quantity)} ${rf.lot.unit} · ${rf.lot.origin === "SALES_RETURN" ? "GR" : "Program"} · ${rf.lot.defectType}`
                             : rf.millInward
@@ -553,7 +515,7 @@ export default async function ReturnsPage() {
             </div>
           ) : (
             <TableWrap maxHeight={320}>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>MCSR</th>
@@ -582,7 +544,7 @@ export default async function ReturnsPage() {
                         )}
                       </td>
                       <td>{r.saleBill?.billNo ?? "—"}</td>
-                      <td className="text-(--muted)">{r.party.name}</td>
+                      <td className="text-(--muted)">—</td>
                       <td className="num">{formatQty(r.quantity)}</td>
                       <td>
                         <span className={statusBadge(r.priority)}>
@@ -596,9 +558,7 @@ export default async function ReturnsPage() {
                       </td>
                       <td>{r.qualityGrade ?? "—"}</td>
                       <td className="text-[11px] text-(--muted)">
-                        {r.millMarka
-                          ? `${r.millMarka.code} · ${r.millMarka.mill.name}`
-                          : "—"}
+                        —
                       </td>
                     </tr>
                   ))}

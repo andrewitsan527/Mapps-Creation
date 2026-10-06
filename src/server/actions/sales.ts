@@ -11,29 +11,13 @@ import {
   effectiveInterestRate,
 } from "@/server/domain/finance";
 import {
-  formatBillWhatsAppBody,
   lotGoodsInclude,
   snapshotBillLine,
 } from "@/server/domain/goods";
-import { sendWhatsApp } from "@/server/whatsapp";
-
 async function requireUser() {
   const user = await getSessionUser();
   if (!user) throw new Error("Unauthorized");
   return user;
-}
-
-async function resolveTransporterId(raw: string) {
-  const id = raw.trim();
-  if (!id) return null;
-  const transporter = await prisma.party.findFirst({
-    where: { id, type: "TRANSPORTER" },
-    select: { id: true },
-  });
-  if (!transporter) {
-    throw new Error("Select a transporter from Transport master");
-  }
-  return transporter.id;
 }
 
 async function nextBillNo(type: BillType) {
@@ -69,31 +53,18 @@ function lineCreateFromLot(
 
 export async function createProvisionalBill(formData: FormData) {
   const user = await requireUser();
-  const partyId = String(formData.get("partyId") || "");
-  const transporterId = await resolveTransporterId(
-    String(formData.get("transporterId") || ""),
-  );
   const lotId = String(formData.get("lotId") || "");
   const quantity = String(formData.get("quantity") || "").trim();
   const rate = String(formData.get("rate") || "0").trim() || "0";
   const gstPct = String(formData.get("gstPct") || "5").trim() || "5";
   const tdsPct = String(formData.get("tdsPct") || "0").trim() || "0";
   const notes = String(formData.get("notes") || "").trim() || null;
-  const notify = String(formData.get("notifyWhatsapp") || "") === "true";
 
-  if (!partyId || !lotId || !quantity) {
-    throw new Error("Party, lot and quantity required");
+  if (!lotId || !quantity) {
+    throw new Error("Lot and quantity required");
   }
 
-  const [lot, party] = await Promise.all([
-    loadLotForSale(lotId),
-    prisma.party.findUniqueOrThrow({ where: { id: partyId } }),
-  ]);
-  if (notify && !party.whatsapp) {
-    throw new Error(
-      "Client has no WhatsApp number — update party master or untick WhatsApp",
-    );
-  }
+  const lot = await loadLotForSale(lotId);
   const qty = toDecimal(quantity);
   const available = lotAvailable(lot.onHand, lot.reserved);
   if (available.lt(qty)) {
@@ -113,8 +84,6 @@ export async function createProvisionalBill(formData: FormData) {
         billNo: await nextBillNo("PROVISIONAL"),
         type: "PROVISIONAL",
         status: "ISSUED",
-        partyId,
-        transporterId,
         subtotal: lineAmount,
         gstPct,
         gstAmount,
@@ -139,32 +108,6 @@ export async function createProvisionalBill(formData: FormData) {
     });
   });
 
-  if (notify && party.whatsapp) {
-    const body = formatBillWhatsAppBody({
-      billNo,
-      partyName: party.name,
-      total,
-      lines: [
-        {
-          ...snapshotBillLine(lot),
-          quantity: qty,
-          unit: lot.unit,
-        },
-      ],
-    });
-    await sendWhatsApp({
-      to: party.whatsapp,
-      template: "provisional_bill",
-      entityType: "SaleBill",
-      entityId: billId,
-      variables: {
-        billNo,
-        total: total.toString(),
-        body,
-      },
-    });
-  }
-
   revalidatePath("/sales");
   revalidatePath("/stock");
   revalidatePath("/dispatch");
@@ -173,26 +116,18 @@ export async function createProvisionalBill(formData: FormData) {
 
 export async function createDirectSaleBill(formData: FormData) {
   const user = await requireUser();
-  const partyId = String(formData.get("partyId") || "");
-  const transporterId = await resolveTransporterId(
-    String(formData.get("transporterId") || ""),
-  );
   const lotId = String(formData.get("lotId") || "");
   const quantity = String(formData.get("quantity") || "").trim();
   const rate = String(formData.get("rate") || "0").trim() || "0";
   const gstPct = String(formData.get("gstPct") || "5").trim() || "5";
   const tdsPct = String(formData.get("tdsPct") || "0").trim() || "0";
   const notes = String(formData.get("notes") || "").trim() || null;
-  const notify = String(formData.get("notifyWhatsapp") || "") === "true";
 
-  if (!partyId || !lotId || !quantity) {
-    throw new Error("Party, lot and quantity required");
+  if (!lotId || !quantity) {
+    throw new Error("Lot and quantity required");
   }
 
-  const [lot, party] = await Promise.all([
-    loadLotForSale(lotId),
-    prisma.party.findUniqueOrThrow({ where: { id: partyId } }),
-  ]);
+  const lot = await loadLotForSale(lotId);
   const qty = toDecimal(quantity);
   const available = lotAvailable(lot.onHand, lot.reserved);
   if (available.lt(qty)) {
@@ -212,10 +147,6 @@ export async function createDirectSaleBill(formData: FormData) {
         billNo: await nextBillNo("SALE"),
         type: "SALE",
         status: "ISSUED",
-        partyId,
-        transporterId,
-        paymentTermsDays: party.paymentTermsDays,
-        interestRatePct: effectiveInterestRate(party.interestRatePct),
         // Due date starts at physical dispatch, not bill creation.
         dueDate: null,
         subtotal: lineAmount,
@@ -242,32 +173,6 @@ export async function createDirectSaleBill(formData: FormData) {
       createdById: user.id,
     });
   });
-
-  if (notify && party.whatsapp) {
-    const body = formatBillWhatsAppBody({
-      billNo,
-      partyName: party.name,
-      total,
-      lines: [
-        {
-          ...snapshotBillLine(lot),
-          quantity: qty,
-          unit: lot.unit,
-        },
-      ],
-    });
-    await sendWhatsApp({
-      to: party.whatsapp,
-      template: "sale_bill",
-      entityType: "SaleBill",
-      entityId: billId,
-      variables: {
-        billNo,
-        total: total.toString(),
-        body,
-      },
-    });
-  }
 
   revalidatePath("/sales");
   revalidatePath("/stock");
@@ -314,7 +219,7 @@ export async function convertProvisionalToSale(formData: FormData) {
   const id = String(formData.get("id") || "");
   const provisional = await prisma.saleBill.findUniqueOrThrow({
     where: { id },
-    include: { lines: true, party: true },
+    include: { lines: true },
   });
 
   if (provisional.type !== "PROVISIONAL" || provisional.status === "CONVERTED") {
@@ -329,13 +234,9 @@ export async function convertProvisionalToSale(formData: FormData) {
         billNo: await nextBillNo("SALE"),
         type: "SALE",
         status: "ISSUED",
-        partyId: provisional.partyId,
-        transporterId: provisional.transporterId,
         billDate: new Date(),
-        paymentTermsDays: provisional.party.paymentTermsDays,
-        interestRatePct: effectiveInterestRate(
-          provisional.party.interestRatePct,
-        ),
+        paymentTermsDays: provisional.paymentTermsDays,
+        interestRatePct: provisional.interestRatePct,
         dueDate: null,
         subtotal: provisional.subtotal,
         gstPct: provisional.gstPct,
@@ -382,26 +283,6 @@ export async function convertProvisionalToSale(formData: FormData) {
     });
   });
 
-  if (provisional.party.whatsapp) {
-    const body = formatBillWhatsAppBody({
-      billNo: saleNo,
-      partyName: provisional.party.name,
-      total: provisional.total,
-      lines: provisional.lines,
-    });
-    await sendWhatsApp({
-      to: provisional.party.whatsapp,
-      template: "sale_bill",
-      entityType: "SaleBill",
-      entityId: saleId,
-      variables: {
-        billNo: saleNo,
-        total: provisional.total.toString(),
-        body,
-      },
-    });
-  }
-
   revalidatePath("/sales");
   revalidatePath("/dispatch");
 }
@@ -417,7 +298,6 @@ export async function deliverSaleBill(formData: FormData) {
   const driverName = String(formData.get("driverName") || "").trim() || null;
   const driverPhone = String(formData.get("driverPhone") || "").trim() || null;
   const notes = String(formData.get("notes") || "").trim() || null;
-  const notify = String(formData.get("notifyWhatsapp") || "") === "true";
 
   if (!saleBillId) throw new Error("Sale bill required");
 
@@ -425,7 +305,6 @@ export async function deliverSaleBill(formData: FormData) {
     where: { id: saleBillId },
     include: {
       lines: true,
-      party: true,
       dispatches: true,
     },
   });
@@ -442,16 +321,12 @@ export async function deliverSaleBill(formData: FormData) {
 
   let dispatchId = "";
   const dispatchedAt = new Date();
-  const paymentTermsDays =
-    bill.paymentTermsDays ?? bill.party.paymentTermsDays;
-  const interestRatePct = effectiveInterestRate(
-    bill.interestRatePct ?? bill.party.interestRatePct,
-  );
+  const paymentTermsDays = bill.paymentTermsDays ?? 0;
+  const interestRatePct = effectiveInterestRate(bill.interestRatePct);
   await prisma.$transaction(async (tx) => {
     const dispatch = await tx.dispatch.create({
       data: {
         challanNo: dispatchNo,
-        partyId: bill.partyId,
         saleBillId: bill.id,
         vehicleNo,
         driverName,
@@ -516,31 +391,6 @@ export async function deliverSaleBill(formData: FormData) {
       });
     }
   });
-
-  if (notify && bill.party.whatsapp) {
-    const body = formatBillWhatsAppBody({
-      billNo: bill.billNo,
-      partyName: bill.party.name,
-      total: bill.total,
-      lines: bill.lines,
-      vehicleNo,
-    });
-    await sendWhatsApp({
-      to: bill.party.whatsapp,
-      template: "sale_bill",
-      entityType: "SaleBill",
-      entityId: bill.id,
-      variables: {
-        billNo: bill.billNo,
-        total: bill.total.toString(),
-        body,
-      },
-    });
-    await prisma.dispatch.update({
-      where: { id: dispatchId },
-      data: { whatsappSent: true },
-    });
-  }
 
   revalidatePath("/dispatch");
   revalidatePath("/sales");

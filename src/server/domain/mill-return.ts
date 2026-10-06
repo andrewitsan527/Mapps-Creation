@@ -27,20 +27,9 @@ function qccIdentity(source: {
 }
 
 export const lotForMillReturnInclude = {
-  fabricType: { select: { name: true } },
-  quality: { select: { name: true } },
-  code: { select: { name: true } },
-  colour: { select: { name: true } },
-  finishType: { select: { name: true } },
-  mill: { select: { id: true, name: true, whatsapp: true, phone: true } },
-  weaver: { select: { id: true, name: true, whatsapp: true, phone: true } },
-  millMarka: { select: { code: true, label: true } },
   program: {
     select: {
       programNo: true,
-      finishType: { select: { name: true } },
-      mill: { select: { id: true, name: true, whatsapp: true, phone: true } },
-      weaver: { select: { id: true, name: true, whatsapp: true, phone: true } },
     },
   },
   rolls: {
@@ -104,8 +93,6 @@ export function formatMillRfWhatsAppBody(input: {
     `Mapps Creation — Mill RF ${input.rfNo}`,
     `Source: ${input.source === "SALES_RETURN" ? "Goods return QC" : "Program QC"}`,
     `Lot: ${lot.lotNumber}`,
-    `Fabric: ${lot.fabricType.name}`,
-    `Quality / Code / Colour: ${colorScheme(lot)}`,
     finishNameOf(lot) !== "—" ? `Finish: ${finishNameOf(lot)}` : null,
     formatDec(lot.width) !== "—" ? `Width: ${formatDec(lot.width)}"` : null,
     formatDec(lot.gsm) !== "—" ? `GSM: ${formatDec(lot.gsm)}` : null,
@@ -128,15 +115,10 @@ export function formatMillRfWhatsAppBody(input: {
   return lines.filter((l) => l !== null).join("\n");
 }
 
-function millContact(lot: LotForMillReturn): {
-  millId: string | null;
+function millContact(_lot: LotForMillReturn): {
   whatsapp: string | null;
 } {
-  const mill = lot.mill ?? lot.program?.mill ?? null;
-  return {
-    millId: mill?.id ?? lot.millId ?? null,
-    whatsapp: mill?.whatsapp ?? mill?.phone ?? null,
-  };
+  return { whatsapp: null };
 }
 
 /**
@@ -173,10 +155,7 @@ export async function openMillReturnAndNotify(input: {
     include: lotForMillReturnInclude,
   });
 
-  const { millId, whatsapp } = millContact(lot);
-  if (!millId) {
-    throw new Error("Lot has no connected mill — cannot open mill RF");
-  }
+  const { whatsapp } = millContact(lot);
 
   const qcAt = new Date();
   const dueAt = new Date(qcAt.getTime() + MILL_RETURN_SLA_MS);
@@ -198,7 +177,6 @@ export async function openMillReturnAndNotify(input: {
     data: {
       rfNo,
       lotId: lot.id,
-      millId,
       qualityCheckId: input.qualityCheckId,
       source: input.source,
       status: "OPEN",
@@ -227,7 +205,7 @@ export async function openMillReturnAndNotify(input: {
         remarks: input.remarks ?? "-",
         body,
         mill: millNameOf(lot as LotGoods),
-        fabric: lot.fabricType.name,
+        fabric: "—",
         colour: colorScheme(lot as LotGoods),
         length: `${formatDec(lot.lengthM ?? lot.quantity)} ${lot.unit}`,
         dueAt: dueAt.toLocaleString("en-IN"),
@@ -256,33 +234,18 @@ export async function openMillReturnAndNotify(input: {
     where: { id: input.millInwardId },
     include: {
       program: {
-        include: {
-          mill: { select: { id: true, name: true, whatsapp: true, phone: true } },
-          weaver: { select: { name: true } },
-          fabricType: { select: { name: true } },
-          quality: { select: { name: true } },
-          code: { select: { name: true } },
-          colour: { select: { name: true } },
-        },
+        select: { programNo: true },
       },
     },
   });
-
-  const mill = inward.program.mill;
-  if (!mill?.id) {
-    throw new Error("Inward program has no connected mill — cannot open mill RF");
-  }
 
   const qcAt = new Date();
   const dueAt = new Date(qcAt.getTime() + MILL_RETURN_SLA_MS);
   const rfNo = await nextMillRfNo();
   const defects = defectFlagsLabel(input);
-  const identity = qccIdentity(inward.program);
   const goodsSummary = [
     inward.inwardNo,
     inward.program.programNo,
-    inward.program.fabricType.name,
-    identity,
     `${inward.quantity} ${inward.unit}`,
   ].join(" · ");
 
@@ -290,7 +253,6 @@ export async function openMillReturnAndNotify(input: {
     data: {
       rfNo,
       millInwardId: inward.id,
-      millId: mill.id,
       qualityCheckId: input.qualityCheckId,
       source: input.source,
       status: "OPEN",
@@ -305,20 +267,14 @@ export async function openMillReturnAndNotify(input: {
   let whatsappSent = false;
   const notifyMillNow =
     input.checklistMill || input.defectType === "MILL";
-  const whatsapp = mill.whatsapp ?? mill.phone ?? null;
+  const whatsapp: string | null = null;
   if (notifyMillNow && whatsapp) {
     const body = [
       `Mapps Creation — Mill RF ${rfNo}`,
       `Source: Program QC`,
       `Inward: ${inward.inwardNo}`,
       `Program: ${inward.program.programNo}`,
-      `Fabric: ${inward.program.fabricType.name}`,
-      `Quality / Code / Colour: ${identity}`,
       `Qty: ${inward.quantity} ${inward.unit}`,
-      mill.name ? `Mill: ${mill.name}` : null,
-      inward.program.weaver?.name
-        ? `Weaver: ${inward.program.weaver.name}`
-        : null,
       `Defects: ${defects}`,
       input.severity ? `Priority: ${input.severity}` : null,
       input.remarks ? `Remarks: ${input.remarks}` : null,
@@ -339,9 +295,9 @@ export async function openMillReturnAndNotify(input: {
         severity: String(input.severity ?? "MEDIUM"),
         remarks: input.remarks ?? "-",
         body,
-        mill: mill.name,
-        fabric: inward.program.fabricType.name,
-        colour: identity,
+        mill: "—",
+        fabric: "—",
+        colour: "—",
         length: `${inward.quantity} ${inward.unit}`,
         dueAt: dueAt.toLocaleString("en-IN"),
       },
@@ -381,20 +337,10 @@ export async function markMillReturnSent(input: {
     },
     orderBy: { createdAt: "desc" },
     include: {
-      mill: { select: { whatsapp: true, phone: true, name: true } },
       lot: { include: lotForMillReturnInclude },
       millInward: {
         include: {
-          program: {
-            include: {
-              mill: { select: { name: true } },
-              weaver: { select: { name: true } },
-              fabricType: { select: { name: true } },
-              quality: { select: { name: true } },
-              code: { select: { name: true } },
-              colour: { select: { name: true } },
-            },
-          },
+          program: { select: { programNo: true } },
         },
       },
     },
@@ -411,7 +357,7 @@ export async function markMillReturnSent(input: {
     });
 
     if (input.resendWhatsApp && open.lot) {
-      const to = open.mill.whatsapp ?? open.mill.phone;
+      const to: string | null = null;
       if (to) {
         const body = formatMillRfWhatsAppBody({
           rfNo: open.rfNo,
@@ -443,22 +389,14 @@ export async function markMillReturnSent(input: {
       }
     } else if (input.resendWhatsApp && open.millInward) {
       const inward = open.millInward;
-      const mill = inward.program.mill;
-      const identity = qccIdentity(inward.program);
-      const to = open.mill.whatsapp ?? open.mill.phone;
+      const to: string | null = null;
       if (to) {
         const body = [
           `Mapps Creation — Mill RF ${open.rfNo}`,
           `Source: Program QC`,
           `Inward: ${inward.inwardNo}`,
           `Program: ${inward.program.programNo}`,
-          `Fabric: ${inward.program.fabricType.name}`,
-          `Quality / Code / Colour: ${identity}`,
           `Qty: ${inward.quantity} ${inward.unit}`,
-          mill?.name ? `Mill: ${mill.name}` : null,
-          inward.program.weaver?.name
-            ? `Weaver: ${inward.program.weaver.name}`
-            : null,
           `Remarks: ${input.remarks ?? open.remarks ?? "Goods sent to mill"}`,
           `Status: SENT`,
         ]
@@ -476,9 +414,9 @@ export async function markMillReturnSent(input: {
             remarks: input.remarks ?? "Goods sent to mill",
             body,
             status: "SENT",
-            mill: mill?.name ?? open.mill.name,
-            fabric: inward.program.fabricType.name,
-            colour: identity,
+            mill: "—",
+            fabric: "—",
+            colour: "—",
             length: `${inward.quantity} ${inward.unit}`,
           },
         });
@@ -500,8 +438,7 @@ export async function markMillReturnSent(input: {
     where: { id: input.lotId },
     include: lotForMillReturnInclude,
   });
-  const { millId, whatsapp } = millContact(lot);
-  if (!millId) throw new Error("No mill on lot");
+  const { whatsapp } = millContact(lot);
 
   const qcAt = new Date();
   const dueAt = new Date(qcAt.getTime() + MILL_RETURN_SLA_MS);
@@ -510,7 +447,6 @@ export async function markMillReturnSent(input: {
     data: {
       rfNo,
       lotId: lot.id,
-      millId,
       source: lot.origin,
       status: "SENT",
       qcAt,

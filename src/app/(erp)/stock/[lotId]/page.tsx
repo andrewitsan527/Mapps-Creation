@@ -42,14 +42,6 @@ type TrailLot = {
   rollCount: number;
   onHand: { toString(): string };
   reserved: { toString(): string };
-  fabricType: { name: string };
-  quality: { name: string } | null;
-  code: { name: string } | null;
-  colour: { name: string } | null;
-  finishType: { name: string } | null;
-  millMarka: { code: string } | null;
-  mill: { name: string } | null;
-  weaver: { name: string } | null;
   sourceSaleBill: { id: string; billNo: string } | null;
   salesReturnAsNew: {
     id: string;
@@ -68,12 +60,9 @@ type TrailLot = {
   program: {
     id: string;
     programNo: string;
-    mill: { name: string };
-    weaver: { name: string } | null;
-    finishType: { name: string } | null;
-    greyOrder: { poNumber: string; supplier: { name: string } | null } | null;
+    greyOrder: { poNumber: string } | null;
   } | null;
-  greyOrder: { poNumber: string; supplier: { name: string } | null } | null;
+  greyOrder: { poNumber: string } | null;
   qualityChecks: {
     passed: boolean;
     defectType: string;
@@ -93,7 +82,6 @@ type TrailLot = {
       challanNo: string;
       vehicleNo: string | null;
       saleBill: { id: string; billNo: string } | null;
-      party: { name: string };
     };
   }[];
   movements: {
@@ -112,7 +100,6 @@ type TrailLot = {
     dueAt: Date;
     sentAt: Date | null;
     whatsappSent: boolean;
-    mill: { name: string };
   }[];
 };
 
@@ -125,14 +112,6 @@ export default async function LotTrailPage({
   const lot = (await prisma.lot.findUnique({
     where: { id: lotId },
     include: {
-      fabricType: true,
-      quality: { select: { name: true } },
-      code: { select: { name: true } },
-      colour: { select: { name: true } },
-      finishType: true,
-      millMarka: true,
-      mill: true,
-      weaver: true,
       sourceSaleBill: { select: { id: true, billNo: true } },
       salesReturnAsNew: {
         select: {
@@ -146,13 +125,10 @@ export default async function LotTrailPage({
       rolls: { orderBy: { sortOrder: "asc" } },
       program: {
         include: {
-          mill: true,
-          weaver: true,
-          finishType: true,
-          greyOrder: { include: { supplier: true } },
+          greyOrder: { select: { poNumber: true } },
         },
       },
-      greyOrder: { include: { supplier: true } },
+      greyOrder: { select: { poNumber: true } },
       qualityChecks: {
         include: { inspector: { select: { name: true } } },
         orderBy: { checkedAt: "desc" },
@@ -174,14 +150,12 @@ export default async function LotTrailPage({
               vehicleNo: true,
               status: true,
               saleBill: { select: { id: true, billNo: true } },
-              party: { select: { name: true } },
             },
           },
         },
         take: 20,
       },
       millReturns: {
-        include: { mill: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -190,11 +164,10 @@ export default async function LotTrailPage({
   if (!lot) notFound();
 
   const greyPo = lot.program?.greyOrder ?? lot.greyOrder;
-  const greySupplierName = greyPo?.supplier?.name;
-  const millName = lot.mill?.name ?? lot.program?.mill.name ?? "—";
-  const weaverName = lot.weaver?.name ?? lot.program?.weaver?.name ?? "—";
-  const finishName =
-    lot.finishType?.name ?? lot.program?.finishType?.name ?? "—";
+  const greySupplierName = "—";
+  const millName = "—";
+  const weaverName = "—";
+  const finishName = "—";
 
   const avail = availableQty(lot.onHand.toString(), lot.reserved.toString());
   const isReturn = lot.origin === "SALES_RETURN";
@@ -237,7 +210,7 @@ export default async function LotTrailPage({
       label: "Delivered",
       done: lot.dispatchLines.length > 0,
       detail:
-        lot.dispatchLines[0]?.dispatch.party.name ?? "not dispatched",
+        lot.dispatchLines.length > 0 ? "dispatched" : "not dispatched",
     },
   ];
 
@@ -254,11 +227,7 @@ export default async function LotTrailPage({
       <PageHeader
         title={lot.lotNumber}
         icon={Boxes}
-        description={`${lot.fabricType.name} · ${
-          lot.quality && lot.code && lot.colour
-            ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
-            : "Incomplete identity"
-        } · finish ${finishName}`}
+        description={lot.lotNumber}
         actions={
           <>
             {isReturn ? (
@@ -350,7 +319,7 @@ export default async function LotTrailPage({
               { label: "Weaver", value: weaverName },
               {
                 label: "Marka",
-                value: lot.millMarka?.code ?? lot.marka ?? "—",
+                value: lot.marka ?? "—",
               },
             ]}
           />
@@ -386,7 +355,7 @@ export default async function LotTrailPage({
           {lot.salesReturnAsNew?.markaPhotoUrl ? (
             <p className="mb-1.5 text-[11px]">
               Verified marka:{" "}
-              <strong>{lot.millMarka?.code ?? lot.marka}</strong>
+              <strong>{lot.marka ?? "—"}</strong>
               {" · "}
               <a
                 href={lot.salesReturnAsNew.markaPhotoUrl}
@@ -408,7 +377,7 @@ export default async function LotTrailPage({
             </p>
           ) : (
             <TableWrap maxHeight={260}>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>Roll</th>
@@ -423,7 +392,11 @@ export default async function LotTrailPage({
                       <td className="font-semibold">{r.rollNo}</td>
                       <td className="num">{formatDec(r.lengthM)}</td>
                       <td className="num">{formatDec(r.weightKg)}</td>
-                      <td className="text-(--muted)">{r.notes ?? "—"}</td>
+                      <td className="text-(--muted)">
+                        <div className="erp-clip" title={r.notes ?? undefined}>
+                          {r.notes ?? "—"}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -437,7 +410,7 @@ export default async function LotTrailPage({
         <Section title="Mill RF on this lot" icon={RotateCcw} tone="warn">
           <Panel flush>
             <TableWrap>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>RF</th>
@@ -451,7 +424,7 @@ export default async function LotTrailPage({
                   {lot.millReturns.map((rf) => (
                     <tr key={rf.id}>
                       <td className="font-semibold">{rf.rfNo}</td>
-                      <td className="text-(--muted)">{rf.mill.name}</td>
+                      <td className="text-(--muted)">—</td>
                       <td>
                         <span className={statusBadge(rf.status)}>
                           {rf.status}
@@ -537,10 +510,6 @@ export default async function LotTrailPage({
                     </Link>
                     <span className="text-(--muted)">
                       {" "}
-                      · mill {lot.program.mill.name}
-                      {lot.program.weaver
-                        ? ` · weaver ${lot.program.weaver.name}`
-                        : ""}
                     </span>
                   </>
                 ) : (
@@ -599,7 +568,7 @@ export default async function LotTrailPage({
                 ))}
                 {lot.dispatchLines.map((line) => (
                   <li key={line.id} className="text-(--muted)">
-                    Delivered → {line.dispatch.party.name}
+                    Delivered
                     {line.dispatch.saleBill
                       ? ` · ${line.dispatch.saleBill.billNo}`
                       : ""}
@@ -622,7 +591,7 @@ export default async function LotTrailPage({
             </div>
           ) : (
             <TableWrap maxHeight={340}>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>When</th>
@@ -647,7 +616,11 @@ export default async function LotTrailPage({
                       <td className="text-[11px] text-(--muted)">
                         {m.referenceType ?? "—"}
                       </td>
-                      <td className="text-(--muted)">{m.notes ?? "—"}</td>
+                      <td className="text-(--muted)">
+                        <div className="erp-clip" title={m.notes ?? undefined}>
+                          {m.notes ?? "—"}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

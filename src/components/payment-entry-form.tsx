@@ -2,8 +2,15 @@
 
 import { useMemo, useState } from "react";
 import type { PaymentCategory } from "@prisma/client";
-import type { PartyOption } from "@/lib/parties";
 import { PAYMENT_CATEGORY_LABELS } from "@/lib/payment-labels";
+
+type PartyOption = {
+  id: string;
+  name: string;
+  type: string;
+  whatsapp: string | null;
+  paymentTermsDays: number | null;
+};
 import { Field, buttonClass, inputClass } from "@/components/ui";
 import { recordPayment } from "@/server/actions/payments";
 

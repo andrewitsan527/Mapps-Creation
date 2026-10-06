@@ -1,4 +1,4 @@
-import { PrismaClient, PartyType, StockMovementType } from "@prisma/client";
+import { PrismaClient, StockMovementType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { applyStockMovement } from "../src/server/domain/stock";
 
@@ -18,54 +18,6 @@ async function main() {
     },
   });
 
-  const cotton = await prisma.fabricType.upsert({
-    where: { name: "Cotton RFD" },
-    update: {},
-    create: { name: "Cotton RFD", code: "COT-RFD", defaultUnit: "m" },
-  });
-
-  await prisma.fabricType.upsert({
-    where: { name: "PC Blend" },
-    update: {},
-    create: { name: "PC Blend", code: "PC", defaultUnit: "m" },
-  });
-
-  await prisma.finishType.upsert({
-    where: { name: "Soft finish" },
-    update: {},
-    create: { name: "Soft finish" },
-  });
-
-  const godown = await prisma.godown.upsert({
-    where: { name: "Main Godown" },
-    update: {},
-    create: { name: "Main Godown", code: "G1" },
-  });
-
-  const parties: { name: string; type: PartyType; whatsapp?: string }[] = [
-    { name: "Sunrise Textiles", type: "CLIENT", whatsapp: "919800000001" },
-    { name: "Rajkot Process Mill", type: "MILL", whatsapp: "919800000002" },
-    { name: "Patel Weaver", type: "WEAVER" },
-    { name: "Grey Mart Suppliers", type: "WEAVER" },
-    { name: "Agency Mehta", type: "AGENT" },
-  ];
-
-  for (const p of parties) {
-    const existing = await prisma.party.findFirst({
-      where: { name: p.name, type: p.type },
-    });
-    if (!existing) {
-      await prisma.party.create({
-        data: {
-          name: p.name,
-          type: p.type,
-          whatsapp: p.whatsapp,
-          paymentTermsDays: p.type === "CLIENT" ? 21 : 30,
-        },
-      });
-    }
-  }
-
   const existingLot = await prisma.lot.findUnique({
     where: { lotNumber: "LOT-DEMO-001" },
   });
@@ -76,8 +28,6 @@ async function main() {
         lotNumber: "LOT-DEMO-001",
         rollNumber: "R-01",
         marka: "RM-BUF",
-        fabricTypeId: cotton.id,
-        godownId: godown.id,
         width: 60,
         gsm: 180,
         quantity: 1200,

@@ -67,7 +67,7 @@ export default async function MessagesPage() {
           </div>
         ) : (
           <TableWrap maxHeight={600}>
-            <table className="erp-table">
+            <table className="erp-table erp-register">
               <thead>
                 <tr>
                   <th>When</th>
@@ -105,8 +105,10 @@ export default async function MessagesPage() {
                           {m.status}
                         </span>
                       </td>
-                      <td className="max-w-64 truncate text-[11px] text-(--muted)">
-                        {preview}
+                      <td className="text-[11px] text-(--muted)">
+                        <div className="erp-clip" title={preview}>
+                          {preview}
+                        </div>
                       </td>
                     </tr>
                   );

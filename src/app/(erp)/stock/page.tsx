@@ -4,7 +4,6 @@ import { getAvailability } from "@/server/domain/stock";
 import { formatQty } from "@/lib/utils";
 import {
   EmptyState,
-  Field,
   Metric,
   MetricStrip,
   NextStep,
@@ -12,121 +11,22 @@ import {
   Panel,
   Section,
   TableWrap,
-  buttonClass,
   buttonTinyClass,
-  inputClass,
 } from "@/components/ui";
-import { Boxes, Layers, Search } from "lucide-react";
+import { Boxes, Layers } from "lucide-react";
 
-function schemeLabel(row: {
-  quality?: { name: string } | null;
-  code?: { name: string } | null;
-  colour?: { name: string } | null;
-  qualityName?: string | null;
-  codeName?: string | null;
-  colourName?: string | null;
-}) {
-  const q = row.quality?.name ?? row.qualityName;
-  const c = row.code?.name ?? row.codeName;
-  const col = row.colour?.name ?? row.colourName;
-  if (q && c && col) return `${q} / ${c} / ${col}`;
-  return "Incomplete identity";
-}
-
-type SearchParams = Promise<{
-  fabricTypeId?: string;
-  qualityId?: string;
-  codeId?: string;
-  colourId?: string;
-}>;
-
-type StockLotRow = {
-  id: string;
-  lotNumber: string;
-  marka: string | null;
-  origin: string;
-  qualityGrade: string;
-  width: { toString(): string } | null;
-  gsm: { toString(): string } | null;
-  rollCount: number;
-  onHand: { toString(): string };
-  reserved: { toString(): string };
-  fabricType: { name: string };
-  quality: { name: string } | null;
-  code: { name: string } | null;
-  colour: { name: string } | null;
-  finishType: { name: string } | null;
-  millMarka: { code: string } | null;
-  mill: { name: string } | null;
-  weaver: { name: string } | null;
-  salesReturnAsNew: { markaPhotoUrl: string | null } | null;
-  rolls: { rollNo: string; lengthM: { toString(): string } }[];
-};
-
-export default async function StockPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const params = await searchParams;
-  const filtered = Boolean(
-    params.fabricTypeId ||
-      params.qualityId ||
-      params.codeId ||
-      params.colourId,
-  );
-
-  const [fabrics, qualities, codes, colours, availability, lots] =
-    await Promise.all([
-    prisma.fabricType.findMany({
-      where: { active: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.quality.findMany({
-      where: { active: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.code.findMany({
-      where: { active: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.colour.findMany({
-      where: { active: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    getAvailability(prisma, {
-      fabricTypeId: params.fabricTypeId,
-      qualityId: params.qualityId,
-      codeId: params.codeId,
-      colourId: params.colourId,
-    }),
+export default async function StockPage() {
+  const [availability, lots] = await Promise.all([
+    getAvailability(prisma, {}),
     prisma.lot.findMany({
-      where: {
-        active: true,
-        ...(params.fabricTypeId ? { fabricTypeId: params.fabricTypeId } : {}),
-        ...(params.qualityId ? { qualityId: params.qualityId } : {}),
-        ...(params.codeId ? { codeId: params.codeId } : {}),
-        ...(params.colourId ? { colourId: params.colourId } : {}),
-      },
+      where: { active: true },
       include: {
-        fabricType: { select: { name: true } },
-        quality: { select: { name: true } },
-        code: { select: { name: true } },
-        colour: { select: { name: true } },
-        finishType: { select: { name: true } },
-        millMarka: { select: { code: true } },
-        mill: { select: { name: true } },
-        weaver: { select: { name: true } },
         salesReturnAsNew: { select: { markaPhotoUrl: true } },
         rolls: { orderBy: { sortOrder: "asc" }, take: 12 },
       },
       orderBy: { createdAt: "desc" },
       take: 50,
-    }) as unknown as Promise<StockLotRow[]>,
+    }),
   ]);
 
   const totalAvailable = availability.reduce(
@@ -186,77 +86,6 @@ export default async function StockPage({
         />
       </MetricStrip>
 
-      <Panel title="Stock enquiry" icon={Search} compact>
-        <form className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Fabric type">
-            <select
-              className={inputClass}
-              name="fabricTypeId"
-              defaultValue={params.fabricTypeId ?? ""}
-            >
-              <option value="">All</option>
-              {fabrics.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Quality">
-            <select
-              className={inputClass}
-              name="qualityId"
-              defaultValue={params.qualityId ?? ""}
-            >
-              <option value="">All</option>
-              {qualities.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Code">
-            <select
-              className={inputClass}
-              name="codeId"
-              defaultValue={params.codeId ?? ""}
-            >
-              <option value="">All</option>
-              {codes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Colour">
-            <select
-              className={inputClass}
-              name="colourId"
-              defaultValue={params.colourId ?? ""}
-            >
-              <option value="">All</option>
-              {colours.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div className="flex items-end gap-1.5">
-            <button className={buttonClass} type="submit">
-              <Search className="h-3 w-3" />
-              Check
-            </button>
-            {filtered ? (
-              <Link href="/stock" className={buttonTinyClass}>
-                Clear
-              </Link>
-            ) : null}
-          </div>
-        </form>
-      </Panel>
 
       <Section
         title="What we hold"
@@ -285,7 +114,7 @@ export default async function StockPage({
               </div>
             ) : (
               <TableWrap maxHeight={420}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Fabric</th>
@@ -297,13 +126,9 @@ export default async function StockPage({
                   </thead>
                   <tbody>
                     {availability.map((row) => (
-                      <tr
-                        key={`${row.identity}-${row.fabricTypeId}-${row.qualityId}-${row.codeId}-${row.colourId}-${row.gsm}-${row.width}-${row.unit}`}
-                      >
-                        <td className="font-medium">{row.fabricTypeName}</td>
-                        <td className="text-(--muted)">
-                          {schemeLabel(row)}
-                        </td>
+                      <tr key={`${row.gsm}-${row.width}-${row.unit}`}>
+                        <td className="font-medium">—</td>
+                        <td className="text-(--muted)">—</td>
                         <td className="text-(--muted)">{row.gsm ?? "—"}</td>
                         <td className="num font-semibold text-(--accent-strong)">
                           {formatQty(row.available)} {row.unit}
@@ -331,7 +156,7 @@ export default async function StockPage({
               </div>
             ) : (
               <TableWrap maxHeight={420}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Lot</th>
@@ -350,16 +175,16 @@ export default async function StockPage({
                         lot.lotNumber.startsWith("MCSR-");
                       return (
                         <tr key={lot.id}>
-                          <td>
+                          <td className="erp-stack">
                             <Link
                               href={`/stock/${lot.id}`}
                               className="font-semibold text-(--accent) hover:underline"
                             >
                               {lot.lotNumber}
                             </Link>
-                            {lot.millMarka || lot.marka ? (
+                            {lot.marka ? (
                               <div className="text-[10px] text-(--faint)">
-                                Mk {lot.millMarka?.code ?? lot.marka}
+                                Mk {lot.marka}
                                 {lot.salesReturnAsNew?.markaPhotoUrl ? (
                                   <>
                                     {" · "}
@@ -376,12 +201,8 @@ export default async function StockPage({
                               </div>
                             ) : null}
                           </td>
-                          <td>
-                            <div>{lot.fabricType.name}</div>
-                            <div className="text-[10px] text-(--muted)">
-                              {schemeLabel(lot)}
-                              {lot.finishType ? ` · ${lot.finishType.name}` : ""}
-                            </div>
+                          <td className="erp-stack">
+                            <div className="erp-clip">—</div>
                           </td>
                           <td>
                             {isReturn ? (
@@ -398,7 +219,7 @@ export default async function StockPage({
                             {lot.width?.toString() ?? "—"} /{" "}
                             {lot.gsm?.toString() ?? "—"}
                           </td>
-                          <td>
+                          <td className="erp-stack">
                             <div className="tabular-nums">{lot.rollCount}</div>
                             {lot.rolls.length > 0 ? (
                               <div className="max-w-36 truncate text-[10px] text-(--faint)">
@@ -408,7 +229,7 @@ export default async function StockPage({
                               </div>
                             ) : null}
                           </td>
-                          <td className="num">
+                          <td className="num erp-stack">
                             <span className="font-semibold">
                               {formatQty(lot.onHand)}
                             </span>
@@ -416,11 +237,9 @@ export default async function StockPage({
                               res {formatQty(lot.reserved)}
                             </div>
                           </td>
-                          <td className="text-[11px]">
-                            {lot.mill?.name ?? "—"}
-                            <div className="text-[10px] text-(--faint)">
-                              {lot.weaver?.name ?? "—"}
-                            </div>
+                          <td className="erp-stack text-[11px]">
+                            —
+                            <div className="text-[10px] text-(--faint)">—</div>
                           </td>
                         </tr>
                       );

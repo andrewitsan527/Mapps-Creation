@@ -8,7 +8,6 @@ import {
   relativeDays,
 } from "@/lib/utils";
 import { sendPaymentReminder } from "@/server/actions/payments";
-import { listPartyOptions } from "@/lib/parties";
 import { statusBadge } from "@/lib/format";
 import { PaymentEntryForm } from "@/components/payment-entry-form";
 import {
@@ -40,8 +39,7 @@ import {
 
 export default async function PaymentsPage() {
   const now = new Date();
-  const [parties, receivables, commissions, recentPayments] = await Promise.all([
-    listPartyOptions(["CLIENT", "MILL", "AGENT", "WEAVER"]),
+  const [receivables, commissions, recentPayments] = await Promise.all([
     listDispatchedReceivables(),
     listOpenCommissions(),
     prisma.payment.findMany({
@@ -52,13 +50,11 @@ export default async function PaymentsPage() {
         paidAt: true,
         direction: true,
         category: true,
-        party: { select: { name: true, type: true } },
         saleBill: { select: { id: true, billNo: true } },
         commissionEntry: {
           select: {
             amount: true,
             basis: true,
-            relatedParty: { select: { name: true } },
           },
         },
       },
@@ -165,7 +161,7 @@ export default async function PaymentsPage() {
         <Section title="Record a payment" icon={Wallet} tone="accent">
           <Panel compact>
             <PaymentEntryForm
-              parties={parties}
+              parties={[]}
               bills={receivables.map((bill) => ({
                 id: bill.id,
                 billNo: bill.billNo,
@@ -267,7 +263,7 @@ export default async function PaymentsPage() {
                     }
                   >
                     <TableWrap maxHeight={320}>
-                      <table className="erp-table">
+                      <table className="erp-table erp-register">
                         <thead>
                           <tr>
                             <th>Bill</th>
@@ -382,7 +378,7 @@ export default async function PaymentsPage() {
               </div>
             ) : (
               <TableWrap maxHeight={260}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Agent</th>
@@ -424,7 +420,7 @@ export default async function PaymentsPage() {
               </div>
             ) : (
               <TableWrap maxHeight={260}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Type</th>
@@ -440,7 +436,7 @@ export default async function PaymentsPage() {
                         <td className="text-[11px] text-(--muted)">
                           {PAYMENT_CATEGORY_LABELS[payment.category]}
                         </td>
-                        <td>{payment.party.name}</td>
+                        <td>—</td>
                         <td className="text-[11px]">
                           {payment.saleBill ? (
                             <Link

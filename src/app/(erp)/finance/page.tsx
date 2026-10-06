@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { createAccountNote, createCommission } from "@/server/actions/finance";
-import { listPartyOptions } from "@/lib/parties";
 import { formatDate, formatMoney, formatMoneyShort, formatQty } from "@/lib/utils";
-import { PartySelect } from "@/components/party-select";
 import {
   EmptyState,
   Field,
@@ -22,22 +20,13 @@ import {
 import { Briefcase, Calculator, Receipt } from "lucide-react";
 
 export default async function FinancePage() {
-  const [parties, agents, bills, notes, commissions] = await Promise.all([
-    listPartyOptions([
-      "CLIENT",
-      "MILL",
-      "WEAVER",
-      "AGENT",
-      "OTHER",
-    ]),
-    listPartyOptions("AGENT"),
+  const [bills, notes, commissions] = await Promise.all([
     prisma.saleBill.findMany({
       where: { type: "SALE" },
       select: {
         id: true,
         billNo: true,
         total: true,
-        party: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 60,
@@ -51,7 +40,6 @@ export default async function FinancePage() {
         tdsAmount: true,
         reason: true,
         createdAt: true,
-        party: { select: { name: true } },
         saleBill: { select: { id: true, billNo: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -64,8 +52,6 @@ export default async function FinancePage() {
         ratePct: true,
         amount: true,
         createdAt: true,
-        agent: { select: { name: true } },
-        relatedParty: { select: { name: true } },
         saleBill: { select: { id: true, billNo: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -137,14 +123,6 @@ export default async function FinancePage() {
                       <option value="CREDIT">Credit note</option>
                     </select>
                   </Field>
-                  <Field label="Party">
-                    <PartySelect
-                      name="partyId"
-                      options={parties}
-                      required
-                      showType
-                    />
-                  </Field>
                 </div>
                 <Field
                   label="Sale bill (optional)"
@@ -154,7 +132,7 @@ export default async function FinancePage() {
                     <option value="">—</option>
                     {bills.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.billNo} · {b.party.name}
+                        {b.billNo}
                       </option>
                     ))}
                   </select>
@@ -200,7 +178,7 @@ export default async function FinancePage() {
               </div>
             ) : (
               <TableWrap maxHeight={300}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Note</th>
@@ -230,7 +208,7 @@ export default async function FinancePage() {
                             {formatDate(n.createdAt)}
                           </div>
                         </td>
-                        <td className="text-(--muted)">{n.party.name}</td>
+                        <td className="text-(--muted)">—</td>
                         <td>
                           {n.saleBill ? (
                             <Link
@@ -263,9 +241,6 @@ export default async function FinancePage() {
             <form action={createCommission} className="space-y-2.5">
               <FieldGroup label="Agent & basis">
                 <div className="grid grid-cols-2 gap-1.5">
-                  <Field label="Agent">
-                    <PartySelect name="agentId" options={agents} required />
-                  </Field>
                   <Field label="Basis">
                     <select
                       className={inputClass}
@@ -278,14 +253,6 @@ export default async function FinancePage() {
                     </select>
                   </Field>
                 </div>
-                <Field label="Related party (mill / weaver / client)">
-                  <PartySelect
-                    name="relatedPartyId"
-                    options={parties}
-                    placeholder="—"
-                    showType
-                  />
-                </Field>
                 <Field label="Sale bill (optional)">
                   <select className={inputClass} name="saleBillId">
                     <option value="">—</option>
@@ -337,7 +304,7 @@ export default async function FinancePage() {
               </div>
             ) : (
               <TableWrap maxHeight={300}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Agent</th>
@@ -350,11 +317,8 @@ export default async function FinancePage() {
                   <tbody>
                     {commissions.map((c) => (
                       <tr key={c.id}>
-                        <td className="font-semibold">{c.agent.name}</td>
-                        <td className="text-(--muted)">
-                          {c.basis}
-                          {c.relatedParty ? ` · ${c.relatedParty.name}` : ""}
-                        </td>
+                        <td className="font-semibold">—</td>
+                        <td className="text-(--muted)">{c.basis}</td>
                         <td>
                           {c.saleBill ? (
                             <Link

@@ -98,65 +98,31 @@ export async function applyStockMovement(
   });
 }
 
-function hasFullScheme(lot: {
-  qualityId: string | null;
-  codeId: string | null;
-  colourId: string | null;
-}) {
-  return Boolean(lot.qualityId && lot.codeId && lot.colourId);
-}
-
-/** Aggregate live stock by fabric + Quality / Code / Colour (+ optional GSM/width). */
+/** Aggregate live stock by GSM / width. Fabric identity masters are gone. */
 export async function getAvailability(
   db: Db,
   filters: {
-    fabricTypeId?: string;
-    qualityId?: string;
-    codeId?: string;
-    colourId?: string;
     gsm?: number;
     width?: number;
     qualityGrade?: string;
-    godownId?: string;
   },
 ) {
   const lots = await db.lot.findMany({
     where: {
       active: true,
-      ...(filters.fabricTypeId ? { fabricTypeId: filters.fabricTypeId } : {}),
-      ...(filters.qualityId ? { qualityId: filters.qualityId } : {}),
-      ...(filters.codeId ? { codeId: filters.codeId } : {}),
-      ...(filters.colourId ? { colourId: filters.colourId } : {}),
-      ...(filters.godownId ? { godownId: filters.godownId } : {}),
       ...(filters.qualityGrade
         ? { qualityGrade: filters.qualityGrade as never }
         : {}),
       ...(filters.gsm != null ? { gsm: filters.gsm } : {}),
       ...(filters.width != null ? { width: filters.width } : {}),
     },
-    include: {
-      fabricType: true,
-      quality: { select: { id: true, name: true } },
-      code: { select: { id: true, name: true } },
-      colour: { select: { id: true, name: true } },
-      godown: true,
-      location: true,
-    },
-    orderBy: [{ fabricType: { name: "asc" } }, { createdAt: "desc" }],
+    orderBy: { createdAt: "desc" },
   });
 
   const groups = new Map<
     string,
     {
-      identity: "qcc" | "incomplete";
-      fabricTypeId: string;
-      fabricTypeName: string;
-      qualityId: string | null;
-      qualityName: string | null;
-      codeId: string | null;
-      codeName: string | null;
-      colourId: string | null;
-      colourName: string | null;
+      identity: "size";
       gsm: string | null;
       width: string | null;
       unit: string;
@@ -170,18 +136,7 @@ export async function getAvailability(
   for (const lot of lots) {
     const gsm = lot.gsm?.toString() ?? "";
     const width = lot.width?.toString() ?? "";
-    const identity = hasFullScheme(lot) ? "qcc" : "incomplete";
-    const key = hasFullScheme(lot)
-      ? [
-          lot.fabricTypeId,
-          lot.qualityId,
-          lot.codeId,
-          lot.colourId,
-          gsm,
-          width,
-          lot.unit,
-        ].join("|")
-      : `incomplete:${lot.id}`;
+    const key = [gsm, width, lot.unit].join("|");
 
     const existing = groups.get(key);
     const onHand = toDecimal(lot.onHand);
@@ -190,15 +145,7 @@ export async function getAvailability(
 
     if (!existing) {
       groups.set(key, {
-        identity,
-        fabricTypeId: lot.fabricTypeId,
-        fabricTypeName: lot.fabricType.name,
-        qualityId: lot.qualityId,
-        qualityName: lot.quality?.name ?? null,
-        codeId: lot.codeId,
-        codeName: lot.code?.name ?? null,
-        colourId: lot.colourId,
-        colourName: lot.colour?.name ?? null,
+        identity: "size",
         gsm: lot.gsm?.toString() ?? null,
         width: lot.width?.toString() ?? null,
         unit: lot.unit,

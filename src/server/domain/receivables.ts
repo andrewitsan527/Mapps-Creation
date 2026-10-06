@@ -62,15 +62,6 @@ export async function listDispatchedReceivables(): Promise<ReceivableBill[]> {
       dispatches: { some: { status: "DISPATCHED" } },
     },
     include: {
-      party: {
-        select: {
-          id: true,
-          name: true,
-          whatsapp: true,
-          paymentTermsDays: true,
-          interestRatePct: true,
-        },
-      },
       payments: {
         where: { direction: "RECEIPT" },
         select: { amount: true },
@@ -96,11 +87,8 @@ export async function listDispatchedReceivables(): Promise<ReceivableBill[]> {
       );
       const notes = noteBalanceOf(bill.accountNotes);
       const outstanding = Number(toDec(bill.total).plus(notes).minus(paid));
-      const paymentTermsDays =
-        bill.paymentTermsDays ?? bill.party.paymentTermsDays;
-      const interestRatePct = effectiveInterestRate(
-        bill.interestRatePct ?? bill.party.interestRatePct,
-      );
+      const paymentTermsDays = bill.paymentTermsDays ?? 0;
+      const interestRatePct = effectiveInterestRate(bill.interestRatePct);
       const overdueDays =
         bill.dueDate && outstanding > 0
           ? Math.max(0, daysBetween(bill.dueDate, now))
@@ -116,9 +104,9 @@ export async function listDispatchedReceivables(): Promise<ReceivableBill[]> {
       return {
         id: bill.id,
         billNo: bill.billNo,
-        partyId: bill.partyId,
-        partyName: bill.party.name,
-        whatsapp: bill.party.whatsapp,
+        partyId: bill.id,
+        partyName: bill.billNo,
+        whatsapp: null,
         billTotal: Number(bill.total),
         paid: Number(paid),
         noteBalance: Number(notes),
@@ -178,8 +166,6 @@ export function summarizeClientOutstanding(
 export async function listOpenCommissions() {
   const commissions = await prisma.commissionEntry.findMany({
     include: {
-      agent: { select: { id: true, name: true } },
-      relatedParty: { select: { name: true } },
       saleBill: { select: { billNo: true } },
       payments: {
         where: { direction: "PAYMENT", category: "AGENT_COMMISSION" },
@@ -199,10 +185,10 @@ export async function listOpenCommissions() {
       const outstanding = Number(toDec(entry.amount).minus(paid));
       return {
         id: entry.id,
-        agentId: entry.agentId,
-        agentName: entry.agent.name,
+        agentId: entry.id,
+        agentName: "—",
         basis: entry.basis,
-        relatedPartyName: entry.relatedParty?.name ?? null,
+        relatedPartyName: null,
         saleBillNo: entry.saleBill?.billNo ?? null,
         amount: Number(entry.amount),
         paid: Number(paid),

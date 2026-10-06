@@ -1343,6 +1343,68 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.erp-table.erp-register,
+.po-register.erp-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--line);
+}
+
+.erp-table.erp-register thead th,
+.po-register.erp-table thead th {
+  border-right: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line);
+  padding: 0.45rem 0.7rem;
+  background: var(--panel-alt);
+  vertical-align: middle;
+}
+
+.erp-table.erp-register td,
+.po-register.erp-table td {
+  height: 2.15rem;
+  padding: 0.4rem 0.7rem;
+  border-right: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.erp-table.erp-register thead th:last-child,
+.erp-table.erp-register td:last-child,
+.po-register.erp-table thead th:last-child,
+.po-register.erp-table td:last-child {
+  border-right: 0;
+}
+
+.erp-table.erp-register tbody tr:last-child td,
+.po-register.erp-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.erp-table.erp-register tbody tr:nth-child(even) td,
+.po-register.erp-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--panel-alt) 70%, white);
+}
+
+.erp-table.erp-register tbody tr:hover td,
+.po-register.erp-table tbody tr:hover td {
+  background: var(--panel-sunken);
+}
+
+.erp-table.erp-register td.erp-stack,
+.po-register.erp-table td.erp-stack {
+  height: auto;
+  white-space: normal;
+}
+
+.erp-table.erp-register .erp-clip {
+  display: block;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---------- Badges ---------- */
 .badge {
   display: inline-flex;

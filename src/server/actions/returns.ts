@@ -45,32 +45,21 @@ export async function intakeGoodsReturn(formData: FormData) {
   const reason = String(formData.get("reason") || "").trim() || null;
   const priority = (String(formData.get("priority") || "MEDIUM") ||
     "MEDIUM") as DefectSeverity;
-  const millMarkaId = String(formData.get("millMarkaId") || "");
   const originalLotRef =
     String(formData.get("originalLotRef") || "").trim() || null;
 
-  if (!saleBillId || !saleBillLineId || !millMarkaId) {
-    throw new Error("Sale bill, goods line, and verified mill marka required");
+  if (!saleBillId || !saleBillLineId) {
+    throw new Error("Sale bill and goods line required");
   }
 
   const bill = await prisma.saleBill.findUniqueOrThrow({
     where: { id: saleBillId },
     include: {
-      party: true,
       lines: {
         where: { id: saleBillLineId },
         include: {
           lot: {
-            include: {
-              fabricType: true,
-              quality: true,
-              code: true,
-              colour: true,
-              finishType: true,
-              mill: true,
-              weaver: true,
-              rolls: true,
-            },
+            include: { rolls: true },
           },
         },
       },
@@ -81,93 +70,15 @@ export async function intakeGoodsReturn(formData: FormData) {
   const line = bill.lines[0];
   if (!line) throw new Error("Bill line not found on this bill");
 
-  const lotInclude = {
-    fabricType: true,
-    quality: true,
-    code: true,
-    colour: true,
-    finishType: true,
-    mill: true,
-    weaver: true,
-  } as const;
-
   const lookedUp = originalLotRef
     ? await prisma.lot.findFirst({
         where: {
           OR: [{ id: originalLotRef }, { lotNumber: originalLotRef }],
         },
-        include: lotInclude,
       })
     : null;
 
   const sourceLot = lookedUp ?? line.lot;
-
-  if (!sourceLot && !line.fabricName) {
-    throw new Error("Cannot resolve fabric from bill — pick a line with lot history");
-  }
-
-  let fabricTypeId = sourceLot?.fabricTypeId;
-  let qualityId = sourceLot?.qualityId ?? null;
-  let codeId = sourceLot?.codeId ?? null;
-  let colourId = sourceLot?.colourId ?? null;
-  if (!fabricTypeId && line.fabricName) {
-    const ft = await prisma.fabricType.findFirst({
-      where: { name: line.fabricName },
-    });
-    fabricTypeId = ft?.id;
-  }
-  if (!qualityId && line.quality) {
-    const q = await prisma.quality.findFirst({
-      where: { name: line.quality },
-    });
-    qualityId = q?.id ?? null;
-  }
-  if (!codeId && line.code) {
-    const c = await prisma.code.findFirst({
-      where: { name: line.code },
-    });
-    codeId = c?.id ?? null;
-  }
-  if (!colourId && line.colour) {
-    const col = await prisma.colour.findFirst({
-      where: { name: line.colour },
-    });
-    colourId = col?.id ?? null;
-  }
-  if (!fabricTypeId || !qualityId || !codeId || !colourId) {
-    throw new Error(
-      "Fabric / quality / code / colour from bill could not be matched in masters",
-    );
-  }
-
-  const expectedMillId =
-    sourceLot?.millId ??
-    (
-      await prisma.party.findFirst({
-        where: {
-          type: "MILL",
-          active: true,
-          ...(line.millName ? { name: line.millName } : { id: "__missing__" }),
-        },
-        select: { id: true },
-      })
-    )?.id;
-  if (!expectedMillId) {
-    throw new Error("The billed goods are not connected to a mill");
-  }
-
-  const verifiedMarka = await prisma.millMarka.findFirst({
-    where: {
-      id: millMarkaId,
-      millId: expectedMillId,
-      active: true,
-      mill: { type: "MILL", active: true },
-    },
-    include: { mill: { select: { name: true } } },
-  });
-  if (!verifiedMarka) {
-    throw new Error("Marka does not belong to the connected mill — return rejected");
-  }
 
   const parsedRolls = parseRollLengths(rollsRaw);
   let totalLength = parsedRolls.reduce((s, r) => s + Number(r.lengthM || 0), 0);
@@ -191,14 +102,6 @@ export async function intakeGoodsReturn(formData: FormData) {
         returnPriority: priority,
         sourceSaleBillId: bill.id,
         parentLotId: sourceLot?.id ?? null,
-        millMarkaId: verifiedMarka.id,
-        fabricTypeId,
-        qualityId,
-        codeId,
-        colourId,
-        finishTypeId: sourceLot?.finishTypeId ?? null,
-        millId: verifiedMarka.millId,
-        weaverId: sourceLot?.weaverId ?? null,
         programId: sourceLot?.programId ?? null,
         width: sourceLot?.width ?? line.width,
         gsm: sourceLot?.gsm ?? line.gsm,
@@ -206,7 +109,7 @@ export async function intakeGoodsReturn(formData: FormData) {
         lengthM: qty,
         weightKg: null,
         rollCount,
-        marka: verifiedMarka.code,
+        marka: line.marka,
         unit: line.unit || "m",
         qualityGrade: "B",
         defectType: "NONE",
@@ -231,10 +134,8 @@ export async function intakeGoodsReturn(formData: FormData) {
         returnNo,
         status: "PENDING_QC",
         priority,
-        partyId: bill.partyId,
         saleBillId: bill.id,
         saleBillLineId: line.id,
-        millMarkaId: verifiedMarka.id,
         originalLotId: sourceLot?.id ?? null,
         newLotId: newLot.id,
         quantity: qty,
@@ -274,23 +175,11 @@ export async function submitGoodsReturnQc(formData: FormData) {
     where: { id: returnId },
     include: {
       newLot: true,
-      millMarka: { include: { mill: { select: { id: true, name: true } } } },
     },
   });
 
-  if (
-    ret.status !== "PENDING_QC" ||
-    !ret.newLotId ||
-    !ret.newLot ||
-    !ret.millMarka
-  ) {
+  if (ret.status !== "PENDING_QC" || !ret.newLotId || !ret.newLot) {
     throw new Error("Return is not awaiting GR QC");
-  }
-  if (
-    ret.newLot.millId !== ret.millMarka.millId ||
-    ret.newLot.marka !== ret.millMarka.code
-  ) {
-    throw new Error("Return marka no longer matches the connected mill");
   }
 
   const primaryDefect = primaryDefectFromChecklist({

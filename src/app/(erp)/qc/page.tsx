@@ -36,13 +36,6 @@ export default async function QcPage() {
         select: {
           id: true,
           programNo: true,
-          mill: { select: { name: true } },
-          weaver: { select: { name: true } },
-          fabricType: { select: { name: true } },
-          finishType: { select: { name: true } },
-          quality: { select: { name: true } },
-          code: { select: { name: true } },
-          colour: { select: { name: true } },
           greyOrder: { select: { quantity: true, unit: true } },
           inwards: { select: { quantity: true } },
         },
@@ -58,11 +51,6 @@ export default async function QcPage() {
           program: {
             select: {
               programNo: true,
-              mill: { select: { name: true } },
-              fabricType: { select: { name: true } },
-              quality: { select: { name: true } },
-              code: { select: { name: true } },
-              colour: { select: { name: true } },
             },
           },
         },
@@ -81,11 +69,6 @@ export default async function QcPage() {
           lengthM: true,
           rollCount: true,
           createdAt: true,
-          fabricType: { select: { name: true } },
-          quality: { select: { name: true } },
-          code: { select: { name: true } },
-          colour: { select: { name: true } },
-          mill: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -98,11 +81,6 @@ export default async function QcPage() {
           id: true,
           lotNumber: true,
           returnPriority: true,
-          fabricType: { select: { name: true } },
-          quality: { select: { name: true } },
-          code: { select: { name: true } },
-          colour: { select: { name: true } },
-          weaver: { select: { name: true } },
         },
         orderBy: [{ returnPriority: "desc" }, { updatedAt: "desc" }],
         take: 20,
@@ -117,7 +95,6 @@ export default async function QcPage() {
           whatsappSent: true,
           lot: { select: { lotNumber: true, origin: true } },
           millInward: { select: { inwardNo: true } },
-          mill: { select: { name: true } },
         },
         orderBy: { dueAt: "asc" },
         take: 20,
@@ -144,7 +121,7 @@ export default async function QcPage() {
       return {
         id: p.id,
         programNo: p.programNo,
-        millName: p.mill.name,
+        millName: "—",
         unit: summary.unit,
         remaining: summary.remaining,
       };
@@ -228,15 +205,7 @@ export default async function QcPage() {
                         {openInwards.map((row) => (
                           <option key={row.id} value={row.id}>
                             {row.inwardNo} · {row.program.programNo} ·{" "}
-                            {formatQty(row.quantity)} {row.unit} ·{" "}
-                            {row.program.fabricType.name} ·{" "}
-                            {row.program.quality &&
-                            row.program.code &&
-                            row.program.colour
-                              ? `${row.program.quality.name} / ${row.program.code.name} / ${row.program.colour.name}`
-                              : "Incomplete identity"}{" "}
-                            · mill{" "}
-                            {row.program.mill.name}
+                            {formatQty(row.quantity)} {row.unit}
                           </option>
                         ))}
                       </select>
@@ -251,13 +220,8 @@ export default async function QcPage() {
                         <option value="">Select…</option>
                         {pendingLots.map((l) => (
                           <option key={l.id} value={l.id}>
-                            {l.lotNumber} · {l.fabricType.name} ·{" "}
-                            {l.quality && l.code && l.colour
-                              ? `${l.quality.name} / ${l.code.name} / ${l.colour.name}`
-                              : "Incomplete identity"}{" "}
-                            ·{" "}
+                            {l.lotNumber} ·{" "}
                             {formatQty(l.lengthM ?? l.quantity)}
-                            {l.mill ? ` · ${l.mill.name}` : ""}
                           </option>
                         ))}
                       </select>
@@ -340,7 +304,7 @@ export default async function QcPage() {
                 flush
               >
                 <TableWrap maxHeight={260}>
-                  <table className="erp-table">
+                  <table className="erp-table erp-register">
                     <thead>
                       <tr>
                         <th>Lot</th>
@@ -354,13 +318,8 @@ export default async function QcPage() {
                       {weaverHigh.map((lot) => (
                         <tr key={lot.id}>
                           <td className="font-semibold">{lot.lotNumber}</td>
-                          <td className="text-(--muted)">
-                            {lot.fabricType.name} /{" "}
-                            {lot.quality && lot.code && lot.colour
-                              ? `${lot.quality.name} / ${lot.code.name} / ${lot.colour.name}`
-                              : "Incomplete identity"}
-                          </td>
-                          <td>{lot.weaver?.name ?? "—"}</td>
+                          <td className="text-(--muted)">—</td>
+                          <td>—</td>
                           <td>
                             <span
                               className={statusBadge(
@@ -402,7 +361,7 @@ export default async function QcPage() {
                 }
               >
                 <TableWrap maxHeight={260}>
-                  <table className="erp-table">
+                  <table className="erp-table erp-register">
                     <thead>
                       <tr>
                         <th>RF</th>
@@ -437,7 +396,7 @@ export default async function QcPage() {
                                   : "Program"}
                               </div>
                             </td>
-                            <td className="text-(--muted)">{rf.mill.name}</td>
+                            <td className="text-(--muted)">—</td>
                             <td className="text-[11px]">
                               {formatDateTime(rf.dueAt)}
                               <div
@@ -482,7 +441,7 @@ export default async function QcPage() {
             </div>
           ) : (
             <TableWrap maxHeight={280}>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>Lot</th>

@@ -41,15 +41,12 @@ export default async function MillInwardPage() {
       programNo: true,
       status: true,
       shortageQty: true,
-      mill: { select: { name: true } },
-      weaver: { select: { name: true } },
       greyOrder: {
         select: {
           poNumber: true,
           quantity: true,
           unit: true,
           dyeingRate: true,
-          agent: { select: { name: true } },
         },
       },
       inwards: {
@@ -79,10 +76,10 @@ export default async function MillInwardPage() {
       id: p.id,
       programNo: p.programNo,
       status: p.status,
-      millName: p.mill.name,
-      weaverName: p.weaver?.name ?? null,
+      millName: "—",
+      weaverName: null as string | null,
       greyPoNo: p.greyOrder?.poNumber ?? null,
-      agentName: p.greyOrder?.agent?.name ?? null,
+      agentName: null as string | null,
       dyeingRate: p.greyOrder?.dyeingRate ?? null,
       qty,
       difference:
@@ -248,7 +245,7 @@ export default async function MillInwardPage() {
               </div>
             ) : (
               <TableWrap>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>Program</th>
@@ -260,14 +257,14 @@ export default async function MillInwardPage() {
                   <tbody>
                     {active.map((p) => (
                       <tr key={p.id}>
-                        <td>
+                        <td className="erp-stack">
                           <p className="inward-prog">{p.programNo}</p>
                           <p className="inward-support">
                             {p.millName}
                             {p.weaverName ? ` · ${p.weaverName}` : ""}
                           </p>
                         </td>
-                        <td className="tabular-nums">
+                        <td className="erp-stack tabular-nums">
                           <div className="inward-qty">
                             Planned {formatQty(p.qty.planned ?? 0)} {p.qty.unit}
                           </div>
@@ -276,11 +273,11 @@ export default async function MillInwardPage() {
                             {formatQty(p.qty.remaining ?? 0)}
                           </div>
                         </td>
-                        <td>
+                        <td className="erp-stack">
                           {p.inwards.length === 0 ? (
                             <span className="inward-empty">None yet</span>
                           ) : (
-                            <table className="erp-table">
+                            <table className="erp-table erp-register">
                               <thead>
                                 <tr>
                                   <th>Inward</th>
@@ -308,7 +305,7 @@ export default async function MillInwardPage() {
                             </table>
                           )}
                         </td>
-                        <td>
+                        <td className="erp-stack">
                           {p.qty.planned != null &&
                           p.qty.remaining != null &&
                           p.qty.remaining > 0 ? (
@@ -346,7 +343,7 @@ export default async function MillInwardPage() {
             </div>
           ) : (
             <TableWrap>
-              <table className="erp-table">
+              <table className="erp-table erp-register">
                 <thead>
                   <tr>
                     <th>Program</th>
@@ -357,7 +354,7 @@ export default async function MillInwardPage() {
                 <tbody>
                   {closed.map((p) => (
                     <tr key={p.id}>
-                      <td>
+                      <td className="erp-stack">
                         <p className="inward-prog">{p.programNo}</p>
                         <p className="inward-support">
                           {p.millName}
@@ -367,7 +364,7 @@ export default async function MillInwardPage() {
                           CLOSED
                         </p>
                       </td>
-                      <td className="tabular-nums">
+                      <td className="erp-stack tabular-nums">
                         <div className="inward-qty">
                           Planned {formatQty(p.qty.planned ?? 0)} {p.qty.unit}
                         </div>
@@ -376,11 +373,11 @@ export default async function MillInwardPage() {
                           {formatQty(p.difference ?? 0)}
                         </div>
                       </td>
-                      <td>
+                      <td className="erp-stack">
                         {p.inwards.length === 0 ? (
                           <span className="inward-empty">No inwards</span>
                         ) : (
-                          <table className="erp-table">
+                          <table className="erp-table erp-register">
                             <thead>
                               <tr>
                                 <th>Inward</th>

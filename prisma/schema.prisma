@@ -17,15 +17,6 @@ enum UserRole {
   DISPATCH
 }
 
-enum PartyType {
-  CLIENT
-  MILL
-  WEAVER
-  AGENT
-  TRANSPORTER
-  OTHER
-}
-
 enum ProgramStatus {
   DRAFT
   SENT_TO_MILL
@@ -148,193 +139,9 @@ model Session {
   @@index([userId])
 }
 
-model Party {
-  id            String    @id @default(cuid())
-  name          String
-  type          PartyType
-  gstin         String?
-  phone         String?
-  whatsapp      String?
-  email         String?
-  address       String?
-  paymentTermsDays Int    @default(30)
-  interestRatePct  Decimal @default(28.5)
-  active        Boolean   @default(true)
-  notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  greyPurchasesAsSupplier GreyPurchaseOrder[] @relation("GreySupplier")
-  greyPurchasesAsMill     GreyPurchaseOrder[] @relation("GreyDestinationMill")
-  greyPurchasesAsAgent    GreyPurchaseOrder[] @relation("GreyAgent")
-  millWeaversAsMill       MillWeaver[]        @relation("MillWeaverMill")
-  millWeaversAsWeaver     MillWeaver[]        @relation("MillWeaverWeaver")
-  programsAsMill          MillProgram[]       @relation("ProgramMill")
-  programsAsWeaver        MillProgram[]       @relation("ProgramWeaver")
-  lotsAsMill              Lot[]               @relation("LotMill")
-  lotsAsWeaver            Lot[]               @relation("LotWeaver")
-  saleBills               SaleBill[]          @relation("SaleBillCustomer")
-  transportedSaleBills    SaleBill[]          @relation("SaleBillTransporter")
-  dispatches              Dispatch[]
-  payments                Payment[]
-  accountNotes            AccountNote[]
-  commissionsAsAgent      CommissionEntry[]   @relation("CommissionAgent")
-  commissionsRelated      CommissionEntry[]   @relation("CommissionRelated")
-  salesReturns            SalesReturn[]
-  /// When this party is an AGENT — parties/mills/weavers they cover
-  agentLinks              AgentLink[]         @relation("AgentSide")
-  /// When this party is linked FROM an agent
-  linkedFromAgents        AgentLink[]         @relation("RelatedSide")
-  millMarkas              MillMarka[]
-  millReturns             MillReturn[] @relation("MillReturnMill")
-
-  @@index([type, name])
-  @@index([active, type])
-}
-
-/// Valid physical marka labels issued by a connected mill.
-model MillMarka {
-  id        String   @id @default(cuid())
-  millId    String
-  mill      Party    @relation(fields: [millId], references: [id], onDelete: Cascade)
-  code      String
-  label     String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  lots         Lot[]
-  salesReturns SalesReturn[]
-
-  @@unique([millId, code])
-  @@index([millId, active])
-}
-
-/// Agent ↔ party / mill / weaver (and other) relationships. Many per side.
-model AgentLink {
-  id             String   @id @default(cuid())
-  agentId        String
-  agent          Party    @relation("AgentSide", fields: [agentId], references: [id], onDelete: Cascade)
-  relatedPartyId String
-  relatedParty   Party    @relation("RelatedSide", fields: [relatedPartyId], references: [id], onDelete: Cascade)
-  notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@unique([agentId, relatedPartyId])
-  @@index([agentId])
-  @@index([relatedPartyId])
-}
-
-/// Mill-specific weavers. A weaver may be linked to one or more mills.
-model MillWeaver {
-  id        String   @id @default(cuid())
-  millId    String
-  mill      Party    @relation("MillWeaverMill", fields: [millId], references: [id], onDelete: Cascade)
-  weaverId  String
-  weaver    Party    @relation("MillWeaverWeaver", fields: [weaverId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([millId, weaverId])
-  @@index([weaverId])
-}
-
-model FabricType {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  code        String?  @unique
-  defaultUnit String   @default("m")
-  notes       String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  programs MillProgram[]
-  lots     Lot[]
-}
-
-model Quality {
-  id        String   @id @default(cuid())
-  name      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  programs MillProgram[]
-  lots     Lot[]
-}
-
-model Code {
-  id        String   @id @default(cuid())
-  name      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  programs MillProgram[]
-  lots     Lot[]
-}
-
-model Colour {
-  id        String   @id @default(cuid())
-  name      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  programs MillProgram[]
-  lots     Lot[]
-}
-
-model FinishType {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  programs MillProgram[]
-  lots     Lot[]
-}
-
-model Godown {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  code      String?  @unique
-  address   String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  locations GodownLocation[]
-  lots      Lot[]
-}
-
-model GodownLocation {
-  id        String   @id @default(cuid())
-  godownId  String
-  godown    Godown   @relation(fields: [godownId], references: [id], onDelete: Cascade)
-  code      String
-  label     String?
-  capacity  Decimal?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  lots Lot[]
-
-  @@unique([godownId, code])
-}
-
 model GreyPurchaseOrder {
   id           String   @id @default(cuid())
   poNumber     String   @unique
-  supplierId   String
-  supplier     Party    @relation("GreySupplier", fields: [supplierId], references: [id])
-  millId       String?
-  mill         Party?   @relation("GreyDestinationMill", fields: [millId], references: [id])
-  agentId      String?
-  agent        Party?   @relation("GreyAgent", fields: [agentId], references: [id])
   orderDate    DateTime @default(now())
   fabricNotes  String?
   quantity     Decimal?
@@ -348,10 +155,6 @@ model GreyPurchaseOrder {
   bills    GreyPurchaseBill[]
   programs MillProgram[]
   lots     Lot[]
-
-  @@index([supplierId, orderDate])
-  @@index([millId])
-  @@index([agentId])
 }
 
 model GreyPurchaseBill {
@@ -371,22 +174,8 @@ model GreyPurchaseBill {
 model MillProgram {
   id            String        @id @default(cuid())
   programNo     String        @unique
-  millId        String
-  mill          Party         @relation("ProgramMill", fields: [millId], references: [id])
-  weaverId      String?
-  weaver        Party?        @relation("ProgramWeaver", fields: [weaverId], references: [id])
   greyOrderId   String?
   greyOrder     GreyPurchaseOrder? @relation(fields: [greyOrderId], references: [id])
-  fabricTypeId  String
-  fabricType    FabricType    @relation(fields: [fabricTypeId], references: [id])
-  qualityId     String?
-  quality       Quality?      @relation(fields: [qualityId], references: [id])
-  codeId        String?
-  code          Code?         @relation(fields: [codeId], references: [id])
-  colourId      String?
-  colour        Colour?       @relation(fields: [colourId], references: [id])
-  finishTypeId  String?
-  finishType    FinishType?   @relation(fields: [finishTypeId], references: [id])
   width         Decimal?     
   gsm           Decimal?     
   feelFallNotes String?
@@ -405,8 +194,7 @@ model MillProgram {
   lots    Lot[]
   inwards MillInward[]
 
-  @@index([status, millId])
-  @@index([qualityId, codeId, colourId])
+  @@index([status])
 }
 
 /// Partial physical receipt from the mill against a program (before QC / lot).
@@ -434,32 +222,12 @@ model Lot {
   lotNumber       String         @unique
   rollNumber      String?
   marka           String?
-  millMarkaId     String?
-  millMarka       MillMarka?     @relation(fields: [millMarkaId], references: [id])
-  fabricTypeId    String
-  fabricType      FabricType     @relation(fields: [fabricTypeId], references: [id])
-  qualityId       String?
-  quality         Quality?       @relation(fields: [qualityId], references: [id])
-  codeId          String?
-  code            Code?          @relation(fields: [codeId], references: [id])
-  colourId        String?
-  colour          Colour?        @relation(fields: [colourId], references: [id])
-  finishTypeId    String?
-  finishType      FinishType?    @relation(fields: [finishTypeId], references: [id])
   programId       String?
   program         MillProgram?   @relation(fields: [programId], references: [id])
   millInwardId    String?        @unique
   millInward      MillInward?    @relation(fields: [millInwardId], references: [id])
   greyOrderId     String?
   greyOrder       GreyPurchaseOrder? @relation(fields: [greyOrderId], references: [id])
-  millId          String?
-  mill            Party?         @relation("LotMill", fields: [millId], references: [id])
-  weaverId        String?
-  weaver          Party?         @relation("LotWeaver", fields: [weaverId], references: [id])
-  godownId        String?
-  godown          Godown?        @relation(fields: [godownId], references: [id])
-  locationId      String?
-  location        GodownLocation? @relation(fields: [locationId], references: [id])
   width           Decimal?
   gsm             Decimal?
   /// Total length for the lot (meters). Equals sum of roll lengths when rolls exist.
@@ -493,12 +261,8 @@ model Lot {
   salesReturnAsNew       SalesReturn?  @relation("ReturnNewLot")
   millReturns            MillReturn[]
 
-  @@index([fabricTypeId])
   @@index([marka])
-  @@index([godownId, locationId])
   @@index([programId])
-  @@index([millId, weaverId])
-  @@index([millMarkaId])
   @@index([origin, qualityGrade])
   @@index([sourceSaleBillId])
 }
@@ -570,10 +334,6 @@ model SaleBill {
   billNo          String     @unique
   type            BillType
   status          BillStatus @default(DRAFT)
-  partyId         String
-  party           Party      @relation("SaleBillCustomer", fields: [partyId], references: [id])
-  transporterId   String?
-  transporter     Party?     @relation("SaleBillTransporter", fields: [transporterId], references: [id])
   billDate        DateTime   @default(now())
   /// Credit period is snapshotted from the party when the sale is created.
   paymentTermsDays Int?
@@ -604,8 +364,6 @@ model SaleBill {
   salesReturns     SalesReturn[]
   returnSourceLots Lot[]           @relation("ReturnSourceBill")
 
-  @@index([partyId, billDate])
-  @@index([transporterId])
   @@index([type, status])
   @@index([dueDate])
 }
@@ -647,8 +405,6 @@ model Dispatch {
   id           String         @id @default(cuid())
   /// Internal delivery ref (UI treats sale bill as the customer document).
   challanNo    String         @unique
-  partyId      String
-  party        Party          @relation(fields: [partyId], references: [id])
   saleBillId   String?
   saleBill     SaleBill?      @relation(fields: [saleBillId], references: [id])
   vehicleNo    String?
@@ -663,7 +419,6 @@ model Dispatch {
 
   lines DispatchLine[]
 
-  @@index([partyId, status])
   @@index([saleBillId])
 }
 
@@ -687,8 +442,6 @@ model DispatchLine {
 
 model Payment {
   id          String   @id @default(cuid())
-  partyId     String
-  party       Party    @relation(fields: [partyId], references: [id])
   direction   PaymentDirection @default(RECEIPT)
   category    PaymentCategory @default(CUSTOMER_RECEIPT)
   saleBillId  String?
@@ -703,7 +456,6 @@ model Payment {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([partyId, paidAt])
   @@index([direction, category, paidAt])
   @@index([commissionEntryId])
 }
@@ -755,8 +507,6 @@ model AccountNote {
   id          String   @id @default(cuid())
   noteNo      String   @unique
   type        NoteType
-  partyId     String
-  party       Party    @relation(fields: [partyId], references: [id])
   saleBillId  String?
   saleBill    SaleBill? @relation(fields: [saleBillId], references: [id])
   amount      Decimal
@@ -766,17 +516,12 @@ model AccountNote {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([partyId, type])
   @@index([saleBillId])
 }
 
 model CommissionEntry {
   id              String          @id @default(cuid())
-  agentId         String
-  agent           Party           @relation("CommissionAgent", fields: [agentId], references: [id])
   basis           CommissionBasis
-  relatedPartyId  String?
-  relatedParty    Party?          @relation("CommissionRelated", fields: [relatedPartyId], references: [id])
   saleBillId      String?
   saleBill        SaleBill?       @relation(fields: [saleBillId], references: [id])
   ratePct         Decimal         @default(0)
@@ -786,7 +531,6 @@ model CommissionEntry {
   updatedAt       DateTime        @updatedAt
   payments         Payment[]
 
-  @@index([agentId, createdAt])
   @@index([basis])
 }
 
@@ -796,13 +540,9 @@ model SalesReturn {
   returnNo       String            @unique
   status         GoodsReturnStatus @default(PENDING_QC)
   priority       DefectSeverity    @default(MEDIUM)
-  partyId        String
-  party          Party             @relation(fields: [partyId], references: [id])
   saleBillId     String?
   saleBill       SaleBill?         @relation(fields: [saleBillId], references: [id])
   saleBillLineId String?
-  millMarkaId    String?
-  millMarka      MillMarka?        @relation(fields: [millMarkaId], references: [id])
   markaPhotoUrl  String?
   /// Original lot if sticker / tag still known (optional — often lost after months).
   originalLotId  String?
@@ -817,11 +557,9 @@ model SalesReturn {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  @@index([partyId, createdAt])
   @@index([status, priority])
   @@index([saleBillId])
   @@index([originalLotId])
-  @@index([millMarkaId])
 }
 
 /// RF (return-to-mill) raised when QC finds mill / other defects that must go back.
@@ -833,8 +571,6 @@ model MillReturn {
   lot             Lot?            @relation(fields: [lotId], references: [id], onDelete: SetNull)
   millInwardId    String?
   millInward      MillInward?     @relation(fields: [millInwardId], references: [id], onDelete: SetNull)
-  millId          String
-  mill            Party           @relation("MillReturnMill", fields: [millId], references: [id])
   qualityCheckId  String?
   qualityCheck    QualityCheck?   @relation(fields: [qualityCheckId], references: [id])
   /// QC kind: PROGRAM (normal inward) or SALES_RETURN (goods return).
@@ -851,6 +587,796 @@ model MillReturn {
 
   @@index([status, dueAt])
   @@index([lotId])
-  @@index([millId, status])
   @@index([qualityCheckId])
+}
+
+enum CrDr {
+  CR
+  DR
+}
+
+model SalesAgent {
+  id               String    @id @default(cuid())
+  agentName        String
+  contactPerson    String?
+  mobileNo         String?
+  phoneNo          String?
+  emailId          String?
+  address          String?
+  city             String?
+  residentNo       String?
+  faxNo            String?
+  panNo            String?
+  gstin            String?
+  compositeNo      String?
+  registrationDate DateTime?
+  blackListed      Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  salesMasters SalesMaster[]
+}
+
+model SalesMaster {
+  id            String  @id @default(cuid())
+  accountName   String
+  salesAgentId  String
+  salesAgent    SalesAgent @relation(fields: [salesAgentId], references: [id])
+  group         String?
+  salesman      String?
+
+  receiverName String?
+  cityName     String?
+  distance     Decimal?
+  manager      String?
+  address      String?
+  phoneNo      String?
+  mobileNo     String?
+  faxNo        String?
+  emailId      String?
+  residentNo   String?
+  cityName2    String?
+  address2     String?
+
+  gstin            String?
+  compositeNo      String?
+  ecoSgstin        String?
+  registrationDate DateTime?
+  panNo            String?
+  tanNo            String?
+  kstNo            String?
+  cstNo            String?
+  gujaratState     String?
+  tinNo            String?
+  policyNo         String?
+
+  creditLimit    Decimal?
+  creditDays     Int?
+  openingBalance Decimal?
+  crDr           CrDr?
+  tds            Decimal?
+  payment        String?
+  tcsApplicable  Boolean?
+  references     String?
+
+  transName            String?
+  discountPercentage   Decimal?
+  rdPcs                Decimal?
+  mts                  Decimal?
+  excessRate           Decimal?
+  commissionPercentage Decimal?
+
+  bankDetail String?
+  bankName   String?
+  accountNo  String?
+  ifscCode   String?
+  branch     String?
+
+  udyamRegistrationNumber String?
+  enterpriseType          String?
+  enterpriseActivity      String?
+
+  masterType  String   @default("SALES")
+  blackListed Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  salesBills SalesBillEntry[]
+
+  @@index([salesAgentId])
+}
+
+model Transport {
+  id            String   @id @default(cuid())
+  transportName String
+  phoneNo       String?
+  emailId       String?
+  transIdGstin  String?
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  salesBills SalesBillEntry[]
+}
+
+model Haste {
+  id               String    @id @default(cuid())
+  hasteName        String
+  receiverName     String?
+  cityName         String?
+  distance         Decimal?
+  manager          String?
+  address          String?
+  phoneNo          String?
+  mobileNo         String?
+  faxNo            String?
+  emailId          String?
+  residentNo       String?
+  kstNo            String?
+  gujaratState     String?
+  cstNo            String?
+  transport        String?
+  tinNo            String?
+  policyNo         String?
+  panNo            String?
+  gstin            String?
+  compositeNo      String?
+  registrationDate DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  salesBills SalesBillEntry[]
+}
+
+model Item {
+  id          String  @id @default(cuid())
+  itemName    String
+  quality     String?
+  itemCategories String?
+  itemGroup   String?
+  hsnCode     String?
+  gstPercentage Decimal?
+  descriptionForGst String?
+
+  itemRatePer    String?
+  openingPcs     Decimal?
+  openingMts     Decimal?
+  openingValue   Decimal?
+  ratePerPcs     Decimal?
+  ratePerMts     Decimal?
+  purRatePerPcs  Decimal?
+  purRatePerMts  Decimal?
+
+  itemFold String?
+
+  imagePath1 String?
+  imagePath2 String?
+  imagePath3 String?
+  imagePath4 String?
+  imagePath5 String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  greyBillItems GreyBillItem[]
+  millInwardItems MillInwardEntryItem[]
+  salesBillLines SalesBillEntryLine[]
+  finishedWorkLines FinishedWorkEntryLine[]
+}
+
+model PurchaseAgent {
+  id               String    @id @default(cuid())
+  agentName        String
+  accountType      String?
+  contactPerson    String?
+  mobileNo         String?
+  phoneNo          String?
+  emailId          String?
+  address          String?
+  city             String?
+  residentNo       String?
+  faxNo            String?
+  panNo            String?
+  gstin            String?
+  compositeNo      String?
+  registrationDate DateTime?
+  masterType       String    @default("PURCHASE_AGENT")
+  blackListed      Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Job {
+  id          String  @id @default(cuid())
+  accountName String
+  accountType String?
+  group       String?
+  agent       String?
+  salesman    String?
+
+  receiverName String?
+  cityName     String?
+  distance     Decimal?
+  manager      String?
+  address      String?
+  phoneNo      String?
+  mobileNo     String?
+  faxNo        String?
+  emailId      String?
+  residentNo   String?
+  cityName2    String?
+  address2     String?
+
+  gstin            String?
+  compositeNo      String?
+  ecoSgstin        String?
+  registrationDate DateTime?
+  panNo            String?
+  tanNo            String?
+  kstNo            String?
+  cstNo            String?
+  gujaratState     String?
+  tinNo            String?
+  policyNo         String?
+
+  creditLimit    Decimal?
+  creditDays     Int?
+  openingBalance Decimal?
+  crDr           CrDr?
+  tds            Decimal?
+  tdsAccount     String?
+  tdsLimit       Decimal?
+  dob            DateTime?
+  references     String?
+
+  transName            String?
+  discountPercentage   Decimal?
+  rdPcs                Decimal?
+  mts                  Decimal?
+  commissionPercentage Decimal?
+
+  bankDetail String?
+  bankName   String?
+  accountNo  String?
+  ifscCode   String?
+  branch     String?
+
+  udyamRegistrationNumber String?
+  enterpriseType          String?
+  enterpriseActivity      String?
+
+  jobType String?
+
+  blackListed Boolean  @default(false)
+  masterType  String   @default("JOB")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Knitter {
+  id          String  @id @default(cuid())
+  knitterName String
+  accountType String?
+  group       String?
+  agent       String?
+
+  gstin            String?
+  compositeNo      String?
+  ecoSgstin        String?
+  registrationDate DateTime?
+
+  receiverName String?
+  address      String?
+  cityName     String?
+  distance     Decimal?
+  phoneNo      String?
+  mobileNo     String?
+  faxNo        String?
+  emailId      String?
+  residentNo   String?
+  address2     String?
+  cityName2    String?
+  manager      String?
+
+  creditLimit    Decimal?
+  creditDays     Int?
+  references     String?
+  openingBalance Decimal?
+  crDr           CrDr?
+  tds            Decimal?
+
+  panNo        String?
+  tanNo        String?
+  kstNo        String?
+  cstNo        String?
+  gujaratState String?
+  tinNo        String?
+
+  transName       String?
+  discPercentage  Decimal?
+  rdPcs           Decimal?
+  mts             Decimal?
+  commPercentage  Decimal?
+
+  bankDetail String?
+  bankName   String?
+  accountNo  String?
+  ifscCode   String?
+  branch     String?
+
+  udyamRegNumber     String?
+  enterpriseType     String?
+  enterpriseActivity String?
+
+  tcsApplicable Boolean?
+  payment       String?
+
+  blackListed Boolean  @default(false)
+  masterType  String   @default("KNITTER")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchaseOrders    PurchaseOrder[]
+  greyBills         GreyBill[]
+  millInwardEntries MillInwardEntry[]
+}
+
+model Mill {
+  id        String  @id @default(cuid())
+  millName  String
+  accountType String?
+  group     String?
+  agent     String?
+
+  gstin            String?
+  compositeNo      String?
+  ecoSgstin        String?
+  registrationDate DateTime?
+
+  receiverName String?
+  address      String?
+  cityName     String?
+  distance     Decimal?
+  phoneNo      String?
+  mobileNo     String?
+  faxNo        String?
+  emailId      String?
+  residentNo   String?
+  address2     String?
+  cityName2    String?
+  manager      String?
+
+  creditLimit    Decimal?
+  creditDays     Int?
+  references     String?
+  openingBalance Decimal?
+  crDr           CrDr?
+  tds            Decimal?
+  tdsAccount     String?
+  tdsLimit       Decimal?
+  dob            DateTime?
+
+  panNo        String?
+  tanNo        String?
+  kstNo        String?
+  cstNo        String?
+  gujaratState String?
+  tinNo        String?
+
+  transName      String?
+  discPercentage Decimal?
+  rdPcs          Decimal?
+  mts            Decimal?
+  commPercentage Decimal?
+
+  bankDetail String?
+  bankName   String?
+  accountNo  String?
+  ifscCode   String?
+  branch     String?
+
+  udyamRegNumber     String?
+  enterpriseType     String?
+  enterpriseActivity String?
+
+  tcsApplicable Boolean?
+  payment       String?
+
+  blackListed Boolean  @default(false)
+  masterType  String   @default("MILL")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  greyBills          GreyBill[]
+  millInwardEntries  MillInwardEntry[]
+  millProgramEntries MillProgramEntry[]
+  finishedWorkEntries FinishedWorkEntry[]
+}
+
+/// New purchase-order desk. Separate from GreyPurchaseOrder, which the older mill-program flow still uses.
+model PurchaseOrder {
+  id        String  @id @default(cuid())
+  srNo      String  @unique
+  knitterId String
+  knitter   Knitter @relation(fields: [knitterId], references: [id], onDelete: Restrict)
+  quality   String
+  qtyUnits  Decimal
+  rate      Decimal
+  agent     String
+  remark    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  greyBills GreyBill[]
+
+  @@index([knitterId])
+}
+
+/// New Grey Bill desk at /grey-purchase. Separate from GreyPurchaseOrder.
+model GreyBill {
+  id          String    @id @default(cuid())
+  srNo        String    @unique
+  billDate    DateTime
+  billNo      String    @default("")
+  challanNo   String    @default("")
+  knitterId   String?
+  knitter     Knitter?  @relation(fields: [knitterId], references: [id], onDelete: Restrict)
+  millId      String?
+  mill        Mill?     @relation(fields: [millId], references: [id], onDelete: Restrict)
+  agent       String?
+  remarks     String?
+  freightRate Decimal?
+  goodsAmount   Decimal @default(0)
+  freightAmount Decimal @default(0)
+  taxableAmount Decimal @default(0)
+  sgstAmount    Decimal @default(0)
+  cgstAmount    Decimal @default(0)
+  netAmount     Decimal @default(0)
+  status      String    @default("SAVED")
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  matchScore  Int?
+  matchStatus String?
+  matchedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  items GreyBillItem[]
+  rolls GreyBillRoll[]
+  millInward MillInwardEntry?
+
+  @@index([knitterId])
+  @@index([millId])
+  @@index([purchaseOrderId])
+}
+
+model GreyBillItem {
+  id         String   @id @default(cuid())
+  greyBillId String
+  greyBill   GreyBill @relation(fields: [greyBillId], references: [id], onDelete: Cascade)
+  itemId     String?
+  item       Item?    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  sortOrder  Int
+  rolls      Decimal?
+  qtyKg      Decimal?
+  rate       Decimal?
+  amount     Decimal  @default(0)
+
+  @@index([greyBillId])
+  @@index([itemId])
+}
+
+model GreyBillRoll {
+  id         String   @id @default(cuid())
+  greyBillId String
+  greyBill   GreyBill @relation(fields: [greyBillId], references: [id], onDelete: Cascade)
+  sortOrder  Int
+  weightKg   Decimal?
+
+  @@index([greyBillId])
+}
+
+/// New Mill Inward desk at /mill-inward. Separate from MillInward, which the older program flow still uses.
+model MillInwardEntry {
+  id          String    @id @default(cuid())
+  srNo        String    @unique
+  inwardDate  DateTime
+  dateOfIssue DateTime?
+  knitterId   String?
+  knitter     Knitter?  @relation(fields: [knitterId], references: [id], onDelete: Restrict)
+  millId      String?
+  mill        Mill?     @relation(fields: [millId], references: [id], onDelete: Restrict)
+  quantityKg  Decimal?
+  remarks     String?
+  status      String    @default("pending")
+  sentOn      DateTime?
+  sourceType  String    @default("MANUAL")
+  greyBillId  String?   @unique
+  greyBill    GreyBill? @relation(fields: [greyBillId], references: [id], onDelete: Restrict)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  qualityCheckId          String?  @unique
+  qualityCheck            QualityCheckEntry? @relation(fields: [qualityCheckId], references: [id], onDelete: Restrict)
+  sendNote                String   @default("")
+  returnItemName          String   @default("")
+  returnKnitterChallanNo  String   @default("")
+  returnChallanNo         String   @default("")
+  returnCode              String   @default("")
+  returnColour            String   @default("")
+  returnFailedRolls       Int?
+  returnGrade             String   @default("")
+  returnDefectType        String   @default("")
+  returnQcSrNo            String   @default("")
+  returnFinishedWorkSrNo  String   @default("")
+  returnProgramSrNo       String   @default("")
+
+  items MillInwardEntryItem[]
+  rolls MillInwardEntryRoll[]
+  returnLines MillInwardEntryReturnLine[]
+  millPrograms MillProgramEntry[]
+
+  @@index([knitterId])
+  @@index([millId])
+}
+
+model MillInwardEntryItem {
+  id        String          @id @default(cuid())
+  entryId   String
+  entry     MillInwardEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  itemId    String?
+  item      Item?           @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  sortOrder Int
+  rolls     Decimal?
+  qtyKg     Decimal?
+
+  @@index([entryId])
+  @@index([itemId])
+}
+
+model MillInwardEntryRoll {
+  id        String          @id @default(cuid())
+  entryId   String
+  entry     MillInwardEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  weightKg  Decimal?
+
+  @@index([entryId])
+}
+
+/// New Mill Program desk at /mill-program. Separate from MillProgram, which the older /programs flow still uses.
+model MillProgramEntry {
+  id                 String           @id @default(cuid())
+  srNo               String           @unique
+  programDate        DateTime
+  millId             String?
+  mill               Mill?            @relation(fields: [millId], references: [id], onDelete: Restrict)
+  millInwardEntryId  String?
+  millInwardEntry    MillInwardEntry? @relation(fields: [millInwardEntryId], references: [id], onDelete: Restrict)
+  typeOfFinish       String           @default("")
+  gsm                String           @default("")
+  width              String           @default("")
+  status             String           @default("saved")
+  sentAt             DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  lines MillProgramEntryLine[]
+  finishedWorks FinishedWorkEntry[]
+  qualityChecks QualityCheckEntry[]
+
+  @@index([millId])
+  @@index([millInwardEntryId])
+}
+
+/// New Finished Work desk at /finished-work. Linked to the new Mill Program, not the older program flow.
+model FinishedWorkEntry {
+  id                  String           @id @default(cuid())
+  srNo                String           @unique
+  workDate            DateTime
+  millProgramEntryId  String?
+  millProgramEntry    MillProgramEntry? @relation(fields: [millProgramEntryId], references: [id], onDelete: Restrict)
+  millId              String?
+  mill                Mill?            @relation(fields: [millId], references: [id], onDelete: Restrict)
+  gpNo                String           @default("")
+  knitterChallanNo    String           @default("")
+  challanNo           String           @default("")
+  lotNo               String           @default("")
+  rolls               Int
+  greyKg              Decimal
+  finishedKg          Decimal
+  rate                Decimal
+  shortageKg          Decimal
+  shortagePct         Decimal
+  amount              Decimal
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  qualityChecks QualityCheckEntry[]
+  lines FinishedWorkEntryLine[]
+
+  @@index([millProgramEntryId])
+  @@index([millId])
+}
+
+model FinishedWorkEntryLine {
+  id        String            @id @default(cuid())
+  entryId   String
+  entry     FinishedWorkEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  itemId    String?
+  item      Item?             @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  lotNo     String            @default("")
+  rate      Decimal           @default(0)
+  rolls     Int               @default(0)
+  greyKg    Decimal           @default(0)
+  finishedKg Decimal          @default(0)
+  amount    Decimal           @default(0)
+
+  rollRows FinishedWorkEntryRoll[]
+
+  @@index([entryId])
+  @@index([itemId])
+}
+
+model FinishedWorkEntryRoll {
+  id         String                 @id @default(cuid())
+  lineId     String
+  line       FinishedWorkEntryLine  @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  sortOrder  Int
+  greyKg     Decimal
+  finishedKg Decimal
+
+  @@index([lineId])
+}
+
+/// New Quality Check desk at /quality-check. Separate from QualityCheck, which the older /qc flow still uses.
+model QualityCheckEntry {
+  id                 String             @id @default(cuid())
+  srNo               String             @unique
+  qcDate             DateTime
+  finishedWorkId     String
+  finishedWork       FinishedWorkEntry  @relation(fields: [finishedWorkId], references: [id], onDelete: Restrict)
+  millProgramEntryId String
+  millProgramEntry   MillProgramEntry   @relation(fields: [millProgramEntryId], references: [id], onDelete: Restrict)
+  knitterChallanNo   String             @default("")
+  result             String
+  grade              String             @default("")
+  defectType         String             @default("")
+  remarks            String             @default("")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  lines      QualityCheckEntryLine[]
+  millInward MillInwardEntry?
+  stockRolls LiveStockRoll[]
+
+  @@index([finishedWorkId])
+  @@index([millProgramEntryId])
+}
+
+model QualityCheckEntryLine {
+  id        String            @id @default(cuid())
+  qcId      String
+  qc        QualityCheckEntry @relation(fields: [qcId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  rolls     Int
+  codeNo    String            @default("")
+  colour    String            @default("")
+
+  @@index([qcId])
+}
+
+/// Physical rolls created by a new QC pass. Separate from Lot.
+model LiveStockRoll {
+  id                  String            @id @default(cuid())
+  colour              String
+  rollNo              String
+  status              String            @default("available")
+  createdAt           DateTime          @default(now())
+  qualityCheckEntryId String
+  qualityCheckEntry   QualityCheckEntry @relation(fields: [qualityCheckEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([qualityCheckEntryId, rollNo])
+  @@index([status])
+  @@index([qualityCheckEntryId])
+}
+
+/// Snapshot of the QC received rows copied onto a QC fail Mill Inward. Not a weight-per-roll table.
+model MillInwardEntryReturnLine {
+  id        String          @id @default(cuid())
+  entryId   String
+  entry     MillInwardEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  rolls     Int
+  codeNo    String          @default("")
+  colour    String          @default("")
+
+  @@index([entryId])
+}
+
+model MillProgramEntryLine {
+  id        String           @id @default(cuid())
+  programId String
+  program   MillProgramEntry @relation(fields: [programId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  rolls     Int?
+  codeNo    String           @default("")
+  colour    String           @default("")
+
+  @@index([programId])
+}
+
+/// New Sales desk at /sales. Separate from SaleBill, which the older /sales/[billId] flow still uses.
+model SalesBillEntry {
+  id                String       @id @default(cuid())
+  billNo            String       @unique
+  billDate          DateTime
+  challanNo         String       @default("")
+  salesMasterId     String?
+  salesMaster       SalesMaster? @relation(fields: [salesMasterId], references: [id], onDelete: Restrict)
+  hasteId           String?
+  haste             Haste?       @relation(fields: [hasteId], references: [id], onDelete: Restrict)
+  lrNo              String       @default("")
+  transportId       String?
+  transport         Transport?   @relation(fields: [transportId], references: [id], onDelete: Restrict)
+  noOfParcel        String       @default("")
+  ewayNumber        String       @default("")
+  lrDate            DateTime?
+  destination       String       @default("")
+  paymentWithinDays String       @default("")
+  discount          String       @default("")
+  addLessAmount     String       @default("")
+  freight           String       @default("")
+  cgstPct           Decimal
+  sgstPct           Decimal
+  cgstAmount        Decimal
+  sgstAmount        Decimal
+  grossAmount       Decimal
+  discountAmount    Decimal
+  freightAmount     Decimal
+  taxableAmount     Decimal
+  netAmount         Decimal
+  totalRolls        Decimal
+  totalWeightKg     Decimal
+  status            String       @default("OPEN")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  lines SalesBillEntryLine[]
+
+  @@index([salesMasterId])
+  @@index([hasteId])
+  @@index([transportId])
+  @@index([billDate])
+}
+
+model SalesBillEntryLine {
+  id        String         @id @default(cuid())
+  billId    String
+  bill      SalesBillEntry @relation(fields: [billId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  itemId    String?
+  item      Item?          @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  colourCode String        @default("")
+  hsn        String        @default("")
+  noOfRolls  String        @default("")
+  weightKg   Decimal
+  rate       String        @default("")
+  amount     Decimal
+
+  rolls SalesBillEntryRoll[]
+
+  @@index([billId])
+  @@index([itemId])
+}
+
+model SalesBillEntryRoll {
+  id        String             @id @default(cuid())
+  lineId    String
+  line      SalesBillEntryLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  weight    String             @default("")
+
+  @@index([lineId])
 }

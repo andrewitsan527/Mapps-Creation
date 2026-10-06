@@ -1,14 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { addGreyBill, createGreyPo } from "@/server/actions/grey";
-import {
-  listAgentWeaverLinks,
-  listMillWeaverLinks,
-  listPartyOptions,
-} from "@/lib/parties";
 import { formatDate, formatMoney, formatMoneyShort, formatQty } from "@/lib/utils";
 import { statusBadge } from "@/lib/format";
-import { GreyPurchaseFields } from "@/components/grey-purchase-fields";
 import {
   EmptyState,
   Field,
@@ -21,7 +15,6 @@ import {
   Section,
   TableWrap,
   buttonClass,
-  buttonTinyClass,
   buttonWaClass,
   inputClass,
 } from "@/components/ui";
@@ -34,14 +27,7 @@ import {
 } from "lucide-react";
 
 export default async function GreyPage() {
-  const [suppliers, mills, agents, millWeaverLinks, agentWeaverLinks, orders] =
-    await Promise.all([
-    listPartyOptions("WEAVER"),
-    listPartyOptions("MILL"),
-    listPartyOptions("AGENT"),
-    listMillWeaverLinks(),
-    listAgentWeaverLinks(),
-    prisma.greyPurchaseOrder.findMany({
+  const orders = await prisma.greyPurchaseOrder.findMany({
       select: {
         id: true,
         poNumber: true,
@@ -51,9 +37,6 @@ export default async function GreyPage() {
         unit: true,
         dyeingRate: true,
         fabricNotes: true,
-        supplier: { select: { id: true, name: true } },
-        mill: { select: { id: true, name: true } },
-        agent: { select: { id: true, name: true } },
         bills: {
           select: { id: true, billNo: true, amount: true, billDate: true, notes: true },
           orderBy: { billDate: "desc" },
@@ -62,8 +45,7 @@ export default async function GreyPage() {
       },
       orderBy: { orderDate: "desc" },
       take: 40,
-    }),
-  ]);
+    });
 
   const openCount = orders.filter((o) => o.status === "OPEN").length;
   const orderedQty = orders.reduce(
@@ -87,12 +69,7 @@ export default async function GreyPage() {
         title="Grey purchase"
         eyebrow="Procure"
         icon={Package}
-        description="Raise the PO, WhatsApp it to the weaver, book their bills against it, then hand the grey over to a mill program."
-        actions={
-          <Link href="/masters/weavers" className={buttonTinyClass}>
-            Weavers
-          </Link>
-        }
+        description="Raise the PO, book bills against it, then hand the grey over to a mill program."
       />
       </div>
 
@@ -118,14 +95,6 @@ export default async function GreyPage() {
         <Section title="Raise a PO" step={1} icon={PlusCircle} tone="accent">
           <Panel compact>
             <form action={createGreyPo} className="space-y-2.5">
-              <GreyPurchaseFields
-                weavers={suppliers}
-                mills={mills}
-                agents={agents}
-                millWeaverLinks={millWeaverLinks}
-                agentWeaverLinks={agentWeaverLinks}
-              />
-
               <FieldGroup label="Details">
                 <Field label="Fabric notes">
                   <textarea className={inputClass} name="fabricNotes" rows={2} />
@@ -157,18 +126,13 @@ export default async function GreyPage() {
             <Panel compact>
               <EmptyState
                 icon={Package}
-                text="No grey POs yet. Add a weaver in masters first."
-                action={
-                  <Link href="/masters/weavers" className={buttonTinyClass}>
-                    Add weaver
-                  </Link>
-                }
+                text="No grey POs yet."
               />
             </Panel>
           ) : (
             <Panel flush>
               <TableWrap maxHeight={620}>
-                <table className="erp-table">
+                <table className="erp-table erp-register">
                   <thead>
                     <tr>
                       <th>PO</th>
@@ -190,7 +154,7 @@ export default async function GreyPage() {
                       );
                       return (
                         <tr key={o.id} className="align-top">
-                          <td>
+                          <td className="erp-stack">
                             <span className="font-semibold">{o.poNumber}</span>
                             <div className="mt-0.5 flex items-center gap-1">
                               <span className={statusBadge(o.status)}>
@@ -201,11 +165,9 @@ export default async function GreyPage() {
                               {formatDate(o.orderDate)}
                             </div>
                           </td>
-                          <td className="text-(--muted)">{o.supplier.name}</td>
-                          <td className="text-(--muted)">{o.mill?.name ?? "—"}</td>
-                          <td className="text-(--muted)">
-                            {o.agent?.name ?? "Direct"}
-                          </td>
+                          <td className="text-(--muted)">—</td>
+                          <td className="text-(--muted)">—</td>
+                          <td className="text-(--muted)">—</td>
                           <td className="num">
                             {o.quantity ? formatQty(o.quantity) : "—"} {o.unit}
                           </td>
@@ -214,7 +176,7 @@ export default async function GreyPage() {
                               ? `${formatMoney(o.dyeingRate)}/${o.unit}`
                               : "—"}
                           </td>
-                          <td className="num font-semibold">
+                          <td className="num erp-stack font-semibold">
                             {billed > 0 ? formatMoney(billed) : "—"}
                             <div className="text-[10px] font-normal text-(--faint)">
                               {o.bills.length} bill(s)
@@ -237,9 +199,12 @@ export default async function GreyPage() {
                               </Link>
                             )}
                           </td>
-                          <td className="min-w-70">
+                          <td className="erp-stack min-w-70">
                             {o.fabricNotes ? (
-                              <p className="mb-1 text-[11px] text-(--muted)">
+                              <p
+                                className="erp-clip mb-1 text-[11px] text-(--muted)"
+                                title={o.fabricNotes}
+                              >
                                 {o.fabricNotes}
                               </p>
                             ) : null}
