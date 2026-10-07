@@ -5,6 +5,7 @@ import { BadgeCheck, Plus, Search, Trash2 } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
+import { nextDatedSrNo } from "@/lib/local-workflow";
 import {
   EmptyState,
   Field,
@@ -31,6 +32,43 @@ import {
   type QualityCheckResult,
   type QualityCheckWork,
 } from "@/server/actions/quality-checks";
+
+type LocalQcLine = QualityCheckLineRecord;
+type LocalQc = QualityCheckRecord;
+type LocalQcResult = QualityCheckResult;
+type LocalQcGrade = QualityCheckGrade;
+type LocalQcDefect = QualityCheckDefect;
+
+function lineRolls(lines: QualityCheckLineRecord[]) {
+  return lines.reduce((sum, line) => {
+    const value = Number(line.rolls);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
+}
+
+function allocatedRolls(
+  entries: QualityCheckRecord[],
+  programId: string,
+  excludeId?: string,
+) {
+  return entries
+    .filter((row) => row.programId === programId && row.id !== excludeId)
+    .reduce((sum, row) => sum + row.qcRolls, 0);
+}
+
+function workTotals(work: QualityCheckWork) {
+  const grey = Number(work.greyKg);
+  const finished = Number(work.finishedKg);
+  const greyKg = Number.isFinite(grey) ? grey : 0;
+  const finishedKg = Number.isFinite(finished) ? finished : 0;
+  const shortageKg = greyKg - finishedKg;
+  return {
+    greyKg,
+    finishedKg,
+    shortageKg,
+    shortagePct: greyKg > 0 ? (shortageKg / greyKg) * 100 : 0,
+  };
+}
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -110,14 +148,9 @@ function blankDraft(srNo: string): Draft {
     finishedWorkId: "",
     programId: "",
     knitterChallanNo: "",
-  const greyKg = Number.isFinite(grey) ? grey : 0;
-  const finishedKg = Number.isFinite(finished) ? finished : 0;
-  const shortageKg = greyKg - finishedKg;
-  return {
-    greyKg,
-    finishedKg,
-    shortageKg,
-    shortagePct: greyKg > 0 ? (shortageKg / greyKg) * 100 : 0,
+    lines: [emptyLine(), emptyLine()],
+    result: "pass",
+    grade: "A",
     defectType: "",
     remarks: "",
     createdAt: new Date().toISOString(),
@@ -125,27 +158,26 @@ function blankDraft(srNo: string): Draft {
 }
 
 
-export function QualityCheckDesk() {
-  const [works, setWorks] = useState<LocalFinishedWork[]>([]);
-  const [programs, setPrograms] = useState<LocalMillProgram[]>([]);
-  const [rows, setRows] = useState<LocalQc[]>([]);
-  lines: QualityCheckLineRecord[];
-  result: QualityCheckResult;
-  grade: QualityCheckGrade | "";
-  defectType: QualityCheckDefect | "";
+export function QualityCheckDesk({
+  works,
+  programs,
+  records,
+}: {
+  works: QualityCheckWork[];
+  programs: QualityCheckProgram[];
+  records: QualityCheckRecord[];
+}) {
+  const [rows, setRows] = useState<QualityCheckRecord[]>(records);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const savingRef = useRef(false);
 
-  useEffect(() => {
-    setWorks(loadRecords<LocalFinishedWork>(STORAGE_KEYS.FINISHED_WORK) ?? []);
-    setPrograms(loadRecords<LocalMillProgram>(STORAGE_KEYS.MILL_PROGRAM) ?? []);
-    setRows(loadRecords<LocalQc>(STORAGE_KEYS.QC) ?? []);
-    setStorageReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (storageReady) saveRecords(STORAGE_KEYS.QC, rows);
-  }, [rows, storageReady]);
+  function programFor(work: QualityCheckWork) {
+    return programs.find((row) => row.id === work.programId) ?? null;
+  }
 
   const pendingWorks = useMemo(
     () =>
@@ -156,6 +188,7 @@ export function QualityCheckDesk() {
   );
 
   const remainingRolls = useMemo(
+    () =>
       programs.reduce((sum, program) => {
         const left = Math.max(
           0,
@@ -346,19 +379,13 @@ export function QualityCheckDesk() {
     const available =
       programmed - allocatedRolls(rows, current.programId, current.id);
     const received = lineRolls(filled);
-      remarks: draft.remarks,
-      createdAt:
-        mode === "create" ? new Date().toISOString() : draft.createdAt,
-    };
-    let failNote = "";
-    if (saved.result === "fail") {
-      const outcome = createQcReturnFromFail({
-        qc: saved,
-        work: works.find((row) => row.id === saved.finishedWorkId) ?? null,
-        program:
-          programs.find((row) => row.id === saved.programId) ?? null,
-      });
-      if (!outcome.ok) {
+    if (received > available) {
+      return "QC'd rolls exceed remaining programmed rolls for this Mill Program.";
+    }
+    return null;
+  }
+
+  function saveQc() {
     if (!draft || !mode || mode === "view" || savingRef.current) return;
     const message = validate(draft);
     if (message) {
@@ -377,13 +404,22 @@ export function QualityCheckDesk() {
           codeNo: line.codeNo,
           colour: line.colour,
         })),
-    if (received > available) {
-      return "QC'd rolls exceed remaining programmed rolls for this Mill Program.";
-    }
-    return null;
-  }
-
-  function saveQc() {
+      result: snapshot.result,
+      grade: snapshot.grade,
+      defectType: snapshot.defectType,
+      remarks: snapshot.remarks,
+    };
+    savingRef.current = true;
+    setError(null);
+    void (creating
+      ? createQualityCheck(input)
+      : updateQualityCheck(snapshot.id, input)
+    )
+      .then((result) => {
+        const saved = result.record;
+        setRows((prev) =>
+          creating
+            ? [saved, ...prev.filter((row) => row.id !== saved.id)]
             : prev.map((row) => (row.id === saved.id ? saved : row)),
         );
         const failNote = result.fail
@@ -404,37 +440,6 @@ export function QualityCheckDesk() {
       .finally(() => {
         savingRef.current = false;
       });
-          value={pendingWorks.length}
-          tone={pendingWorks.length ? "warn" : "neutral"}
-        />
-        <Metric
-          label="QC Passed"
-          value={rows.filter((row) => row.result === "pass").length}
-          tone="accent"
-        />
-        <Metric
-          label="QC Failed"
-          value={rows.filter((row) => row.result === "fail").length}
-          tone={rows.some((row) => row.result === "fail") ? "warn" : "neutral"}
-        />
-        <Metric label="Remaining Rolls" value={remainingRolls} />
-      </MetricStrip>
-
-      <Panel title="Pending finished work" flush>
-        {pendingWorks.length === 0 ? (
-          <div className="p-2.5">
-            <EmptyState
-              icon={BadgeCheck}
-              text="No finished work waiting for QC."
-            />
-          </div>
-        ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
-              <thead>
-                <tr>
-                  <th>Sr. No.</th>
-                  <th>Date of Issue</th>
   }
 
   return (
@@ -467,6 +472,37 @@ export function QualityCheckDesk() {
       <MetricStrip className="grid-cols-2 sm:grid-cols-4">
         <Metric
           label="Pending QC"
+          value={pendingWorks.length}
+          tone={pendingWorks.length ? "warn" : "neutral"}
+        />
+        <Metric
+          label="QC Passed"
+          value={rows.filter((row) => row.result === "pass").length}
+          tone="accent"
+        />
+        <Metric
+          label="QC Failed"
+          value={rows.filter((row) => row.result === "fail").length}
+          tone={rows.some((row) => row.result === "fail") ? "warn" : "neutral"}
+        />
+        <Metric label="Remaining Rolls" value={remainingRolls} />
+      </MetricStrip>
+
+      <Panel title="Pending finished work" flush>
+        {pendingWorks.length === 0 ? (
+          <div className="p-2.5">
+            <EmptyState
+              icon={BadgeCheck}
+              text="No finished work waiting for QC."
+            />
+          </div>
+        ) : (
+          <TableWrap>
+            <table className="erp-table erp-register">
+              <thead>
+                <tr>
+                  <th>Sr. No.</th>
+                  <th>Date of Issue</th>
                   <th>Knitter Challan No.</th>
                   <th>Mill</th>
                   <th>Item</th>
@@ -478,8 +514,8 @@ export function QualityCheckDesk() {
               </thead>
               <tbody>
                 {pendingWorks.map((work) => {
-                  const calc = finishedWorkCalc(work);
-                  const program = findProgramForFinishedWork(programs, work);
+                  const calc = workTotals(work);
+                  const program = programFor(work);
                   return (
                     <tr
                       key={work.id}
@@ -950,6 +986,34 @@ export function QualityCheckDesk() {
                     onChange={(e) =>
                       patch({
                         defectType: e.target.value as QualityCheckDefect,
+                      })
+                    }
+                  >
+                    <option value="">Select</option>
+                    <option value="MILL">MILL</option>
+                    <option value="WEAVER">WEAVER</option>
+                    <option value="DYEING">DYEING</option>
+                    <option value="MINOR">MINOR</option>
+                  </select>
+                </Field>
+              </div>
+              <Field label="Remarks" className="mt-2">
+                <input
+                  className={inputClass}
+                  value={draft.remarks}
+                  disabled={readOnly}
+                  onChange={(e) => patch({ remarks: e.target.value })}
+                />
+              </Field>
+            </FieldGroup>
+
+            <div className="sticky bottom-0 flex justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5 -mx-4">
+              <button
+                type="button"
+                className={buttonGhostClass}
+                onClick={unsaved.requestClose}
+              >
+                Cancel
               </button>
               {!readOnly ? (
                 <button

@@ -712,6 +712,21 @@ export function MillProgramDesk({
               </div>
 
               {draft.millId && draft.item ? (
+                <div>
+                  {inwardOptions.length > 0 && (
+                    <TableWrap>
+                      <table className="erp-table">
+                        <thead>
+                          <tr>
+                            <th className="w-8" />
+                            <th>Sr. No.</th>
+                            <th>Date of Issue</th>
+                            <th className="num">Available</th>
+                            <th>Item</th>
+                            <th>Knitter</th>
+                          </tr>
+                        </thead>
+                        <tbody>
                           {inwardOptions.map((row) => {
                             const available =
                               row.inward.id === draft.inwardId
@@ -769,6 +784,7 @@ export function MillProgramDesk({
                   <Field label="Item Name">
                     <p className="py-1.5 text-[12.5px]">{draft.item}</p>
                   </Field>
+                  <Field label="Knitter Name">
                     <p className="py-1.5 text-[12.5px]">
                       {draft.knitter || "—"}
                     </p>

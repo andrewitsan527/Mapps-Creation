@@ -1121,6 +1121,11 @@ export function SalesDesk({
                               ) {
                                 return;
                               }
+                            }}
+                          >
+                            <td>
+                              <SearchableSelect
+                                value={line.itemId}
                                 options={items}
                                 disabled={readOnly}
                                 placeholder="Search item"
@@ -1128,15 +1133,6 @@ export function SalesDesk({
                                   patchLine(line.id, {
                                     itemId: id,
                                     itemName: optionLabel(items, id),
-                              <SearchableSelect
-                                value={line.itemId}
-                                options={MOCK_ITEMS}
-                                disabled={readOnly}
-                                placeholder="Search item"
-                                onChange={(id) =>
-                                  patchLine(line.id, {
-                                    itemId: id,
-                                    itemName: optionLabel(MOCK_ITEMS, id),
                                   })
                                 }
                               />
