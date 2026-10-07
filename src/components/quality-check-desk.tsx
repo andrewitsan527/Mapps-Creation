@@ -20,23 +20,17 @@ import {
   inputClass,
 } from "@/components/ui";
 import {
-  STORAGE_KEYS,
-  allocatedQcRolls,
-  createQcReturnFromFail,
-  findProgramForFinishedWork,
-  finishedWorkCalc,
-  loadRecords,
-  nextDatedSrNo,
-  qcLineRolls,
-  saveRecords,
-  type LocalFinishedWork,
-  type LocalMillProgram,
-  type LocalQc,
-  type LocalQcDefect,
-  type LocalQcGrade,
-  type LocalQcLine,
-  type LocalQcResult,
-} from "@/lib/local-workflow";
+  createQualityCheck,
+  updateQualityCheck,
+  type QualityCheckDefect,
+  type QualityCheckGrade,
+  type QualityCheckInput,
+  type QualityCheckLineRecord,
+  type QualityCheckProgram,
+  type QualityCheckRecord,
+  type QualityCheckResult,
+  type QualityCheckWork,
+} from "@/server/actions/quality-checks";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -116,9 +110,14 @@ function blankDraft(srNo: string): Draft {
     finishedWorkId: "",
     programId: "",
     knitterChallanNo: "",
-    lines: [emptyLine(), emptyLine()],
-    result: "pass",
-    grade: "A",
+  const greyKg = Number.isFinite(grey) ? grey : 0;
+  const finishedKg = Number.isFinite(finished) ? finished : 0;
+  const shortageKg = greyKg - finishedKg;
+  return {
+    greyKg,
+    finishedKg,
+    shortageKg,
+    shortagePct: greyKg > 0 ? (shortageKg / greyKg) * 100 : 0,
     defectType: "",
     remarks: "",
     createdAt: new Date().toISOString(),
@@ -130,10 +129,10 @@ export function QualityCheckDesk() {
   const [works, setWorks] = useState<LocalFinishedWork[]>([]);
   const [programs, setPrograms] = useState<LocalMillProgram[]>([]);
   const [rows, setRows] = useState<LocalQc[]>([]);
-  const [storageReady, setStorageReady] = useState(false);
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  lines: QualityCheckLineRecord[];
+  result: QualityCheckResult;
+  grade: QualityCheckGrade | "";
+  defectType: QualityCheckDefect | "";
   const [error, setError] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
@@ -157,39 +156,6 @@ export function QualityCheckDesk() {
   );
 
   const remainingRolls = useMemo(
-    () =>
-      programs.reduce((sum, program) => {
-export function QualityCheckDesk({
-  works,
-  programs,
-  records,
-}: {
-  works: QualityCheckWork[];
-  programs: QualityCheckProgram[];
-  records: QualityCheckRecord[];
-}) {
-  const [rows, setRows] = useState<QualityCheckRecord[]>(records);
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [lookupError, setLookupError] = useState<string | null>(null);
-  const savingRef = useRef(false);
-
-  function programFor(work: QualityCheckWork) {
-    return programs.find((row) => row.id === work.programId) ?? null;
-  }
-
-  const pendingWorks = useMemo(
-    () =>
-      works.filter(
-        (work) => !rows.some((qc) => qc.finishedWorkId === work.id),
-      ),
-    [rows, works],
-  );
-
-  const remainingRolls = useMemo(
-    () =>
       programs.reduce((sum, program) => {
         const left = Math.max(
           0,
@@ -411,19 +377,13 @@ export function QualityCheckDesk({
           codeNo: line.codeNo,
           colour: line.colour,
         })),
-      result: snapshot.result,
-      grade: snapshot.grade,
-      defectType: snapshot.defectType,
-      remarks: snapshot.remarks,
-    };
-    savingRef.current = true;
-    setError(null);
-    void (creating ? createQualityCheck(input) : updateQualityCheck(snapshot.id, input))
-      .then((result) => {
-        const saved = result.record;
-        setRows((prev) =>
-          creating
-            ? [saved, ...prev.filter((row) => row.id !== saved.id)]
+    if (received > available) {
+      return "QC'd rolls exceed remaining programmed rolls for this Mill Program.";
+    }
+    return null;
+  }
+
+  function saveQc() {
             : prev.map((row) => (row.id === saved.id ? saved : row)),
         );
         const failNote = result.fail
@@ -475,6 +435,38 @@ export function QualityCheckDesk({
                 <tr>
                   <th>Sr. No.</th>
                   <th>Date of Issue</th>
+  }
+
+  return (
+    <div className="space-y-3">
+      <PageHeader
+        title="Quality Check"
+        eyebrow="Produce"
+        icon={BadgeCheck}
+        actions={
+          <button className={buttonClass} type="button" onClick={() => openCreate()}>
+            <Plus className="h-3.5 w-3.5" />
+            New QC
+          </button>
+        }
+      />
+
+      {notice ? (
+        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
+          <span>{notice}</span>
+          <button
+            type="button"
+            className={buttonTinyClass}
+            onClick={() => setNotice(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      <MetricStrip className="grid-cols-2 sm:grid-cols-4">
+        <Metric
+          label="Pending QC"
                   <th>Knitter Challan No.</th>
                   <th>Mill</th>
                   <th>Item</th>
@@ -488,39 +480,6 @@ export function QualityCheckDesk({
                 {pendingWorks.map((work) => {
                   const calc = finishedWorkCalc(work);
                   const program = findProgramForFinishedWork(programs, work);
-                  return (
-                    <tr
-                      key={work.id}
-                      className="cursor-pointer hover:bg-(--panel-sunken)"
-                      onClick={() => openCreate(work)}
-                    >
-                      <td className="font-semibold tabular-nums">{work.srNo}</td>
-                      <td className="tabular-nums">
-                        {formatDisplayDate(program?.dateOfIssue || work.date)}
-                      </td>
-                      <td>{work.knitterChallanNo || "—"}</td>
-                      <td>{work.mill}</td>
-                      <td>{work.item}</td>
-                      <td className="num tabular-nums">{work.rolls}</td>
-                      <td className="num tabular-nums">
-                        {formatKg(calc.finishedKg)}
-                      </td>
-                      <td>
-                        <span className={statusBadge("PENDING_QC")}>
-                          PENDING
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className={buttonTinyClass}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openCreate(work);
-                          }}
-                        >
-                  const calc = workTotals(work);
-                  const program = programFor(work);
                   return (
                     <tr
                       key={work.id}

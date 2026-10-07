@@ -338,15 +338,6 @@ export function SalesDesk({
   useFocusTrap(Boolean(rollLineId), rollTrapRef);
 
   useEffect(() => {
-    setRows(loadRecords<LocalSaleBill>(STORAGE_KEYS.SALES) ?? []);
-    setStorageReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (storageReady) saveRecords(STORAGE_KEYS.SALES, rows);
-  }, [rows, storageReady]);
-
-  useEffect(() => {
     if (!draft || !mode) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -563,6 +554,16 @@ export function SalesDesk({
     if (!entry.customerId) return "Select customer name.";
     if (!entry.billDate) return "Enter bill date.";
     const named = entry.lines.filter((line) => line.itemId || line.itemName);
+    if (named.length === 0) return "Add at least one item.";
+    for (const line of named) {
+      if (!line.itemId) return "Select a valid item.";
+      if (num(line.noOfRolls) <= 0) {
+        return `Enter no. of rolls for ${line.itemName || "item"}.`;
+      }
+    }
+    return null;
+  }
+
   function billInput(entry: LocalSaleBill): SaleBillInput {
     return {
       billDate: entry.billDate,
@@ -1032,15 +1033,6 @@ export function SalesDesk({
                           patch({
                             transportId: id,
                             transportName: optionLabel(transports, id),
-                      <SearchableSelect
-                        value={draft.transportId}
-                        options={MOCK_TRANSPORTS}
-                        disabled={readOnly}
-                        placeholder="Search transport"
-                        onChange={(id) =>
-                          patch({
-                            transportId: id,
-                            transportName: optionLabel(MOCK_TRANSPORTS, id),
                           })
                         }
                       />

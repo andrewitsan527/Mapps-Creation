@@ -415,15 +415,15 @@ export function MillProgramDesk({
     }
     const programmed = programLineRolls(filled);
     const source = sources.find((row) => row.id === current.inwardId);
-    const available = source ? source.rollCount : current.originalRolls;
-      ...draft,
-      srNo:
-        mode === "create" ? nextSrNo(rows, draft.date || todayIso()) : draft.srNo,
-      lines: filled,
-      programmedRolls: programmed,
-      originalRolls: original,
-      remainingRolls: original - others - programmed,
-      status: markSent ? "sent" : draft.status === "draft" ? "saved" : draft.status,
+    const original = source ? source.rollCount : current.originalRolls;
+    const available =
+      original - allocatedProgramRolls(rows, current.inwardId, current.id);
+    if (programmed > available) {
+      return "Programmed rolls exceed available rolls for this Mill Inward.";
+    }
+    return null;
+  }
+
   function writeProgram(status: MillProgramStatus, notice: (srNo: string) => string) {
     if (!draft || !mode || savingRef.current) return false;
     const creating = mode === "create";
@@ -769,7 +769,6 @@ export function MillProgramDesk({
                   <Field label="Item Name">
                     <p className="py-1.5 text-[12.5px]">{draft.item}</p>
                   </Field>
-                  <Field label="Knitter Name">
                     <p className="py-1.5 text-[12.5px]">
                       {draft.knitter || "—"}
                     </p>

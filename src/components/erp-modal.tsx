@@ -38,6 +38,7 @@ export function ErpModal({
   trapFocus,
   closeTabIndex,
   cornerClose,
+  frameWidthClass,
 }: {
   title: string;
   onClose: () => void;
@@ -45,10 +46,12 @@ export function ErpModal({
   compact?: boolean;
   flushBody?: boolean;
   wide?: boolean;
+  roomy?: boolean;
   form?: boolean;
   trapFocus?: boolean;
   closeTabIndex?: number;
   cornerClose?: boolean;
+  frameWidthClass?: string;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +65,12 @@ export function ErpModal({
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Tab") return;
       if (document.getElementById("unsaved-changes-title")) return;
+      if (
+        !event.shiftKey &&
+        (event.target as HTMLElement | null)?.closest("[data-skip-modal-tab]")
+      ) {
+        return;
+      }
       const items = focusableIn(root!);
       if (items.length === 0) return;
       event.preventDefault();
@@ -82,16 +91,20 @@ export function ErpModal({
     return () => document.removeEventListener("keydown", onKey, true);
   }, [trapFocus]);
 
-  const widthClass = form
-    ? "h-auto w-full max-w-[27rem]"
-    : compact
-      ? "w-full max-w-2xl max-h-[calc(100vh-4rem)]"
-      : wide
-        ? "h-[calc(100vh-2.5rem)] w-[min(84vw,96rem)]"
-        : "w-[75vw] max-w-[72rem] max-h-[calc(100vh-4rem)]";
+  const widthClass =
+    frameWidthClass ||
+    (form
+      ? "h-auto w-full max-w-[27rem]"
+      : compact
+        ? "w-full max-w-2xl max-h-[calc(100vh-4rem)]"
+        : wide
+          ? "h-[calc(100vh-2.5rem)] w-[min(84vw,96rem)]"
+          : roomy
+            ? "w-[min(90vw,80rem)] max-h-[calc(100vh-1.5rem)]"
+            : "w-[75vw] max-w-[72rem] max-h-[calc(100vh-4rem)]");
   const closeButton = (
     <button
-          ? "w-[min(90vw,80rem)] max-h-[calc(100vh-1.5rem)]"
+      type="button"
       data-modal-close
       tabIndex={closeTabIndex}
       className={
@@ -170,10 +183,10 @@ export function ErpModal({
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 ${
-        wide ? "px-[3vw] py-5" : "px-[4vw] py-8"
+        wide ? "px-[3vw] py-5" : roomy ? "px-[3vw] py-3" : "px-[4vw] py-8"
       }`}
     >
       {frame}
-        wide ? "px-[3vw] py-5" : roomy ? "px-[3vw] py-3" : "px-[4vw] py-8"
+    </div>
   );
 }

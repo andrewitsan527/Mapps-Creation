@@ -400,6 +400,24 @@ export async function updateGreyBill(
   return toRecord(row);
 }
 
+export async function deleteGreyBill(id: string): Promise<void> {
+  await requireUser();
+  if (!id.trim()) throw new Error("Grey bill not found.");
+  const existing = await prisma.greyBill.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!existing) throw new Error("Grey bill not found.");
+  await prisma.$transaction(async (tx) => {
+    await tx.millInwardEntry.updateMany({
+      where: { greyBillId: id },
+      data: { greyBillId: null },
+    });
+    await tx.greyBill.delete({ where: { id } });
+  });
+  revalidatePath("/grey-purchase");
+}
+
 export async function matchGreyBillPurchaseOrder(
   id: string,
   input: {
