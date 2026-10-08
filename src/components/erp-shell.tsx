@@ -27,7 +27,6 @@ export type ShellAlert = {
 
 function badgesFromFlow(flow: ShellFlow): NavBadges {
   return {
-    "/qc": flow.qc.queue,
     "/returns": flow.grQcPending + flow.millRfOpen,
     "/dispatch": flow.delivery.queue,
     "/payments": flow.payment.alert,
@@ -47,12 +46,6 @@ function alertsFromFlow(flow: ShellFlow): ShellAlert[] {
       count: flow.payment.alert,
       href: "/payments",
       tone: "danger" as const,
-    },
-    {
-      label: "weaver HIGH",
-      count: flow.weaverHigh,
-      href: "/qc",
-      tone: "warn" as const,
     },
   ].filter((a) => a.count > 0);
 }

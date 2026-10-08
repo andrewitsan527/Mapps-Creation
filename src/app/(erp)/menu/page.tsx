@@ -3,28 +3,12 @@ import {
   Banknote,
   BarChart3,
   ChevronRight,
-  ClipboardCheck,
   CreditCard,
   LayoutGrid,
-  Package,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 
 const shortcuts = [
-  {
-    href: "/grey",
-    label: "Grey Purchase",
-    hint: "Raise grey POs and supplier bills",
-    icon: Package,
-    surface: "menu-tile-ivory",
-  },
-  {
-    href: "/inward",
-    label: "Mill Inward",
-    hint: "Log mill return and inspect lots",
-    icon: ClipboardCheck,
-    surface: "menu-tile-sage",
-  },
   {
     href: "/sales",
     label: "Sale Bill — QC, Goods Return",
@@ -78,12 +62,7 @@ export default function MainMenuPage() {
 
       <div className="menu-desk">
         <div className="menu-row menu-row-3">
-          {shortcuts.slice(0, 3).map((item) => (
-            <ShortcutCard key={item.href} item={item} />
-          ))}
-        </div>
-        <div className="menu-row menu-row-2">
-          {shortcuts.slice(3).map((item) => (
+          {shortcuts.map((item) => (
             <ShortcutCard key={item.href} item={item} />
           ))}
         </div>
