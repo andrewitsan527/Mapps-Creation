@@ -892,13 +892,16 @@ export function FinishedWorkDesk({
       ? createFinishedWork(toInput(draft))
       : updateFinishedWork(currentId, toInput(draft));
     void run
-      .then((record) => {
-        const saved = toEntry(record);
+      .then((result) => {
+        const saved = toEntry(result.record);
         setRows((prev) =>
           creating ? [saved, ...prev] : prev.map((row) => (row.id === currentId ? saved : row)),
         );
         closeModal();
-        setNotice(creating ? `${saved.srNo} saved.` : `${saved.srNo} updated.`);
+        const savedNotice = creating ? `${saved.srNo} saved.` : `${saved.srNo} updated.`;
+        setNotice(
+          result.linkWarning ? `${savedNotice} ${result.linkWarning}` : savedNotice,
+        );
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Could not save the finished work.");

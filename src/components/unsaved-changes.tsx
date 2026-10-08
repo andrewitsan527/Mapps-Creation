@@ -103,6 +103,11 @@ export function useUnsavedClose({
             : "You have unsaved changes. What would you like to do?"}
         </p>
         <div className="mt-4 flex justify-end gap-1.5">
+          {onSaveDraft ? (
+            <button type="button" className={buttonGhostClass} onClick={() => setConfirming(false)}>
+              Cancel
+            </button>
+          ) : null}
           {onSaveDraft ? null : (
             <button type="button" className={buttonClass} onClick={() => setConfirming(false)}>
               Continue Editing

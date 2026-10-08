@@ -1227,6 +1227,10 @@ model FinishedWorkEntryRoll {
   greyKg     Decimal
   finishedKg Decimal
 
+  qcLines     QualityCheckEntryLine[]
+  stockRoll   LiveStockRoll?
+  returnLines MillInwardEntryReturnLine[]
+
   @@index([lineId])
 }
 
@@ -1240,6 +1244,7 @@ model QualityCheckEntry {
   millProgramEntryId String
   millProgramEntry   MillProgramEntry   @relation(fields: [millProgramEntryId], references: [id], onDelete: Restrict)
   knitterChallanNo   String             @default("")
+  status             String             @default("submitted")
   result             String
   grade              String             @default("")
   defectType         String             @default("")
@@ -1253,29 +1258,37 @@ model QualityCheckEntry {
 
   @@index([finishedWorkId])
   @@index([millProgramEntryId])
+  @@index([status])
 }
 
 model QualityCheckEntryLine {
-  id        String            @id @default(cuid())
-  qcId      String
-  qc        QualityCheckEntry @relation(fields: [qcId], references: [id], onDelete: Cascade)
-  sortOrder Int
-  rolls     Int
-  codeNo    String            @default("")
-  colour    String            @default("")
+  id                      String                 @id @default(cuid())
+  qcId                    String
+  qc                      QualityCheckEntry      @relation(fields: [qcId], references: [id], onDelete: Cascade)
+  sortOrder               Int
+  rolls                   Int
+  codeNo                  String                 @default("")
+  colour                  String                 @default("")
+  decision                String                 @default("")
+  finishedWorkEntryRollId String?
+  finishedWorkEntryRoll   FinishedWorkEntryRoll? @relation(fields: [finishedWorkEntryRollId], references: [id], onDelete: Restrict)
 
   @@index([qcId])
+  @@index([finishedWorkEntryRollId])
 }
 
 /// Physical rolls created by a new QC pass. Separate from Lot.
 model LiveStockRoll {
-  id                  String            @id @default(cuid())
-  colour              String
-  rollNo              String
-  status              String            @default("available")
-  createdAt           DateTime          @default(now())
-  qualityCheckEntryId String
-  qualityCheckEntry   QualityCheckEntry @relation(fields: [qualityCheckEntryId], references: [id], onDelete: Cascade)
+  id                      String                 @id @default(cuid())
+  colour                  String
+  rollNo                  String
+  status                  String                 @default("available")
+  qualityState            String                 @default("PASSED")
+  createdAt               DateTime               @default(now())
+  qualityCheckEntryId     String
+  qualityCheckEntry       QualityCheckEntry      @relation(fields: [qualityCheckEntryId], references: [id], onDelete: Cascade)
+  finishedWorkEntryRollId String?                @unique
+  finishedWorkEntryRoll   FinishedWorkEntryRoll? @relation(fields: [finishedWorkEntryRollId], references: [id], onDelete: Restrict)
 
   @@unique([qualityCheckEntryId, rollNo])
   @@index([status])
@@ -1284,15 +1297,19 @@ model LiveStockRoll {
 
 /// Snapshot of the QC received rows copied onto a QC fail Mill Inward. Not a weight-per-roll table.
 model MillInwardEntryReturnLine {
-  id        String          @id @default(cuid())
-  entryId   String
-  entry     MillInwardEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  sortOrder Int
-  rolls     Int
-  codeNo    String          @default("")
-  colour    String          @default("")
+  id                      String                 @id @default(cuid())
+  entryId                 String
+  entry                   MillInwardEntry        @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  sortOrder               Int
+  rolls                   Int
+  codeNo                  String                 @default("")
+  colour                  String                 @default("")
+  finishedKg              Decimal?
+  finishedWorkEntryRollId String?
+  finishedWorkEntryRoll   FinishedWorkEntryRoll? @relation(fields: [finishedWorkEntryRollId], references: [id], onDelete: Restrict)
 
   @@index([entryId])
+  @@index([finishedWorkEntryRollId])
 }
 
 model MillProgramEntryLine {

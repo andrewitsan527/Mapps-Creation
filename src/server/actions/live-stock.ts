@@ -10,6 +10,8 @@ export type LiveStockColour = {
 
 export type LiveStockSummary = {
   total: number;
+  passed: number;
+  withoutQc: number;
   colours: LiveStockColour[];
 };
 
@@ -33,6 +35,19 @@ export async function listLiveStock(): Promise<LiveStockSummary> {
     colour: row.colour,
     rolls: Number(row.rolls),
   }));
-  const total = colours.reduce((sum, row) => sum + row.rolls, 0);
-  return { total, colours };
+  const totals = await prisma.$queryRaw<{ total: number; passed: number; without_qc: number }[]>`
+    SELECT
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE "qualityState" <> 'WITHOUT_QC')::int AS passed,
+      COUNT(*) FILTER (WHERE "qualityState" = 'WITHOUT_QC')::int AS without_qc
+    FROM "LiveStockRoll"
+    WHERE status = 'available'
+  `;
+  const total = Number(totals[0]?.total ?? 0);
+  return {
+    total,
+    passed: Number(totals[0]?.passed ?? 0),
+    withoutQc: Number(totals[0]?.without_qc ?? 0),
+    colours,
+  };
 }

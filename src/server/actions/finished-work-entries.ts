@@ -64,6 +64,11 @@ export type FinishedWorkInput = {
   lines: FinishedWorkLineInput[];
 };
 
+export type FinishedWorkSaveResult = {
+  record: FinishedWorkRecord;
+  linkWarning: string | null;
+};
+
 async function requireUser() {
   const user = await getSessionUser();
   if (!user) throw new Error("Unauthorized");
@@ -292,6 +297,33 @@ async function resolveLines(input: FinishedWorkInput) {
   };
 }
 
+async function resolveMillProgramLink(knitterChallanNo: string, millId: string) {
+  const matches = await prisma.millProgramEntry.findMany({
+    where: {
+      millId,
+      millInwardEntry: {
+        greyBill: { challanNo: knitterChallanNo },
+      },
+    },
+    select: { id: true },
+  });
+  if (matches.length === 1) {
+    return { millProgramEntryId: matches[0].id, linkWarning: null };
+  }
+  if (matches.length === 0) {
+    return {
+      millProgramEntryId: null,
+      linkWarning:
+        "No Mill Program matched this Knitter Challan No. and mill, so none was linked.",
+    };
+  }
+  return {
+    millProgramEntryId: null,
+    linkWarning:
+      "More than one Mill Program matches this Knitter Challan No. and mill, so none was linked.",
+  };
+}
+
 async function resolveHeader(input: FinishedWorkInput) {
   if (!input.workDate.trim()) throw new Error("Enter date.");
   if (!input.millId.trim()) throw new Error("Select a mill.");
@@ -441,13 +473,14 @@ export async function listFinishedWork(): Promise<FinishedWorkRecord[]> {
 
 export async function createFinishedWork(
   input: FinishedWorkInput,
-): Promise<FinishedWorkRecord> {
+): Promise<FinishedWorkSaveResult> {
   await requireUser();
   const header = await resolveHeader(input);
   const resolved = await resolveLines(input);
+  const link = await resolveMillProgramLink(header.knitterChallanNo, header.millId);
   const data = {
     workDate: header.workDate,
-    millProgramEntryId: null,
+    millProgramEntryId: link.millProgramEntryId,
     millId: header.millId,
     gpNo: header.gpNo,
     knitterChallanNo: header.knitterChallanNo,
@@ -469,7 +502,7 @@ export async function createFinishedWork(
         include: entryInclude,
       });
       revalidatePath("/finished-work");
-      return toRecord(row);
+      return { record: toRecord(row), linkWarning: link.linkWarning };
     } catch (error) {
       const unique =
         typeof error === "object" &&
@@ -485,7 +518,7 @@ export async function createFinishedWork(
 export async function updateFinishedWork(
   id: string,
   input: FinishedWorkInput,
-): Promise<FinishedWorkRecord> {
+): Promise<FinishedWorkSaveResult> {
   await requireUser();
   const existing = await prisma.finishedWorkEntry.findUnique({
     where: { id },
@@ -494,12 +527,14 @@ export async function updateFinishedWork(
   if (!existing) throw new Error("Finished work not found.");
   const header = await resolveHeader(input);
   const resolved = await resolveLines(input);
+  const link = await resolveMillProgramLink(header.knitterChallanNo, header.millId);
   const row = await prisma.$transaction(async (tx) => {
     await tx.finishedWorkEntryLine.deleteMany({ where: { entryId: id } });
     return tx.finishedWorkEntry.update({
       where: { id },
       data: {
         workDate: header.workDate,
+        millProgramEntryId: link.millProgramEntryId,
         millId: header.millId,
         gpNo: header.gpNo,
         knitterChallanNo: header.knitterChallanNo,
@@ -518,5 +553,5 @@ export async function updateFinishedWork(
     });
   });
   revalidatePath("/finished-work");
-  return toRecord(row);
+  return { record: toRecord(row), linkWarning: link.linkWarning };
 }
