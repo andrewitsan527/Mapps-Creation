@@ -20,9 +20,11 @@ import {
   inputClass,
 } from "@/components/ui";
 import {
+  attachGreyBillDocument,
   createGreyBill,
   deleteGreyBill,
   updateGreyBill,
+  type GreyBillDocumentLink,
   type GreyBillInput,
   type GreyBillItemRecord,
   type GreyBillRecord,
@@ -32,6 +34,12 @@ import type { KnitterRecord } from "@/server/actions/knitters";
 import { ensureMillInwardFromGreyBill } from "@/server/actions/mill-inward-entries";
 import type { MillRecord } from "@/server/actions/mills";
 import type { PurchaseOrderRecord } from "@/server/actions/purchase-orders";
+import { GreyChallanUploadButton } from "@/components/grey-purchase-upload-test";
+import type { GreyBillExtract } from "@/lib/grey-upload-check";
+import {
+  extractGreyPurchaseBill,
+  extractGreyPurchaseChallan,
+} from "@/server/actions/grey-document-test";
 
 type DraftItem = GreyBillItemRecord;
 type DraftRoll = { id: string; weight: string };
@@ -83,6 +91,14 @@ function formatEnteredDecimal(raw: string) {
   if (!Number.isFinite(n)) return trimmed;
   if (!trimmed.includes(".") && Number.isInteger(n)) return n.toFixed(2);
   return trimmed;
+}
+
+function formatWeightKg(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed || !isValidNumericEntry(trimmed)) return trimmed;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n)) return trimmed;
+  return n.toFixed(3);
 }
 
 function numericInputClass(value: string, base: string) {
@@ -210,7 +226,52 @@ function blankDraft(srNo: string): Draft {
     matchedAt: null,
     items: [emptyItem()],
     rolls: [emptyRoll()],
+    documents: [],
   };
+}
+
+function mergeDocument(row: GreyBillRecord, link: GreyBillDocumentLink): GreyBillRecord {
+  return {
+    ...row,
+    documents: [...row.documents.filter((document) => document.kind !== link.kind), link],
+  };
+}
+
+function documentForm(file: File, kind: GreyBillDocumentLink["kind"]) {
+  const data = new FormData();
+  data.set("file", file);
+  data.set("kind", kind);
+  return data;
+}
+
+function DocumentActions({ documents }: { documents: GreyBillDocumentLink[] }) {
+  const links = documents.filter(
+    (document) => document.kind === "BILL" || document.kind === "CHALLAN",
+  );
+  if (links.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2 text-[12px]">
+      {links.map((document) => {
+        const href = `/api/grey-documents/${document.accessToken}`;
+        const label = document.kind === "BILL" ? "Bill PDF" : "Challan PDF";
+        return (
+          <span key={document.kind} className="inline-flex items-center gap-1.5">
+            <a
+              className="font-semibold text-(--accent) underline"
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {label}
+            </a>
+            <a className="text-(--muted) underline" href={`${href}?download=1`}>
+              Download
+            </a>
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 function cloneBill(row: GreyBillRecord): Draft {
@@ -281,6 +342,13 @@ export function GreyPurchaseDesk({
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rollOpen, setRollOpen] = useState(false);
+  const [billBusy, setBillBusy] = useState(false);
+  const [billWarnings, setBillWarnings] = useState<string[]>([]);
+  const [challanBusy, setChallanBusy] = useState(false);
+  const [challanNote, setChallanNote] = useState<string | null>(null);
+  const billFileRef = useRef<HTMLInputElement>(null);
+  const [billFile, setBillFile] = useState<File | null>(null);
+  const [challanFile, setChallanFile] = useState<File | null>(null);
   const [pendingDelete, setPendingDelete] = useState<GreyBillRecord | null>(
     null,
   );
@@ -351,17 +419,184 @@ export function GreyPurchaseDesk({
     setMode(null);
     setError(null);
     setRollOpen(false);
+    setBillWarnings([]);
+    setChallanNote(null);
+  }
+
+  function matchMaster(name: string, options: { id: string; label: string }[]) {
+    const key = name.trim().toLowerCase().replace(/\s+/g, " ");
+    if (!key) return null;
+    const hits = options.filter(
+      (option) => option.label.trim().toLowerCase().replace(/\s+/g, " ") === key,
+    );
+    return hits.length === 1 ? hits[0] : null;
+  }
+
+  function applyBillExtract(extracted: GreyBillExtract) {
+    let warnings: string[] = [];
+    setDraft((prev) => {
+      if (!prev) return prev;
+      warnings = [];
+      const next: Draft = {
+        ...prev,
+        items: prev.items.map((item) => ({ ...item })),
+      };
+      const billNo = extracted.billNo.trim();
+      if (billNo) {
+        next.billNo = billNo;
+        if (!next.challanNo.trim() || next.challanNo === prev.billNo) next.challanNo = billNo;
+      } else warnings.push("Bill no. was not read.");
+      const billDate = extracted.billDate.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(billDate)) next.billDate = billDate;
+      else warnings.push(billDate ? "Bill date was not a valid date." : "Bill date was not read.");
+      const agent = extracted.agent.trim();
+      if (agent) next.agent = agent;
+      else warnings.push("Agent was not read.");
+      const remark = extracted.remark.trim();
+      if (remark) next.remarks = remark;
+      const line = next.items[0] ?? emptyItem();
+      if (!next.items[0]) next.items = [line];
+      const rolls = extracted.quantityRolls.trim();
+      if (rolls && Number.isFinite(Number(rolls))) line.rolls = rolls;
+      else warnings.push("Roll count was not read.");
+      const qty = extracted.quantityKg.trim();
+      if (qty && Number.isFinite(Number(qty))) line.qty = qty;
+      else warnings.push("Quantity KG was not read.");
+      const rate = extracted.rate.trim();
+      if (rate && Number.isFinite(Number(rate))) line.rate = rate;
+      else warnings.push("Rate was not read.");
+      const knitter = matchMaster(extracted.knitter, knitterOptions);
+      if (knitter) {
+        next.knitterId = knitter.id;
+        next.knitterName = knitter.label;
+      } else if (extracted.knitter.trim()) {
+        if (!next.knitterId) next.knitterName = extracted.knitter.trim();
+        warnings.push(`Knitter not matched: ${extracted.knitter.trim()}`);
+      } else warnings.push("Knitter was not read.");
+      const mill = matchMaster(extracted.mill, millOptions);
+      if (mill) {
+        next.millId = mill.id;
+        next.millName = mill.label;
+      } else if (extracted.mill.trim()) {
+        if (!next.millId) next.millName = extracted.mill.trim();
+        warnings.push(`Mill not matched: ${extracted.mill.trim()}`);
+      } else warnings.push("Mill was not read.");
+      const item = matchMaster(extracted.item, itemOptions);
+      if (item) {
+        line.itemId = item.id;
+        line.itemName = item.label;
+      } else if (extracted.item.trim()) {
+        if (!line.itemId) line.itemName = extracted.item.trim();
+        warnings.push(`Item not matched: ${extracted.item.trim()}`);
+      } else warnings.push("Item was not read.");
+      return next;
+    });
+    setBillWarnings(warnings);
+    setError(null);
+  }
+
+  async function uploadBill(file: File) {
+    if (billBusy) return;
+    setBillFile(file);
+    setBillBusy(true);
+    setError(null);
+    try {
+      const data = new FormData();
+      data.set("file", file);
+      applyBillExtract(await extractGreyPurchaseBill(data));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not extract the bill.");
+    } finally {
+      setBillBusy(false);
+      if (billFileRef.current) billFileRef.current.value = "";
+    }
+  }
+
+  function uploadChallan(file: File) {
+    if (challanBusy) return;
+    setChallanFile(file);
+    setChallanBusy(true);
+    setError(null);
+    void (async () => {
+      try {
+        const data = new FormData();
+        data.set("file", file);
+        const result = await extractGreyPurchaseChallan(data);
+        let note = "";
+        setDraft((prev) => {
+          if (!prev) return prev;
+          const expected = requiredRollCount(prev.items);
+          if (expected <= 0) {
+            note = "Enter the roll count on the bill before uploading the challan.";
+            return prev;
+          }
+          const rolls = syncRollsToCount(prev.rolls, expected);
+          let extracted = 0;
+          const nextRolls = rolls.map((roll, index) => {
+            if (index >= result.slots.length) return { ...roll, weight: roll.weight.trim() ? formatWeightKg(roll.weight) : "" };
+            const slot = result.slots[index].trim();
+            if (!slot) return { ...roll, weight: "" };
+            extracted += 1;
+            return { ...roll, weight: formatWeightKg(slot) };
+          });
+          const manual = expected - extracted;
+          const extra = result.slots.slice(expected).filter((slot) => slot.trim()).length;
+          const sum = result.slots.slice(0, expected).reduce((total, slot) => {
+            if (!slot.trim()) return total;
+            const value = Number(slot);
+            return Number.isFinite(value) ? total + value : total;
+          }, 0);
+          const lines = [
+            `Expected rolls: ${expected}. Extracted weights: ${extracted}. Manual entry: ${manual}.`,
+            `Sum of extracted weights: ${sum.toFixed(3)} KG.`,
+          ];
+          if (result.quantityKg.trim()) lines.push(`Challan total KG: ${result.quantityKg}.`);
+          if (manual > 0) {
+            lines.push(`${extracted} of ${expected} weights extracted; ${manual} require manual entry.`);
+          }
+          if (extra > 0) {
+            lines.push(`${extra} weights were past the bill roll count and were not placed.`);
+          }
+          if (manual === 0 && result.quantityKg.trim()) {
+            const reported = Number(result.quantityKg);
+            if (Number.isFinite(reported) && Math.abs(sum - reported) > 0.001) {
+              lines.push("Weight total does not match the challan KG. The weights were not adjusted.");
+            }
+          }
+          if (result.slots.length < expected && result.unreadable.length === 0) {
+            lines.push("Some printed rows were not returned, so these weights were placed from row 1. Check the sequence before saving.");
+          }
+          if (result.unreadable.length > 0) lines.push(...result.unreadable.slice(0, 3));
+          note = lines.join(" ");
+          return { ...prev, rolls: nextRolls };
+        });
+        setChallanNote(note);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not extract the challan.");
+      } finally {
+        setChallanBusy(false);
+      }
+    })();
   }
 
   function openCreate() {
     setError(null);
     setNotice(null);
+    setBillWarnings([]);
+    setChallanNote(null);
+    setBillFile(null);
+    setChallanFile(null);
+    setRollOpen(false);
     setMode("create");
     setDraft(blankDraft(nextSrNo(rows.map((row) => row.srNo), todayIso())));
   }
 
   function openRow(row: GreyBillRecord, nextMode: "edit" | "view") {
     setError(null);
+    setBillWarnings([]);
+    setChallanNote(null);
+    setBillFile(null);
+    setChallanFile(null);
     setMode(nextMode);
     setDraft(cloneBill(row));
   }
@@ -466,7 +701,10 @@ export function GreyPurchaseDesk({
       if (!prev) return prev;
       return {
         ...prev,
-        rolls: syncRollsToCount(prev.rolls, requiredRollCount(prev.items)),
+        rolls: syncRollsToCount(prev.rolls, requiredRollCount(prev.items)).map((roll) => ({
+          ...roll,
+          weight: roll.weight.trim() ? formatWeightKg(roll.weight) : "",
+        })),
       };
     });
     setRollOpen(true);
@@ -505,11 +743,52 @@ export function GreyPurchaseDesk({
       if (status === "SAVED") {
         await ensureMillInwardFromGreyBill(saved.id);
       }
+      let next = saved;
+      const missing: string[] = [];
+      if (billFile) {
+        try {
+          next = mergeDocument(
+            next,
+            await attachGreyBillDocument(saved.id, documentForm(billFile, "BILL")),
+          );
+          setBillFile(null);
+        } catch (err) {
+          missing.push(
+            err instanceof Error ? `Bill file: ${err.message}` : "Bill file was not stored.",
+          );
+        }
+      }
+      if (challanFile) {
+        try {
+          next = mergeDocument(
+            next,
+            await attachGreyBillDocument(
+              saved.id,
+              documentForm(challanFile, "CHALLAN"),
+            ),
+          );
+          setChallanFile(null);
+        } catch (err) {
+          missing.push(
+            err instanceof Error
+              ? `Challan file: ${err.message}`
+              : "Challan file was not stored.",
+          );
+        }
+      }
       setRows((prev) =>
         creating
-          ? [saved, ...prev.filter((row) => row.id !== saved.id)]
-          : prev.map((row) => (row.id === saved.id ? saved : row)),
+          ? [next, ...prev.filter((row) => row.id !== next.id)]
+          : prev.map((row) => (row.id === next.id ? next : row)),
       );
+      if (missing.length > 0) {
+        setMode("edit");
+        setDraft(next);
+        setError(
+          `Grey purchase saved, but ${missing.join(" ")} Save again to retry the missing file.`,
+        );
+        return false;
+      }
       setNotice(
         status === "SAVED"
           ? "Grey bill saved. Pending mill inward created if it did not already exist."
@@ -689,6 +968,7 @@ export function GreyPurchaseDesk({
                       </span>
                     </td>
                     <td className="overflow-hidden">
+                      <div className="flex flex-col items-center gap-1">
                       <div className="flex flex-nowrap items-center justify-center gap-1">
                         <button
                           type="button"
@@ -705,6 +985,8 @@ export function GreyPurchaseDesk({
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
+                      </div>
+                      <DocumentActions documents={row.documents} />
                       </div>
                     </td>
                   </tr>
@@ -728,6 +1010,40 @@ export function GreyPurchaseDesk({
                 {error}
               </p>
             ) : null}
+            <div className="flex items-center justify-end gap-3">
+              <DocumentActions documents={draft.documents} />
+              <input
+                ref={billFileRef}
+                className="hidden"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadBill(file);
+                }}
+              />
+              <button
+                type="button"
+                className={buttonGhostClass}
+                disabled={readOnly || billBusy}
+                onClick={() => billFileRef.current?.click()}
+              >
+                {billBusy ? "INTELIXA" : "Upload Bill"}
+              </button>
+            </div>
+            {billFile || challanFile ? (
+              <p className="text-[12px] text-(--muted)">
+                {billFile ? `Bill file ready to save: ${billFile.name}. ` : ""}
+                {challanFile ? `Challan file ready to save: ${challanFile.name}.` : ""}
+              </p>
+            ) : null}
+            {billWarnings.length > 0 ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+                {billWarnings.map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+              </div>
+            ) : null}
             <div className="grid grid-cols-4 gap-2">
               <Field label="Sr. No.">
                 <input className={inputClass} value={draft.srNo} readOnly />
@@ -736,6 +1052,7 @@ export function GreyPurchaseDesk({
                 <input
                   className={inputClass}
                   type="date"
+                  autoComplete="off"
                   value={draft.billDate}
                   disabled={readOnly}
                   onChange={(e) => patch({ billDate: e.target.value })}
@@ -744,6 +1061,7 @@ export function GreyPurchaseDesk({
               <Field label="Bill No.">
                 <input
                   className={inputClass}
+                  autoComplete="off"
                   value={draft.billNo}
                   disabled={readOnly}
                   onChange={(e) => {
@@ -782,6 +1100,9 @@ export function GreyPurchaseDesk({
                     })
                   }
                 />
+                {draft.knitterName && !draft.knitterId ? (
+                  <p className="mt-1 text-[11px] text-(--muted)">Extracted knitter: {draft.knitterName}</p>
+                ) : null}
               </Field>
               <Field label="Mill Name">
                 <SearchableSelect
@@ -796,6 +1117,9 @@ export function GreyPurchaseDesk({
                     })
                   }
                 />
+                {draft.millName && !draft.millId ? (
+                  <p className="mt-1 text-[11px] text-(--muted)">Extracted mill: {draft.millName}</p>
+                ) : null}
               </Field>
               <Field label="Agent Name">
                 <input
@@ -851,6 +1175,9 @@ export function GreyPurchaseDesk({
                             })
                           }
                         />
+                        {item.itemName && !item.itemId ? (
+                          <p className="mt-1 text-[11px] text-(--muted)">Extracted item: {item.itemName}</p>
+                        ) : null}
                       </td>
                       <td>
                         <input
@@ -994,27 +1321,27 @@ export function GreyPurchaseDesk({
                 <div className="space-y-0.5 text-[12.5px] tabular-nums">
                   <div className="flex justify-between">
                     <span>Goods Subtotal</span>
-                    <span>{live?.goodsAmount.toLocaleString("en-IN")}</span>
+                    <span>{live ? formatRupeeAmount(live.goodsAmount) : ""}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Freight</span>
-                    <span>{live?.freightAmount.toLocaleString("en-IN")}</span>
+                    <span>{live ? formatRupeeAmount(live.freightAmount) : ""}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Taxable Subtotal</span>
-                    <span>{live?.taxableAmount.toLocaleString("en-IN")}</span>
+                    <span>{live ? formatRupeeAmount(live.taxableAmount) : ""}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>SGST 2.500%</span>
-                    <span>{live?.sgstAmount.toLocaleString("en-IN")}</span>
+                    <span>{live ? formatRupeeAmount(live.sgstAmount) : ""}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>CGST 2.500%</span>
-                    <span>{live?.cgstAmount.toLocaleString("en-IN")}</span>
+                    <span>{live ? formatRupeeAmount(live.cgstAmount) : ""}</span>
                   </div>
                   <div className="flex justify-between border-t border-(--line) pt-1 text-[14px] font-semibold">
                     <span>Net Bill Amount</span>
-                    <span>{live?.netAmount.toLocaleString("en-IN")}</span>
+                    <span>{live ? formatRupeeAmount(live.netAmount) : ""}</span>
                   </div>
                 </div>
               </div>
@@ -1048,10 +1375,16 @@ export function GreyPurchaseDesk({
           title="Roll / Taka"
           onClose={closeRollDetails}
           trapFocus
-          frameWidthClass="w-[24.15vw] max-w-[24.15rem] max-h-[calc(100vh-4rem)] overflow-hidden"
+          frameWidthClass="w-[min(100vw-2rem,454px)] max-h-[calc(100vh-2rem)] overflow-hidden"
         >
           <div className="flex min-h-0 flex-col overflow-hidden">
-          <div className="min-h-0 overflow-hidden px-4 pt-2.5">
+          <div className="min-h-0 overflow-auto px-4 pt-2.5">
+          {!readOnly ? (
+            <GreyChallanUploadButton busy={challanBusy} onFile={uploadChallan} />
+          ) : null}
+          {challanNote ? (
+            <p className="mb-2 text-[12px] text-amber-900">{challanNote}</p>
+          ) : null}
           <table className="erp-table">
             <colgroup>
               <col className="w-16" />
@@ -1100,7 +1433,7 @@ export function GreyPurchaseDesk({
                       }
                       onBlur={(e) => {
                         if (!isValidNumericEntry(e.target.value)) return;
-                        const nextWeight = formatEnteredDecimal(e.target.value);
+                        const nextWeight = e.target.value.trim() ? formatWeightKg(e.target.value) : "";
                         if (nextWeight === roll.weight) return;
                         patch({
                           rolls: draft.rolls.map((row) =>

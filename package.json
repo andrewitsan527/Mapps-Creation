@@ -13,7 +13,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "db:generate": "node scripts/prisma-generate.mjs"
+    "db:generate": "node scripts/prisma-generate.mjs",
+    "lab:bill": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/lab/bill/index.ts",
+    "lab:challan": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/lab/challan/index.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

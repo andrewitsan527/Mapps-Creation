@@ -1043,11 +1043,28 @@ model GreyBill {
 
   items GreyBillItem[]
   rolls GreyBillRoll[]
+  documents GreyBillDocument[]
   millInward MillInwardEntry?
 
   @@index([knitterId])
   @@index([millId])
   @@index([purchaseOrderId])
+}
+
+model GreyBillDocument {
+  id          String   @id @default(cuid())
+  greyBillId  String
+  greyBill    GreyBill @relation(fields: [greyBillId], references: [id], onDelete: Cascade)
+  kind        String
+  fileName    String
+  mimeType    String
+  byteSize    Int
+  storageKey  String
+  accessToken String   @unique
+  createdAt   DateTime @default(now())
+
+  @@unique([greyBillId, kind])
+  @@index([greyBillId])
 }
 
 model GreyBillItem {

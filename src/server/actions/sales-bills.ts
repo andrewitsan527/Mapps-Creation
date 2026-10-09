@@ -134,6 +134,17 @@ function num(raw: string) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function discountPct(raw: string) {
+  const text = raw.trim().replace(/%/g, "").replace(/\.$/, "");
+  if (!text) return 0;
+  if (!/^\d+(\.\d+)?$/.test(text)) {
+    throw new Error("Enter a valid discount percentage.");
+  }
+  const n = Number(text);
+  if (n > 100) throw new Error("Discount cannot be more than 100%.");
+  return n;
+}
+
 function money2(n: number) {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
@@ -176,7 +187,7 @@ function compute(lines: SaleLineInput[], discount: string, freight: string) {
   const totalRolls = prepared.reduce((sum, line) => sum + num(line.noOfRolls), 0);
   const totalWeightKg = prepared.reduce((sum, line) => sum + line.weight, 0);
   const grossAmount = money2(prepared.reduce((sum, line) => sum + line.amount, 0));
-  const discountAmount = money2(grossAmount * (num(discount) / 100));
+  const discountAmount = money2(grossAmount * (discountPct(discount) / 100));
   const freightAmount =
     totalWeightKg > 0 ? money2(num(freight) * totalWeightKg) : 0;
   const taxableAmount = money2(

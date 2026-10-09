@@ -49,3 +49,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Grey Purchase originals kept outside public/
+/storage/grey-documents/

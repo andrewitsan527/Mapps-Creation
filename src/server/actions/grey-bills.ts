@@ -3,6 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import {
+  assertDocumentFile,
+  newAccessToken,
+  removeGreyDocument,
+  writeGreyDocument,
+  type GreyDocumentKind,
+} from "@/server/grey-documents";
 
 export type GreyBillItemRecord = {
   id: string;
@@ -20,6 +27,12 @@ export type GreyBillRollRecord = {
 };
 
 export type GreyBillMatchStatus = "MATCHED" | "UNMATCHED";
+
+export type GreyBillDocumentLink = {
+  kind: GreyDocumentKind;
+  fileName: string;
+  accessToken: string;
+};
 
 export type GreyBillRecord = {
   id: string;
@@ -47,6 +60,7 @@ export type GreyBillRecord = {
   matchedAt: string | null;
   items: GreyBillItemRecord[];
   rolls: GreyBillRollRecord[];
+  documents: GreyBillDocumentLink[];
 };
 
 export type GreyBillItemInput = {
@@ -182,6 +196,10 @@ const includeBill = {
     include: { item: { select: { itemName: true } } },
   },
   rolls: { orderBy: { sortOrder: "asc" as const } },
+  documents: {
+    select: { kind: true, fileName: true, accessToken: true },
+    orderBy: { kind: "asc" as const },
+  },
 };
 
 type BillRow = {
@@ -221,7 +239,27 @@ type BillRow = {
     id: string;
     weightKg: { toString(): string } | null;
   }[];
+  documents: {
+    kind: string;
+    fileName: string;
+    accessToken: string;
+  }[];
 };
+
+function documentLinks(
+  documents: { kind: string; fileName: string; accessToken: string }[],
+): GreyBillDocumentLink[] {
+  return documents.flatMap((document) => {
+    if (document.kind !== "BILL" && document.kind !== "CHALLAN") return [];
+    return [
+      {
+        kind: document.kind,
+        fileName: document.fileName,
+        accessToken: document.accessToken,
+      },
+    ];
+  });
+}
 
 function toRecord(row: BillRow): GreyBillRecord {
   const matchStatus =
@@ -265,6 +303,7 @@ function toRecord(row: BillRow): GreyBillRecord {
       id: roll.id,
       weight: decText(roll.weightKg),
     })),
+    documents: documentLinks(row.documents),
   };
 }
 
@@ -405,7 +444,7 @@ export async function deleteGreyBill(id: string): Promise<void> {
   if (!id.trim()) throw new Error("Grey bill not found.");
   const existing = await prisma.greyBill.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, documents: { select: { storageKey: true } } },
   });
   if (!existing) throw new Error("Grey bill not found.");
   await prisma.$transaction(async (tx) => {
@@ -415,7 +454,87 @@ export async function deleteGreyBill(id: string): Promise<void> {
     });
     await tx.greyBill.delete({ where: { id } });
   });
+  await Promise.all(
+    existing.documents.map((document) =>
+      removeGreyDocument(document.storageKey).catch(() => undefined),
+    ),
+  );
   revalidatePath("/grey-purchase");
+}
+
+export async function attachGreyBillDocument(
+  greyBillId: string,
+  formData: FormData,
+): Promise<GreyBillDocumentLink> {
+  await requireUser();
+  if (!greyBillId.trim()) throw new Error("Grey bill not found.");
+  const kind = formData.get("kind");
+  if (kind !== "BILL" && kind !== "CHALLAN") {
+    throw new Error("Document type is invalid.");
+  }
+  const file = formData.get("file");
+  if (!(file instanceof File)) throw new Error("Select a PDF or image.");
+  const mimeType = assertDocumentFile(file);
+  const bill = await prisma.greyBill.findUnique({
+    where: { id: greyBillId },
+    select: { id: true },
+  });
+  if (!bill) throw new Error("Grey bill not found.");
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const storageKey = await writeGreyDocument({
+    greyBillId,
+    kind,
+    mimeType,
+    bytes,
+  });
+  const fileName = file.name.trim().slice(0, 255) || `${kind.toLowerCase()}.${mimeType === "image/png" ? "png" : mimeType === "image/jpeg" ? "jpg" : "pdf"}`;
+
+  try {
+    const existing = await prisma.greyBillDocument.findUnique({
+      where: { greyBillId_kind: { greyBillId, kind } },
+    });
+    const row = existing
+      ? await prisma.greyBillDocument.update({
+          where: { id: existing.id },
+          data: {
+            fileName,
+            mimeType,
+            byteSize: bytes.length,
+            storageKey,
+          },
+        })
+      : await prisma.greyBillDocument.create({
+          data: {
+            greyBillId,
+            kind,
+            fileName,
+            mimeType,
+            byteSize: bytes.length,
+            storageKey,
+            accessToken: newAccessToken(),
+          },
+        });
+    if (existing && existing.storageKey !== storageKey) {
+      await removeGreyDocument(existing.storageKey).catch(() => undefined);
+    }
+    return {
+      kind,
+      fileName: row.fileName,
+      accessToken: row.accessToken,
+    };
+  } catch (error) {
+    await removeGreyDocument(storageKey).catch(() => undefined);
+    const unique =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002";
+    if (unique) {
+      throw new Error("That document is already being saved. Save again to retry.");
+    }
+    throw error;
+  }
 }
 
 export async function matchGreyBillPurchaseOrder(

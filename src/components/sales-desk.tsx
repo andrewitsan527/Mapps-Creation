@@ -75,10 +75,28 @@ function billMoney(n: number) {
 }
 
 function formatPct(raw: string) {
-  return num(raw).toLocaleString("en-IN", {
+  return discountPct(raw).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function discountPct(raw: string) {
+  const text = raw.trim().replace(/%/g, "");
+  if (!text || text === ".") return 0;
+  const n = Number(text);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.min(n, 100);
+}
+
+function discountDraft(raw: string) {
+  const text = raw.replace(/%/g, "").trim();
+  if (!text) return "";
+  if (!/^\d*\.?\d*$/.test(text)) return null;
+  if (text === ".") return text;
+  const n = Number(text.endsWith(".") ? text.slice(0, -1) : text);
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
+  return text;
 }
 
 function num(raw: string) {
@@ -147,7 +165,7 @@ function billTotals(lines: LocalSaleLine[], discount: string, freight: string) {
   const grossAmount = money2(
     lines.reduce((sum, line) => sum + lineAmount(line), 0),
   );
-  const discountAmount = money2(grossAmount * (num(discount) / 100));
+  const discountAmount = money2(grossAmount * (discountPct(discount) / 100));
   const freightAmount =
     totalWeightKg > 0 ? money2(num(freight) * totalWeightKg) : 0;
   const taxableAmount = money2(
@@ -1123,6 +1141,7 @@ export function SalesDesk({
                               }
                             }}
                           >
+                            <td className="text-center tabular-nums">{index + 1}</td>
                             <td>
                               <SearchableSelect
                                 value={line.itemId}
@@ -1258,13 +1277,21 @@ export function SalesDesk({
                       />
                     </Field>
                     <Field label="Discount">
-                      <input
-                        className={inputClass}
-                        inputMode="decimal"
-                        disabled={readOnly}
-                        value={draft.discount}
-                        onChange={(e) => patch({ discount: e.target.value })}
-                      />
+                      <div className="relative">
+                        <input
+                          className={`${inputClass} pr-6`}
+                          inputMode="decimal"
+                          disabled={readOnly}
+                          value={draft.discount}
+                          onChange={(e) => {
+                            const next = discountDraft(e.target.value);
+                            if (next !== null) patch({ discount: next });
+                          }}
+                        />
+                        <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[12px] text-(--muted)">
+                          %
+                        </span>
+                      </div>
                     </Field>
                     <Field label="Add / Less Amount">
                       <input
