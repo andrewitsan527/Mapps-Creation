@@ -4,6 +4,7 @@ import {
   EmptyState,
   Metric,
   MetricStrip,
+  NextStep,
   PageHeader,
   Panel,
   Section,
@@ -421,6 +422,29 @@ export default async function DashboardPage() {
           </Panel>
         </div>
       </Section>
+
+      <NextStep
+        steps={[
+          {
+            label: "QC desk",
+            href: "/quality-check",
+            hint: "Clear returns & weaver HIGH",
+            count: flow.qc.queue || undefined,
+          },
+          {
+            label: "Dispatch",
+            href: "/dispatch",
+            hint: "Billed goods waiting to leave",
+            count: flow.delivery.queue || undefined,
+          },
+          {
+            label: "Collect dues",
+            href: "/payments",
+            hint: "Reminders & receipts",
+            count: flow.payment.alert || undefined,
+          },
+        ]}
+      />
     </div>
   );
 }

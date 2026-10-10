@@ -27,6 +27,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { WhatsAppNotifyToggle } from "@/components/whatsapp-notify-toggle";
+import { WhatsAppForm } from "@/components/whatsapp-form";
 import {
   Banknote,
   CheckCircle2,
@@ -257,7 +258,7 @@ export default async function SaleBillDetailPage({
                 bill with full goods detail, and starts the {termsDays}-day
                 credit clock. No separate challan.
               </p>
-              <form action={deliverSaleBill} className="space-y-1.5">
+              <WhatsAppForm action={deliverSaleBill} className="space-y-1.5">
                 <input type="hidden" name="saleBillId" value={bill.id} />
                 <Field label="Vehicle">
                   <input className={inputClass} name="vehicleNo" />
@@ -275,12 +276,12 @@ export default async function SaleBillDetailPage({
                 </Field>
                 <WhatsAppNotifyToggle
                   label="WhatsApp sale bill to party"
-                  hint="Sends full goods identity with delivery"
+                  hint="Opens WhatsApp with bill text — tap Send"
                 />
                 <button className={buttonWaClass + " w-full"} type="submit">
                   Deliver & WhatsApp bill
                 </button>
-              </form>
+              </WhatsAppForm>
             </Panel>
           ) : (
             <Panel title="Delivery status" icon={Truck} compact>

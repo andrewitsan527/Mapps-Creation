@@ -41,27 +41,27 @@ export function PageHeader({
   eyebrow?: string;
 }) {
   return (
-    <div className="mb-3 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-2.5 flex flex-col gap-1.5 sm:mb-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         {eyebrow ? <p className="band-label mb-1">{eyebrow}</p> : null}
         <div className="flex items-center gap-2">
           {Icon ? (
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-(--line) bg-linear-to-b from-white to-(--panel-sunken) text-(--accent) shadow-(--shadow-sm)">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--line) bg-linear-to-b from-white to-(--panel-sunken) text-(--accent) shadow-(--shadow-sm) sm:h-9 sm:w-9">
               <Icon className="h-4 w-4" />
             </span>
           ) : null}
-          <h1 className="truncate font-serif text-[21px] leading-tight font-semibold tracking-tight text-(--ink)">
+          <h1 className="truncate font-serif text-[18px] leading-tight font-semibold tracking-tight text-(--ink) sm:text-[21px]">
             {title}
           </h1>
         </div>
         {description ? (
-          <p className="mt-1 max-w-3xl text-[11.5px] leading-snug text-(--muted)">
+          <p className="mt-1 line-clamp-2 max-w-3xl text-[11.5px] leading-snug text-(--muted) sm:line-clamp-none">
             {description}
           </p>
         ) : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <div className="-mx-0.5 flex shrink-0 flex-wrap items-center gap-1.5 overflow-x-auto pb-0.5 sm:mx-0 sm:overflow-visible sm:pb-0">
           {actions}
         </div>
       ) : null}
@@ -122,7 +122,7 @@ export function Section({
 }) {
   return (
     <section className={cn("space-y-2", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--line) pb-1.5">
+      <div className="flex flex-col gap-1 border-b border-(--line) pb-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {step !== undefined ? (
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-(--ink) text-[10px] font-bold text-white">
@@ -130,19 +130,26 @@ export function Section({
             </span>
           ) : null}
           {Icon ? (
-            <Icon className={cn("h-3.5 w-3.5", toneText[tone])} />
+            <Icon className={cn("h-3.5 w-3.5 shrink-0", toneText[tone])} />
           ) : null}
           <h2 className="text-[12.5px] font-semibold tracking-tight text-(--ink)">
             {title}
           </h2>
           {description ? (
-            <span className="hidden truncate text-[11px] text-(--muted) sm:inline">
+            <span className="hidden truncate text-[11px] text-(--muted) md:inline">
               · {description}
             </span>
           ) : null}
         </div>
+        {description ? (
+          <p className="pl-7 text-[11px] leading-snug text-(--muted) md:hidden">
+            {description}
+          </p>
+        ) : null}
         {actions ? (
-          <div className="flex flex-wrap items-center gap-1.5">{actions}</div>
+          <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
+            {actions}
+          </div>
         ) : null}
       </div>
       {children}
@@ -207,17 +214,17 @@ export function Panel({
 /** Scroll container that keeps `.erp-table` sticky headers working. */
 export function TableWrap({
   children,
-  maxHeight,
+  maxHeight = 360,
   className,
 }: {
   children: React.ReactNode;
-  maxHeight?: number;
+  maxHeight?: number | false;
   className?: string;
 }) {
   return (
     <div
-      className={cn("overflow-auto", className)}
-      style={maxHeight ? { maxHeight } : undefined}
+      className={cn("table-scroll overflow-auto", className)}
+      style={maxHeight === false ? undefined : { maxHeight }}
     >
       {children}
     </div>
@@ -269,19 +276,19 @@ export function FieldGroup({
 }
 
 export const inputClass =
-  "w-full rounded-md border border-(--line) bg-white px-2.5 py-1.5 text-[12.5px] outline-none transition placeholder:text-(--faint) hover:border-(--line-strong) focus:border-(--accent) focus:shadow-(--shadow-glow) focus:ring-0";
+  "w-full rounded-md border border-(--line) bg-white px-2.5 py-2.5 text-base outline-none transition placeholder:text-(--faint) hover:border-(--line-strong) focus:border-(--accent) focus:shadow-(--shadow-glow) focus:ring-0 md:py-1.5 md:text-[12.5px]";
 
 export const buttonClass =
-  "pressable inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--accent) px-2.5 py-1.5 text-[12px] font-semibold text-white shadow-(--shadow-sm) transition hover:bg-(--accent-strong) disabled:opacity-50";
+  "pressable inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--accent) px-3 py-2 text-[13px] font-semibold text-white shadow-(--shadow-sm) transition hover:bg-(--accent-strong) disabled:opacity-50 md:min-h-0 md:px-2.5 md:py-1.5 md:text-[12px]";
 
 export const buttonGhostClass =
-  "pressable inline-flex items-center justify-center gap-1.5 rounded-md border border-(--line) bg-white px-2.5 py-1.5 text-[12px] font-medium text-(--ink) transition hover:border-(--line-strong) hover:bg-(--panel-sunken) disabled:opacity-50";
+  "pressable inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-(--line) bg-white px-3 py-2 text-[13px] font-medium text-(--ink) transition hover:border-(--line-strong) hover:bg-(--panel-sunken) disabled:opacity-50 md:min-h-0 md:px-2.5 md:py-1.5 md:text-[12px]";
 
 export const buttonWaClass =
-  "pressable inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--wa) px-2.5 py-1.5 text-[12px] font-semibold text-white shadow-(--shadow-sm) transition hover:brightness-110 disabled:opacity-50";
+  "pressable inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--wa) px-3 py-2 text-[13px] font-semibold text-white shadow-(--shadow-sm) transition hover:brightness-110 disabled:opacity-50 md:min-h-0 md:px-2.5 md:py-1.5 md:text-[12px]";
 
 export const buttonTinyClass =
-  "pressable inline-flex items-center justify-center gap-1 rounded border border-(--line) bg-white px-1.5 py-0.5 text-[11px] font-medium text-(--ink-soft) transition hover:border-(--accent) hover:text-(--accent)";
+  "pressable inline-flex min-h-9 items-center justify-center gap-1 rounded border border-(--line) bg-white px-2 py-1 text-[12px] font-medium text-(--ink-soft) transition hover:border-(--accent) hover:text-(--accent) md:min-h-0 md:px-1.5 md:py-0.5 md:text-[11px]";
 
 /* ------------------------------------------------------------------ */
 /* Data display                                                        */
@@ -375,20 +382,20 @@ export function Metric({
   hint?: string;
 }) {
   return (
-    <div className="min-w-0 px-2.5 py-1.5">
+    <div className="min-w-0 px-2.5 py-2 shadow-[inset_-1px_0_0_var(--line-soft),inset_0_-1px_0_var(--line-soft)]">
       <p className="truncate text-[10px] font-semibold tracking-wide text-(--muted) uppercase">
         {label}
       </p>
       <p
         className={cn(
-          "text-[14px] leading-tight font-semibold tabular-nums",
+          "mt-0.5 text-[15px] leading-tight font-semibold tabular-nums",
           toneText[tone] === "text-(--muted)" ? "text-(--ink)" : toneText[tone],
         )}
       >
         {value}
       </p>
       {hint ? (
-        <p className="truncate text-[10px] text-(--faint)">{hint}</p>
+        <p className="mt-0.5 truncate text-[10px] text-(--faint)">{hint}</p>
       ) : null}
     </div>
   );
@@ -405,7 +412,7 @@ export function MetricStrip({
   return (
     <div
       className={cn(
-        "panel-elevated grid divide-x divide-(--line-soft) overflow-hidden rounded-xl border border-(--line) bg-(--panel)",
+        "panel-elevated grid overflow-hidden rounded-xl border border-(--line) bg-(--panel)",
         className,
       )}
     >
@@ -471,12 +478,12 @@ export function NextStep({
   steps: { label: string; href: string; hint?: string; count?: number }[];
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap">
       {steps.map((step) => (
         <Link
           key={step.href + step.label}
           href={step.href}
-          className="group panel-elevated flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-(--line) bg-(--panel) px-2.5 py-1.5 transition hover:border-(--accent) hover:bg-(--accent-soft)"
+          className="group panel-elevated flex min-w-0 w-full items-center gap-2 rounded-lg border border-(--line) bg-(--panel) px-3 py-2.5 transition hover:border-(--accent) hover:bg-(--accent-soft) sm:w-auto sm:flex-1 sm:px-2.5 sm:py-1.5"
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12px] font-semibold text-(--ink)">

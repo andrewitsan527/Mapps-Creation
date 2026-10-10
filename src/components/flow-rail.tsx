@@ -39,7 +39,7 @@ export function FlowRail({
           Jump to the stage that needs you
         </p>
       </div>
-      <ol className="flex overflow-x-auto">
+      <ol className="-mx-0 flex snap-x snap-mandatory overflow-x-auto scroll-smooth px-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:snap-none">
         {pipeline.map((stage, index) => {
           const data = counts[stage.key];
           const queue = data?.queue ?? 0;
@@ -49,7 +49,10 @@ export function FlowRail({
           const Icon = stage.icon;
 
           return (
-            <li key={stage.key} className="min-w-28 flex-1">
+            <li
+              key={stage.key}
+              className="min-w-[38%] shrink-0 snap-start sm:min-w-28 sm:flex-1 md:min-w-0"
+            >
               <Link
                 href={stage.href}
                 prefetch

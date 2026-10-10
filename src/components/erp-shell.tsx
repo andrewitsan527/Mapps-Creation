@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight, LogOut, Menu, MessageCircle } from "lucide-r
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, use, useEffect, useState } from "react";
+import { SiteFooter } from "@/components/site-footer";
 
 const SIDEBAR_KEY = "mapps.sidebar.collapsed";
 
@@ -277,6 +278,14 @@ export function ErpShell({
               ) : (
               <div className="flex min-w-0 items-center gap-1 text-[11.5px]">
                 <span className="font-serif text-[15px] md:hidden">Mapps</span>
+                {link ? (
+                  <>
+                    <ChevronRight className="h-3 w-3 shrink-0 text-(--faint) md:hidden" />
+                    <span className="truncate font-semibold text-(--ink) md:hidden">
+                      {link.label}
+                    </span>
+                  </>
+                ) : null}
                 {cluster ? (
                   <span className="hidden font-semibold tracking-[0.12em] text-(--muted) uppercase md:inline">
                     {cluster.title}
@@ -309,7 +318,7 @@ export function ErpShell({
               </div>
             ) : null}
 
-            <div className="flex min-w-0 items-center gap-1.5">
+            <div className="flex min-w-0 max-w-[48%] items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:max-w-none sm:gap-1.5">
               <Suspense fallback={null}>
                 <LiveHeaderAlerts flowPromise={flowPromise} />
               </Suspense>
@@ -327,6 +336,7 @@ export function ErpShell({
           >
             {children}
           </main>
+          <SiteFooter className="pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-2.5" />
         </div>
       </div>
 

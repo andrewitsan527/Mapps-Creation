@@ -13,4 +13,6 @@ export const COMPANY = {
   address:
     "Shop No. G-9, Salasar Textile Market, Nr. DMD LP Saroli, Surat. 395010",
   city: "Surat",
+  developedBy: "GrowthEX Partners",
+  poweredBy: "INTELIXA",
 } as const;

@@ -20,6 +20,8 @@ export type SendWhatsAppResult = {
   providerId?: string;
   status: "SENT" | "FAILED" | "STUB";
   error?: string;
+  /** wa.me URL for click-to-chat (normal WhatsApp). */
+  shareUrl?: string;
 };
 
 export interface WhatsAppProvider {
