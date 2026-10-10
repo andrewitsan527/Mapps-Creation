@@ -52,3 +52,5 @@ next-env.d.ts
 
 # Grey Purchase originals kept outside public/
 /storage/grey-documents/
+
+tailwindcss-27508.log
