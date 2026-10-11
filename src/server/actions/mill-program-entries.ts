@@ -303,18 +303,48 @@ async function assertSaved(input: MillProgramInput, excludeId?: string) {
   }
 }
 
-function storedLines(input: MillProgramInput) {
-  const lines =
-    input.status === "draft" ? input.lines : input.lines.filter((line) => !isBlankLine(line));
-  return lines.map((line, index) => ({
-    sortOrder: index,
-    rolls: parsePositiveRolls(line.rolls),
-    codeNo: line.codeNo.trim(),
-    colour: line.colour.trim(),
-  }));
+async function resolveColorCodes(lines: MillProgramLineInput[]) {
+  const keys = [...new Set(lines.map((line) => line.codeNo.trim()).filter(Boolean))];
+  const colors = new Map<string, string>();
+  if (keys.length === 0) return colors;
+  const rows = await prisma.colorCode.findMany({
+    where: { colorCode: { in: keys } },
+    select: { colorCode: true, colorName: true },
+  });
+  for (const row of rows) colors.set(row.colorCode, row.colorName);
+  for (const line of lines) {
+    const key = line.codeNo.trim();
+    if (!key) continue;
+    const colorName = colors.get(key);
+    if (!colorName) throw new Error(`Color code "${key}" was not found.`);
+    if (line.colour.trim() !== colorName) {
+      throw new Error(`Colour for color code "${key}" must be "${colorName}".`);
+    }
+  }
+  return colors;
 }
 
-function headerData(input: MillProgramInput, sentAt: Date | null) {
+function storedLines(input: MillProgramInput, colors: Map<string, string>) {
+  const lines =
+    input.status === "draft" ? input.lines : input.lines.filter((line) => !isBlankLine(line));
+  return lines.map((line, index) => {
+    const codeNo = line.codeNo.trim();
+    const colorName = codeNo ? colors.get(codeNo) : undefined;
+    if (codeNo && !colorName) throw new Error(`Color code "${codeNo}" was not found.`);
+    return {
+      sortOrder: index,
+      rolls: parsePositiveRolls(line.rolls),
+      codeNo,
+      colour: colorName ?? line.colour.trim(),
+    };
+  });
+}
+
+function headerData(
+  input: MillProgramInput,
+  sentAt: Date | null,
+  colors: Map<string, string>,
+) {
   return {
     programDate: asDate(input.programDate),
     millId: input.millId.trim() || null,
@@ -324,7 +354,7 @@ function headerData(input: MillProgramInput, sentAt: Date | null) {
     width: input.width.trim(),
     status: input.status,
     sentAt,
-    lines: { create: storedLines(input) },
+    lines: { create: storedLines(input, colors) },
   };
 }
 
@@ -360,7 +390,8 @@ export async function createMillProgram(
   await requireUser();
   if (input.status !== "draft") await assertSaved(input);
   else await assertDraftRefs(input);
-  const data = headerData(input, await sentAtFor(input.status, null));
+  const colors = await resolveColorCodes(input.lines);
+  const data = headerData(input, await sentAtFor(input.status, null), colors);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const row = await prisma.millProgramEntry.create({
@@ -413,7 +444,8 @@ export async function updateMillProgram(
   if (!existing) throw new Error("Mill program not found.");
   if (input.status !== "draft") await assertSaved(input, id);
   else await assertDraftRefs(input);
-  const data = headerData(input, await sentAtFor(input.status, existing.sentAt));
+  const colors = await resolveColorCodes(input.lines);
+  const data = headerData(input, await sentAtFor(input.status, existing.sentAt), colors);
   const row = await prisma.$transaction(async (tx) => {
     await tx.millProgramEntryLine.deleteMany({ where: { programId: id } });
     return tx.millProgramEntry.update({

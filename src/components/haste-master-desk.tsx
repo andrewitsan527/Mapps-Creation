@@ -104,27 +104,35 @@ function FormSection({
 }) {
   const visible = !collapsible || open;
   return (
-    <div className="border-b border-(--line) pb-1.5 last:border-b-0">
+    <section className="min-w-0">
       {collapsible ? (
         <button
           type="button"
-          className="mb-1 flex w-full items-center gap-1 text-left"
+          className="mb-2 flex items-center gap-1.5"
           onClick={onToggle}
+          aria-expanded={visible}
         >
           <ChevronRight
-            className={`h-3.5 w-3.5 shrink-0 text-(--muted) ${
+            className={`h-3.5 w-3.5 shrink-0 text-(--muted) transition ${
               visible ? "rotate-90" : ""
             }`}
           />
-          <span className="band-label mb-0">{title}</span>
+          <span className="text-[13px] font-semibold text-(--ink)">{title}</span>
         </button>
       ) : (
-        <p className="band-label mb-1">{title}</p>
+        <h3 className="mb-2 border-b border-(--line) pb-1 text-[13px] font-semibold text-(--ink)">
+          {title}
+        </h3>
       )}
-      {visible ? children : null}
-    </div>
+      <div className={visible ? "min-w-0" : "hidden"}>{children}</div>
+    </section>
   );
 }
+
+const formGrid =
+  "grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 xl:grid-cols-4";
+const controlClass = `${inputClass} !h-9 !py-0`;
+const areaClass = `${inputClass} max-h-24 min-h-9 resize-y py-1.5`;
 
 export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
   const [rows, setRows] = useState<LocalHaste[]>(() => hastes.map(toLocal));
@@ -134,7 +142,10 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [taxOpen, setTaxOpen] = useState(false);
+  const [openExtra, setOpenExtra] = useState({
+    contact: false,
+    tax: false,
+  });
 
   useEffect(() => {
     setRows(hastes.map(toLocal));
@@ -155,14 +166,14 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
     setDraft(blankHaste());
     setMode("create");
     setError(null);
-    setTaxOpen(false);
+    setOpenExtra({ contact: false, tax: false });
   }
 
   function openEdit(row: LocalHaste) {
     setDraft({ ...row });
     setMode("edit");
     setError(null);
-    setTaxOpen(false);
+    setOpenExtra({ contact: false, tax: false });
   }
 
   function closeModal() {
@@ -327,91 +338,142 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
         <Overlay
           title={mode === "create" ? "New Haste" : "Edit Haste"}
           onClose={unsaved.requestClose}
+          flushBody
+          frameWidthClass="max-h-[calc(100%-4rem)] min-h-0 w-[min(1360px,calc(100%-8vw))] max-w-[calc(100%-8vw)]"
         >
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-2">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-5 py-4">
               {error ? (
                 <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                   {error}
                 </p>
               ) : null}
 
-              <FormSection title="Basic details">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Haste Name" className="col-span-2">
+              <FormSection title="Basic Details">
+                <div className={formGrid}>
+                  <Field
+                    label="Haste Name"
+                    className="sm:col-span-2 xl:col-span-3"
+                  >
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.hasteName}
+                      required
                       onChange={(e) => patch({ hasteName: e.target.value })}
                     />
                   </Field>
                 </div>
               </FormSection>
 
-              <FormSection title="Contact / address">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Receiver Name">
+              <FormSection title="Contact / Address">
+                <div className={formGrid}>
+                  <Field label="Receiver Name" className="sm:col-span-2">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.receiverName}
                       onChange={(e) => patch({ receiverName: e.target.value })}
                     />
                   </Field>
-                  <Field label="City Name">
-                    <input
-                      className={inputClass}
-                      value={draft.cityName}
-                      onChange={(e) => patch({ cityName: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Distance">
-                    <input
-                      className={inputClass}
-                      value={draft.distance}
-                      onChange={(e) => patch({ distance: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Manager">
-                    <input
-                      className={inputClass}
-                      value={draft.manager}
-                      onChange={(e) => patch({ manager: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Address" className="col-span-4">
-                    <textarea
-                      className={inputClass}
-                      rows={1}
-                      value={draft.address}
-                      onChange={(e) => patch({ address: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Phone No.">
-                    <input
-                      className={inputClass}
-                      value={draft.phone}
-                      inputMode="tel"
-                      onChange={(e) => patch({ phone: e.target.value })}
-                    />
-                  </Field>
                   <Field label="Mobile No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.mobile}
                       inputMode="tel"
                       onChange={(e) => patch({ mobile: e.target.value })}
                     />
                   </Field>
+                  <Field label="City Name">
+                    <input
+                      className={controlClass}
+                      value={draft.cityName}
+                      onChange={(e) => patch({ cityName: e.target.value })}
+                    />
+                  </Field>
+                  <Field
+                    label="Address"
+                    className="sm:col-span-2 xl:col-span-4"
+                  >
+                    <textarea
+                      className={areaClass}
+                      rows={2}
+                      value={draft.address}
+                      onChange={(e) => patch({ address: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="GSTIN">
+                    <input
+                      className={controlClass}
+                      value={draft.gstin}
+                      onChange={(e) => patch({ gstin: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Registration Date">
+                    <input
+                      className={controlClass}
+                      type="date"
+                      value={draft.registrationDate}
+                      onChange={(e) =>
+                        patch({ registrationDate: e.target.value })
+                      }
+                    />
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection title="Transport">
+                <div className={formGrid}>
+                  <Field label="Transport" className="sm:col-span-2">
+                    <input
+                      className={controlClass}
+                      value={draft.transport}
+                      onChange={(e) => patch({ transport: e.target.value })}
+                    />
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection
+                title="Additional Contact Details"
+                collapsible
+                open={openExtra.contact}
+                onToggle={() =>
+                  setOpenExtra((prev) => ({ ...prev, contact: !prev.contact }))
+                }
+              >
+                <div className={formGrid}>
+                  <Field label="Phone No.">
+                    <input
+                      className={controlClass}
+                      value={draft.phone}
+                      inputMode="tel"
+                      onChange={(e) => patch({ phone: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Distance">
+                    <input
+                      className={`${controlClass} text-right`}
+                      value={draft.distance}
+                      inputMode="decimal"
+                      onChange={(e) => patch({ distance: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Manager">
+                    <input
+                      className={controlClass}
+                      value={draft.manager}
+                      onChange={(e) => patch({ manager: e.target.value })}
+                    />
+                  </Field>
                   <Field label="Fax No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.fax}
                       onChange={(e) => patch({ fax: e.target.value })}
                     />
                   </Field>
                   <Field label="Email ID">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       type="email"
                       value={draft.email}
                       onChange={(e) => patch({ email: e.target.value })}
@@ -419,7 +481,7 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
                   </Field>
                   <Field label="Resident No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.residentNo}
                       onChange={(e) => patch({ residentNo: e.target.value })}
                     />
@@ -428,83 +490,61 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
               </FormSection>
 
               <FormSection
-                title="Tax / registration"
+                title="Additional Tax / Registration Details"
                 collapsible
-                open={taxOpen}
-                onToggle={() => setTaxOpen((prev) => !prev)}
+                open={openExtra.tax}
+                onToggle={() =>
+                  setOpenExtra((prev) => ({ ...prev, tax: !prev.tax }))
+                }
               >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+                <div className={formGrid}>
                   <Field label="KST No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.kstNo}
                       onChange={(e) => patch({ kstNo: e.target.value })}
                     />
                   </Field>
                   <Field label="Gujarat State">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.gujaratState}
                       onChange={(e) => patch({ gujaratState: e.target.value })}
                     />
                   </Field>
                   <Field label="CST No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.cstNo}
                       onChange={(e) => patch({ cstNo: e.target.value })}
                     />
                   </Field>
-                  <Field label="Transport">
-                    <input
-                      className={inputClass}
-                      value={draft.transport}
-                      onChange={(e) => patch({ transport: e.target.value })}
-                    />
-                  </Field>
                   <Field label="TIN No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.tinNo}
                       onChange={(e) => patch({ tinNo: e.target.value })}
                     />
                   </Field>
                   <Field label="Policy No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.policyNo}
                       onChange={(e) => patch({ policyNo: e.target.value })}
                     />
                   </Field>
                   <Field label="PAN No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.panNo}
                       onChange={(e) => patch({ panNo: e.target.value })}
                     />
                   </Field>
-                  <Field label="GSTIN">
-                    <input
-                      className={inputClass}
-                      value={draft.gstin}
-                      onChange={(e) => patch({ gstin: e.target.value })}
-                    />
-                  </Field>
                   <Field label="Composite No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.compositeNo}
                       onChange={(e) => patch({ compositeNo: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Registration Date">
-                    <input
-                      className={inputClass}
-                      type="date"
-                      value={draft.registrationDate}
-                      onChange={(e) =>
-                        patch({ registrationDate: e.target.value })
-                      }
                     />
                   </Field>
                 </div>

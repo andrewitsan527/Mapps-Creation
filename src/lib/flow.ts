@@ -17,6 +17,7 @@ import {
   MessageSquare,
   RotateCcw,
   Scissors,
+  Palette,
   Shirt,
   Truck,
   Users,
@@ -132,6 +133,7 @@ export const navClusters: NavCluster[] = [
       { href: "/masters/jobs", label: "Job Master", icon: Hammer },
       { href: "/masters/hastes", label: "Haste", icon: MapPin },
       { href: "/masters/items", label: "Item Master", icon: Shirt },
+      { href: "/masters/color-codes", label: "Color Code", icon: Palette },
       {
         href: "/masters/purchase-agents",
         label: "Purchase Agent",

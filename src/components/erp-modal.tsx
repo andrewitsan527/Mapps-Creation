@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { buttonTinyClass } from "@/components/ui";
 
@@ -39,6 +40,12 @@ export function ErpModal({
   closeTabIndex,
   cornerClose,
   frameWidthClass,
+  frameStyle,
+  overlayClassName,
+  closeClassName,
+  headerClassName,
+  portal,
+  trackViewport,
 }: {
   title: string;
   onClose: () => void;
@@ -52,13 +59,35 @@ export function ErpModal({
   closeTabIndex?: number;
   cornerClose?: boolean;
   frameWidthClass?: string;
+  frameStyle?: React.CSSProperties;
+  overlayClassName?: string;
+  closeClassName?: string;
+  headerClassName?: string;
+  portal?: boolean;
+  trackViewport?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const [viewportBox, setViewportBox] = useState<{ top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (!trackViewport) return;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => setViewportBox({ top: viewport.offsetTop, height: viewport.height });
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, [trackViewport]);
 
   useEffect(() => {
     if (!trapFocus) return;
     const root = rootRef.current;
     if (!root) return;
+    const previous = document.activeElement as HTMLElement | null;
 
     focusableIn(root)[0]?.focus();
 
@@ -88,7 +117,10 @@ export function ErpModal({
     }
 
     document.addEventListener("keydown", onKey, true);
-    return () => document.removeEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      if (previous?.isConnected) previous.focus();
+    };
   }, [trapFocus]);
 
   const widthClass =
@@ -109,8 +141,8 @@ export function ErpModal({
       tabIndex={closeTabIndex}
       className={
         form
-          ? `${buttonTinyClass} absolute top-2 right-2`
-          : buttonTinyClass
+          ? `${closeClassName || buttonTinyClass} absolute top-2 right-2`
+          : closeClassName || buttonTinyClass
       }
       onClick={onClose}
       aria-label="Close"
@@ -128,14 +160,15 @@ export function ErpModal({
       className={`relative flex flex-col overflow-hidden rounded-xl border border-(--line) bg-(--panel) shadow-(--shadow-sm) ${
         cornerClose ? "h-full w-full" : widthClass
       }`}
+      style={frameStyle}
     >
       {cornerClose ? null : (
         <div
           className={`flex shrink-0 items-center border-b border-(--line) ${
-            form ? "px-4 py-2 pr-10" : "justify-between px-5 py-2.5"
+            form ? "px-4 py-2 pr-10" : headerClassName || "justify-between px-5 py-2.5"
           }`}
         >
-          <h2 className="text-[14px] font-semibold text-(--ink)">{title}</h2>
+          <h2 className={`text-[14px] font-semibold text-(--ink) ${headerClassName ? "min-w-0 truncate" : ""}`}>{title}</h2>
           {form ? null : closeButton}
         </div>
       )}
@@ -180,13 +213,24 @@ export function ErpModal({
     );
   }
 
-  return (
+  const overlayPadding =
+    overlayClassName ??
+    (wide ? "px-[3vw] py-5" : roomy ? "px-[3vw] py-3" : "px-[4vw] py-8");
+  const overlay = (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 ${
-        wide ? "px-[3vw] py-5" : roomy ? "px-[3vw] py-3" : "px-[4vw] py-8"
-      }`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 ${overlayPadding}`}
+      style={
+        trackViewport && viewportBox
+          ? { top: viewportBox.top, height: viewportBox.height, bottom: "auto" }
+          : undefined
+      }
     >
       {frame}
     </div>
   );
+
+  if (portal && typeof document !== "undefined") {
+    return createPortal(overlay, document.body);
+  }
+  return overlay;
 }

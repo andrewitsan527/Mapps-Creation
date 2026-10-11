@@ -622,7 +622,8 @@ button {
 }
 
 .menu-row-3,
-.menu-row-2 {
+.menu-row-2,
+.menu-row-pair {
   grid-template-columns: 1fr;
 }
 
@@ -633,6 +634,18 @@ button {
 
   .menu-row-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .menu-row-pair {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .menu-row-pair > :nth-child(1) {
+    grid-column: 2 / span 2;
+  }
+
+  .menu-row-pair > :nth-child(2) {
+    grid-column: 4 / span 2;
   }
 }
 

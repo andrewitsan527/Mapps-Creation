@@ -393,7 +393,8 @@ async function resolve(
     if (!itemNames.has(id)) throw new Error("Select a valid item.");
   }
 
-  const named = input.lines.filter((line) => line.itemId.trim());
+  const lines = await colourCodesFor(tx, input.lines);
+  const named = lines.filter((line) => line.itemId.trim());
   if (status === "OPEN" && named.length === 0) {
     throw new Error("Add at least one item.");
   }
@@ -406,7 +407,7 @@ async function resolve(
     }
   }
 
-  const totals = compute(input.lines, input.discount, input.freight);
+  const totals = compute(lines, input.discount, input.freight);
   return {
     billDate: asDate(dateIso),
     dateIso,
@@ -416,6 +417,27 @@ async function resolve(
     lrDate: lrDate ? asDate(lrDate) : null,
     totals,
   };
+}
+
+async function colourCodesFor(
+  tx: Prisma.TransactionClient,
+  lines: SaleLineInput[],
+) {
+  const trimmed = lines.map((line) => ({
+    ...line,
+    colourCode: line.colourCode.trim(),
+  }));
+  const keys = [...new Set(trimmed.map((line) => line.colourCode).filter(Boolean))];
+  if (keys.length === 0) return trimmed;
+  const rows = await tx.colorCode.findMany({
+    where: { colorCode: { in: keys } },
+    select: { colorCode: true },
+  });
+  const found = new Set(rows.map((row) => row.colorCode));
+  for (const key of keys) {
+    if (!found.has(key)) throw new Error(`Color code "${key}" was not found.`);
+  }
+  return trimmed;
 }
 
 function lineCreates(

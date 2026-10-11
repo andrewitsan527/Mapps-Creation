@@ -26,12 +26,6 @@ import {
   type MillRecord,
 } from "@/server/actions/mills";
 
-const ACCOUNT_TYPES = [
-  "Sundry Debtors",
-  "Sundry Creditors",
-  "Other",
-] as const;
-
 function text(value: unknown) {
   return typeof value === "string" ? value : "";
 }
@@ -242,27 +236,35 @@ function FormSection({
 }) {
   const visible = !collapsible || open;
   return (
-    <div>
+    <section className="min-w-0">
       {collapsible ? (
         <button
           type="button"
-          className="mb-1 flex items-center gap-1"
+          className="mb-2 flex items-center gap-1.5"
           onClick={onToggle}
+          aria-expanded={visible}
         >
           <ChevronRight
             className={`h-3.5 w-3.5 shrink-0 text-(--muted) transition ${
               visible ? "rotate-90" : ""
             }`}
           />
-          <span className="band-label mb-0">{title}</span>
+          <span className="text-[13px] font-semibold text-(--ink)">{title}</span>
         </button>
       ) : (
-        <p className="band-label mb-1">{title}</p>
+        <h3 className="mb-2 border-b border-(--line) pb-1 text-[13px] font-semibold text-(--ink)">
+          {title}
+        </h3>
       )}
-      {visible ? children : null}
-    </div>
+      <div className={visible ? "min-w-0" : "hidden"}>{children}</div>
+    </section>
   );
 }
+
+const formGrid =
+  "grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 xl:grid-cols-4";
+const controlClass = `${inputClass} !h-9 !py-0`;
+const areaClass = `${inputClass} max-h-24 min-h-9 resize-y py-1.5`;
 
 export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
   const [rows, setRows] = useState<LocalMill[]>(() => mills.map(toLocal));
@@ -273,13 +275,9 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [openExtra, setOpenExtra] = useState({
-    tax: false,
     contact: false,
-    credit: false,
-    taxId: false,
+    statutory: false,
     commercial: false,
-    bank: false,
-    msme: false,
     status: false,
   });
 
@@ -300,13 +298,9 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
 
   function resetSections() {
     setOpenExtra({
-      tax: false,
       contact: false,
-      credit: false,
-      taxId: false,
+      statutory: false,
       commercial: false,
-      bank: false,
-      msme: false,
       status: false,
     });
   }
@@ -457,7 +451,6 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
               <thead>
                 <tr>
                   <th>Mill Name</th>
-                  <th>Account Type</th>
                   <th>Mobile</th>
                   <th>City</th>
                   <th>GSTIN</th>
@@ -475,7 +468,6 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                     onClick={() => openEdit(row)}
                   >
                     <td className="font-medium">{row.millName}</td>
-                    <td>{row.accountType || "—"}</td>
                     <td className="tabular-nums">{row.mobile || "—"}</td>
                     <td>{row.cityName || "—"}</td>
                     <td className="tabular-nums">{row.gstin || "—"}</td>
@@ -513,48 +505,30 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
         <Overlay
           title={mode === "create" ? "New Mill" : "Edit Mill"}
           onClose={unsaved.requestClose}
+          flushBody
+          frameWidthClass="max-h-[calc(100%-4rem)] min-h-0 w-[min(1360px,calc(100%-8vw))] max-w-[calc(100%-8vw)]"
         >
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-2">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-5 py-4">
               {error ? (
                 <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                   {error}
                 </p>
               ) : null}
 
-              <FormSection title="Account / basic">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Mill Name">
+              <FormSection title="Basic">
+                <div className={formGrid}>
+                  <Field label="Mill Name" className="sm:col-span-2 xl:col-span-3">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.millName}
+                      required
                       onChange={(e) => patch({ millName: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Account Type">
-                    <select
-                      className={inputClass}
-                      value={draft.accountType}
-                      onChange={(e) => patch({ accountType: e.target.value })}
-                    >
-                      <option value="">Select</option>
-                      {ACCOUNT_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Group">
-                    <input
-                      className={inputClass}
-                      value={draft.group}
-                      onChange={(e) => patch({ group: e.target.value })}
                     />
                   </Field>
                   <Field label="Agent">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.agent}
                       onChange={(e) => patch({ agent: e.target.value })}
                     />
@@ -562,37 +536,18 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                 </div>
               </FormSection>
 
-              <FormSection
-                title="Tax / registration"
-                collapsible
-                open={openExtra.tax}
-                onToggle={() => toggleSection("tax")}
-              >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+              <FormSection title="Registration and Contact">
+                <div className={formGrid}>
                   <Field label="GSTIN">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.gstin}
                       onChange={(e) => patch({ gstin: e.target.value })}
                     />
                   </Field>
-                  <Field label="Composite No.">
-                    <input
-                      className={inputClass}
-                      value={draft.compositeNo}
-                      onChange={(e) => patch({ compositeNo: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="ECO/SGSTIN">
-                    <input
-                      className={inputClass}
-                      value={draft.ecoSgstin}
-                      onChange={(e) => patch({ ecoSgstin: e.target.value })}
-                    />
-                  </Field>
                   <Field label="Registration Date">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       type="date"
                       value={draft.registrationDate}
                       onChange={(e) =>
@@ -600,135 +555,140 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                       }
                     />
                   </Field>
-                </div>
-              </FormSection>
-
-              <FormSection
-                title="Contact / address"
-                collapsible
-                open={openExtra.contact}
-                onToggle={() => toggleSection("contact")}
-              >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Receiver Name">
+                  <Field label="Receiver Name" className="sm:col-span-2">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.receiverName}
                       onChange={(e) => patch({ receiverName: e.target.value })}
                     />
                   </Field>
-                  <Field label="City Name">
-                    <input
-                      className={inputClass}
-                      value={draft.cityName}
-                      onChange={(e) => patch({ cityName: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Distance">
-                    <input
-                      className={`${inputClass} text-right`}
-                      value={draft.distance}
-                      inputMode="decimal"
-                      onChange={(e) => patch({ distance: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Manager">
-                    <input
-                      className={inputClass}
-                      value={draft.manager}
-                      onChange={(e) => patch({ manager: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Address" className="col-span-4">
-                    <textarea
-                      className={inputClass}
-                      rows={1}
-                      value={draft.address}
-                      onChange={(e) => patch({ address: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Phone No.">
-                    <input
-                      className={inputClass}
-                      value={draft.phone}
-                      inputMode="tel"
-                      onChange={(e) => patch({ phone: e.target.value })}
-                    />
-                  </Field>
                   <Field label="Mobile No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.mobile}
                       inputMode="tel"
                       onChange={(e) => patch({ mobile: e.target.value })}
                     />
                   </Field>
-                  <Field label="Fax No.">
+                  <Field label="Phone No.">
                     <input
-                      className={inputClass}
-                      value={draft.fax}
-                      onChange={(e) => patch({ fax: e.target.value })}
+                      className={controlClass}
+                      value={draft.phone}
+                      inputMode="tel"
+                      onChange={(e) => patch({ phone: e.target.value })}
                     />
                   </Field>
-                  <Field label="Email ID">
+                  <Field label="City Name">
                     <input
-                      className={inputClass}
-                      type="email"
-                      value={draft.email}
-                      onChange={(e) => patch({ email: e.target.value })}
+                      className={controlClass}
+                      value={draft.cityName}
+                      onChange={(e) => patch({ cityName: e.target.value })}
                     />
                   </Field>
-                  <Field label="Resident No.">
+                  <Field label="PAN No.">
                     <input
-                      className={inputClass}
-                      value={draft.residentNo}
-                      onChange={(e) => patch({ residentNo: e.target.value })}
+                      className={controlClass}
+                      value={draft.panNo}
+                      onChange={(e) => patch({ panNo: e.target.value })}
                     />
                   </Field>
-                  <Field label="City Name 2">
-                    <input
-                      className={inputClass}
-                      value={draft.cityName2}
-                      onChange={(e) => patch({ cityName2: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Address 2" className="col-span-4">
+                  <Field label="Address" className="sm:col-span-2 xl:col-span-3">
                     <textarea
-                      className={inputClass}
-                      rows={1}
-                      value={draft.address2}
-                      onChange={(e) => patch({ address2: e.target.value })}
+                      className={areaClass}
+                      rows={2}
+                      value={draft.address}
+                      onChange={(e) => patch({ address: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Distance">
+                    <input
+                      className={`${controlClass} text-right`}
+                      value={draft.distance}
+                      inputMode="decimal"
+                      onChange={(e) => patch({ distance: e.target.value })}
                     />
                   </Field>
                 </div>
               </FormSection>
 
-              <FormSection
-                title="Credit / accounting"
-                collapsible
-                open={openExtra.credit}
-                onToggle={() => toggleSection("credit")}
-              >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Credit Limit">
+              <FormSection title="Bank Details">
+                <div className={formGrid}>
+                  <Field label="Bank Detail" className="sm:col-span-2">
                     <input
-                      className={`${inputClass} text-right`}
-                      value={draft.creditLimit}
-                      inputMode="decimal"
-                      onChange={(e) => patch({ creditLimit: e.target.value })}
+                      className={controlClass}
+                      value={draft.bankDetail}
+                      onChange={(e) => patch({ bankDetail: e.target.value })}
                     />
                   </Field>
-                  <Field label="Credit Days">
+                  <Field label="Bank Name" className="sm:col-span-2">
                     <input
-                      className={`${inputClass} text-right`}
-                      value={draft.creditDays}
-                      inputMode="numeric"
-                      onChange={(e) => patch({ creditDays: e.target.value })}
+                      className={controlClass}
+                      value={draft.bankName}
+                      onChange={(e) => patch({ bankName: e.target.value })}
                     />
                   </Field>
+                  <Field label="A/C No.">
+                    <input
+                      className={controlClass}
+                      value={draft.accountNo}
+                      onChange={(e) => patch({ accountNo: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="IFSC Code">
+                    <input
+                      className={controlClass}
+                      value={draft.ifscCode}
+                      onChange={(e) => patch({ ifscCode: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Branch" className="sm:col-span-2">
+                    <input
+                      className={controlClass}
+                      value={draft.branch}
+                      onChange={(e) => patch({ branch: e.target.value })}
+                    />
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection title="MSME Details">
+                <div className={formGrid}>
+                  <Field
+                    label="Udyam Registration Number"
+                    className="sm:col-span-2"
+                  >
+                    <input
+                      className={controlClass}
+                      value={draft.udyamNo}
+                      onChange={(e) => patch({ udyamNo: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Enterprise Type">
+                    <input
+                      className={controlClass}
+                      value={draft.enterpriseType}
+                      onChange={(e) =>
+                        patch({ enterpriseType: e.target.value })
+                      }
+                    />
+                  </Field>
+                  <Field label="Enterprise Activity">
+                    <input
+                      className={controlClass}
+                      value={draft.enterpriseActivity}
+                      onChange={(e) =>
+                        patch({ enterpriseActivity: e.target.value })
+                      }
+                    />
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection title="Accounting and Payment">
+                <div className={formGrid}>
                   <Field label="Opening Balance">
                     <input
-                      className={`${inputClass} text-right`}
+                      className={`${controlClass} text-right`}
                       value={draft.openingBalance}
                       inputMode="decimal"
                       onChange={(e) =>
@@ -738,7 +698,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                   </Field>
                   <Field label="Cr. / Dr.">
                     <select
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.crDr}
                       onChange={(e) =>
                         patch({ crDr: e.target.value as "" | "CR" | "DR" })
@@ -751,91 +711,167 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                   </Field>
                   <Field label="TDS">
                     <input
-                      className={`${inputClass} text-right`}
+                      className={`${controlClass} text-right`}
                       value={draft.tds}
                       inputMode="decimal"
                       onChange={(e) => patch({ tds: e.target.value })}
                     />
                   </Field>
-                  <Field label="TDS A/c">
-                    <input
-                      className={inputClass}
-                      value={draft.tdsAccount}
-                      onChange={(e) => patch({ tdsAccount: e.target.value })}
-                    />
-                  </Field>
                   <Field label="TDS Limit">
                     <input
-                      className={`${inputClass} text-right`}
+                      className={`${controlClass} text-right`}
                       value={draft.tdsLimit}
                       inputMode="decimal"
                       onChange={(e) => patch({ tdsLimit: e.target.value })}
                     />
                   </Field>
-                  <Field label="DOB">
+                  <Field label="TDS A/c">
                     <input
-                      className={inputClass}
-                      type="date"
-                      value={draft.dob}
-                      onChange={(e) => patch({ dob: e.target.value })}
+                      className={controlClass}
+                      value={draft.tdsAccount}
+                      onChange={(e) => patch({ tdsAccount: e.target.value })}
                     />
                   </Field>
-                  <Field label="References" className="col-span-4">
-                    <textarea
-                      className={inputClass}
-                      rows={1}
-                      value={draft.references}
-                      onChange={(e) => patch({ references: e.target.value })}
+                  <Field label="Payment">
+                    <input
+                      className={controlClass}
+                      value={draft.payment}
+                      onChange={(e) => patch({ payment: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Credit Limit">
+                    <input
+                      className={`${controlClass} text-right`}
+                      value={draft.creditLimit}
+                      inputMode="decimal"
+                      onChange={(e) => patch({ creditLimit: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Credit Days">
+                    <input
+                      className={`${controlClass} text-right`}
+                      value={draft.creditDays}
+                      inputMode="numeric"
+                      onChange={(e) => patch({ creditDays: e.target.value })}
                     />
                   </Field>
                 </div>
               </FormSection>
 
               <FormSection
-                title="Tax identification"
+                title="Additional Contact / Address"
                 collapsible
-                open={openExtra.taxId}
-                onToggle={() => toggleSection("taxId")}
+                open={openExtra.contact}
+                onToggle={() => toggleSection("contact")}
               >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="PAN No.">
+                <div className={formGrid}>
+                  <Field label="Manager">
                     <input
-                      className={inputClass}
-                      value={draft.panNo}
-                      onChange={(e) => patch({ panNo: e.target.value })}
+                      className={controlClass}
+                      value={draft.manager}
+                      onChange={(e) => patch({ manager: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Fax No.">
+                    <input
+                      className={controlClass}
+                      value={draft.fax}
+                      onChange={(e) => patch({ fax: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Email ID">
+                    <input
+                      className={controlClass}
+                      type="email"
+                      value={draft.email}
+                      onChange={(e) => patch({ email: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Resident No.">
+                    <input
+                      className={controlClass}
+                      value={draft.residentNo}
+                      onChange={(e) => patch({ residentNo: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="City Name 2">
+                    <input
+                      className={controlClass}
+                      value={draft.cityName2}
+                      onChange={(e) => patch({ cityName2: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="DOB">
+                    <input
+                      className={controlClass}
+                      type="date"
+                      value={draft.dob}
+                      onChange={(e) => patch({ dob: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Address 2" className="sm:col-span-2">
+                    <textarea
+                      className={areaClass}
+                      rows={2}
+                      value={draft.address2}
+                      onChange={(e) => patch({ address2: e.target.value })}
+                    />
+                  </Field>
+                </div>
+              </FormSection>
+
+              <FormSection
+                title="Other Tax Identification"
+                collapsible
+                open={openExtra.statutory}
+                onToggle={() => toggleSection("statutory")}
+              >
+                <div className={formGrid}>
+                  <Field label="Composite No.">
+                    <input
+                      className={controlClass}
+                      value={draft.compositeNo}
+                      onChange={(e) => patch({ compositeNo: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="ECO/SGSTIN">
+                    <input
+                      className={controlClass}
+                      value={draft.ecoSgstin}
+                      onChange={(e) => patch({ ecoSgstin: e.target.value })}
                     />
                   </Field>
                   <Field label="TAN No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.tanNo}
                       onChange={(e) => patch({ tanNo: e.target.value })}
                     />
                   </Field>
                   <Field label="KST No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.kstNo}
                       onChange={(e) => patch({ kstNo: e.target.value })}
                     />
                   </Field>
                   <Field label="CST No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.cstNo}
                       onChange={(e) => patch({ cstNo: e.target.value })}
                     />
                   </Field>
                   <Field label="Gujarat State">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.gujaratState}
                       onChange={(e) => patch({ gujaratState: e.target.value })}
                     />
                   </Field>
                   <Field label="TIN No.">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.tinNo}
                       onChange={(e) => patch({ tinNo: e.target.value })}
                     />
@@ -844,22 +880,22 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
               </FormSection>
 
               <FormSection
-                title="Transaction / commercial"
+                title="Commercial"
                 collapsible
                 open={openExtra.commercial}
                 onToggle={() => toggleSection("commercial")}
               >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+                <div className={formGrid}>
                   <Field label="Trans-Name">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.transName}
                       onChange={(e) => patch({ transName: e.target.value })}
                     />
                   </Field>
                   <Field label="Disc. Perc.">
                     <input
-                      className={`${inputClass} text-right`}
+                      className={`${controlClass} text-right`}
                       value={draft.discountPercentage}
                       inputMode="decimal"
                       onChange={(e) =>
@@ -869,7 +905,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                   </Field>
                   <Field label="R.D. / Pcs">
                     <input
-                      className={`${inputClass} text-right`}
+                      className={`${controlClass} text-right`}
                       value={draft.rdPcs}
                       inputMode="decimal"
                       onChange={(e) => patch({ rdPcs: e.target.value })}
@@ -877,7 +913,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                   </Field>
                   <Field label="Mts">
                     <input
-                      className={`${inputClass} text-right`}
+                      className={`${controlClass} text-right`}
                       value={draft.mts}
                       inputMode="decimal"
                       onChange={(e) => patch({ mts: e.target.value })}
@@ -885,7 +921,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                   </Field>
                   <Field label="Comm. Perc.">
                     <input
-                      className={`${inputClass} text-right`}
+                      className={`${controlClass} text-right`}
                       value={draft.commissionPercentage}
                       inputMode="decimal"
                       onChange={(e) =>
@@ -897,104 +933,34 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
               </FormSection>
 
               <FormSection
-                title="Bank details"
-                collapsible
-                open={openExtra.bank}
-                onToggle={() => toggleSection("bank")}
-              >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Bank Detail">
-                    <input
-                      className={inputClass}
-                      value={draft.bankDetail}
-                      onChange={(e) => patch({ bankDetail: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Bank Name">
-                    <input
-                      className={inputClass}
-                      value={draft.bankName}
-                      onChange={(e) => patch({ bankName: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="A/C No.">
-                    <input
-                      className={inputClass}
-                      value={draft.accountNo}
-                      onChange={(e) => patch({ accountNo: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="IFSC Code">
-                    <input
-                      className={inputClass}
-                      value={draft.ifscCode}
-                      onChange={(e) => patch({ ifscCode: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Branch">
-                    <input
-                      className={inputClass}
-                      value={draft.branch}
-                      onChange={(e) => patch({ branch: e.target.value })}
-                    />
-                  </Field>
-                </div>
-              </FormSection>
-
-              <FormSection
-                title="MSME details"
-                collapsible
-                open={openExtra.msme}
-                onToggle={() => toggleSection("msme")}
-              >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Udyam Reg. Number" className="col-span-2">
-                    <input
-                      className={inputClass}
-                      value={draft.udyamNo}
-                      onChange={(e) => patch({ udyamNo: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Enterprise Type">
-                    <input
-                      className={inputClass}
-                      value={draft.enterpriseType}
-                      onChange={(e) =>
-                        patch({ enterpriseType: e.target.value })
-                      }
-                    />
-                  </Field>
-                  <Field label="Enterprise Activity">
-                    <input
-                      className={inputClass}
-                      value={draft.enterpriseActivity}
-                      onChange={(e) =>
-                        patch({ enterpriseActivity: e.target.value })
-                      }
-                    />
-                  </Field>
-                </div>
-              </FormSection>
-
-              <FormSection
-                title="Other / status"
+                title="References and Status"
                 collapsible
                 open={openExtra.status}
                 onToggle={() => toggleSection("status")}
               >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Master Type">
-                    <p className="py-1.5 text-[12.5px] font-semibold">MILL</p>
-                  </Field>
-                  <Field label="Payment">
+                <div className={formGrid}>
+                  <Field label="Group">
                     <input
-                      className={inputClass}
-                      value={draft.payment}
-                      onChange={(e) => patch({ payment: e.target.value })}
+                      className={controlClass}
+                      value={draft.group}
+                      onChange={(e) => patch({ group: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Master Type">
+                    <p className="flex h-9 items-center text-[13px] font-semibold">
+                      MILL
+                    </p>
+                  </Field>
+                  <Field label="References" className="sm:col-span-2">
+                    <textarea
+                      className={areaClass}
+                      rows={2}
+                      value={draft.references}
+                      onChange={(e) => patch({ references: e.target.value })}
                     />
                   </Field>
                   <Field label="TCS Applicable">
-                    <label className="flex items-center gap-2 py-1.5 text-[12.5px]">
+                    <label className="flex h-9 items-center gap-2 text-[13px]">
                       <input
                         type="checkbox"
                         checked={draft.tcsApplicable}
@@ -1006,7 +972,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                     </label>
                   </Field>
                   <Field label="Black Listed">
-                    <label className="flex items-center gap-2 py-1.5 text-[12.5px]">
+                    <label className="flex h-9 items-center gap-2 text-[13px]">
                       <input
                         type="checkbox"
                         checked={draft.blackListed}

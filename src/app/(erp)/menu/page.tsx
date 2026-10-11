@@ -1,12 +1,29 @@
 import Link from "next/link";
 import {
+  ArrowDownToLine,
   Banknote,
   BarChart3,
   ChevronRight,
   CreditCard,
-  LayoutGrid,
+  FileText,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui";
+
+const lead = [
+  {
+    href: "/grey-purchase",
+    label: "Grey Purchase",
+    hint: "Grey purchase bills",
+    icon: FileText,
+    surface: "menu-tile-sage",
+  },
+  {
+    href: "/mill-inward",
+    label: "Mill Inward",
+    hint: "Mill inward and returns",
+    icon: ArrowDownToLine,
+    surface: "menu-tile-stone",
+  },
+] as const;
 
 const shortcuts = [
   {
@@ -35,7 +52,13 @@ const shortcuts = [
 function ShortcutCard({
   item,
 }: {
-  item: (typeof shortcuts)[number];
+  item: {
+    href: string;
+    label: string;
+    hint: string;
+    icon: typeof CreditCard;
+    surface: string;
+  };
 }) {
   const Icon = item.icon;
   return (
@@ -56,11 +79,12 @@ export default function MainMenuPage() {
   return (
     <div className="menu-page">
       <div className="menu-page-stage">
-      <div className="menu-chrome mb-5">
-      <PageHeader title="Main menu" icon={LayoutGrid} />
-      </div>
-
       <div className="menu-desk">
+        <div className="menu-row menu-row-pair">
+          {lead.map((item) => (
+            <ShortcutCard key={item.href} item={item} />
+          ))}
+        </div>
         <div className="menu-row menu-row-3">
           {shortcuts.map((item) => (
             <ShortcutCard key={item.href} item={item} />

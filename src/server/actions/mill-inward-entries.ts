@@ -33,7 +33,7 @@ export type MillInwardQcReturn = {
   failedKg: string;
   grade: string;
   defectType: string;
-  lines: { id: string; rolls: string; codeNo: string; colour: string }[];
+  lines: { id: string; rolls: string; codeNo: string; colour: string; finishedKg: string }[];
 };
 
 export type MillInwardRecord = {
@@ -131,6 +131,15 @@ function num(raw: string) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function sumKg(weights: string[]) {
+  const thousandths = weights.reduce((sum, weight) => {
+    const n = Number(weight);
+    if (!Number.isFinite(n)) return sum;
+    return sum + Math.round(n * 1000);
+  }, 0);
+  return (thousandths / 1000).toFixed(3);
+}
+
 function filledItems(items: MillInwardItemInput[]) {
   return items.filter((item) => item.itemId.trim());
 }
@@ -206,6 +215,7 @@ type EntryRow = {
     rolls: number;
     codeNo: string;
     colour: string;
+    finishedKg: { toString(): string } | null;
   }[];
 };
 
@@ -260,7 +270,7 @@ function toRecord(row: EntryRow): MillInwardRecord {
             code: row.returnCode,
             colour: row.returnColour,
             failedRolls: row.returnFailedRolls ?? 0,
-            failedKg: quantity,
+            failedKg: sumKg(row.returnLines.map((line) => decText(line.finishedKg))),
             grade: row.returnGrade,
             defectType: row.returnDefectType,
             lines: row.returnLines.map((line) => ({
@@ -268,6 +278,7 @@ function toRecord(row: EntryRow): MillInwardRecord {
               rolls: String(line.rolls),
               codeNo: line.codeNo,
               colour: line.colour,
+              finishedKg: decText(line.finishedKg),
             })),
           }
         : null,

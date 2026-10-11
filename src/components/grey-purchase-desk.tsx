@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Plus, Search, Trash2 } from "lucide-react";
+import { FileDown, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useUnsavedClose } from "@/components/unsaved-changes";
@@ -44,6 +44,9 @@ import {
 type DraftItem = GreyBillItemRecord;
 type DraftRoll = { id: string; weight: string };
 type Draft = GreyBillRecord;
+
+const registerActionClass =
+  "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-(--line) bg-white text-(--ink-soft) hover:border-(--accent) hover:text-(--accent) disabled:cursor-not-allowed disabled:opacity-40";
 
 const SGST_PCT = 0.025;
 const CGST_PCT = 0.025;
@@ -810,6 +813,43 @@ export function GreyPurchaseDesk({
     return true;
   }
 
+  function storedDocuments(row: GreyBillRecord) {
+    return row.documents.filter(
+      (document) => document.kind === "BILL" || document.kind === "CHALLAN",
+    );
+  }
+
+  async function downloadBillDocuments(row: GreyBillRecord) {
+    const files = storedDocuments(row);
+    const failed: string[] = [];
+    for (const file of files) {
+      const label = file.kind === "BILL" ? "Bill" : "Challan";
+      try {
+        const response = await fetch(
+          `/api/grey-documents/${file.accessToken}?download=1`,
+        );
+        if (!response.ok) throw new Error(label);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = window.document.createElement("a");
+        anchor.href = url;
+        anchor.download = file.fileName || label;
+        window.document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch {
+        failed.push(label);
+      }
+    }
+    if (failed.length === 0) return;
+    setNotice(
+      failed.length === files.length
+        ? `Could not download ${failed.join(" and ")}.`
+        : `Could not download ${failed.join(" and ")}. The other file was downloaded.`,
+    );
+  }
+
   async function confirmDeleteBill() {
     if (!pendingDelete || savingRef.current) return;
     savingRef.current = true;
@@ -901,32 +941,41 @@ export function GreyPurchaseDesk({
           </div>
         ) : (
           <TableWrap>
-            <table className="erp-table erp-register w-full table-fixed">
+            <table className="erp-table erp-register w-full min-w-[52rem] table-fixed">
               <colgroup>
-                <col className="w-[9.25rem]" />
-                <col className="w-[8.5rem]" />
-                <col className="w-[8.5rem]" />
+                <col className="w-[2.75rem]" />
+                <col className="w-[7.5rem]" />
+                <col className="w-[7rem]" />
+                <col className="w-[7rem]" />
                 <col />
                 <col />
-                <col className="w-[8rem]" />
-                <col className="w-[6.75rem]" />
-                <col className="w-[8.5rem]" />
+                <col className="w-[7.5rem]" />
+                <col className="w-[5.75rem]" />
+                <col className="w-[7.5rem]" />
               </colgroup>
               <thead>
                 <tr>
+                  <th className="!text-center">No.</th>
                   <th>Sr. No.</th>
                   <th>Bill No.</th>
                   <th>Challan No.</th>
                   <th>Knitter</th>
                   <th>Mill</th>
-                  <th className="num">Net Amount</th>
+                  <th className="num !text-right">Net Amount</th>
                   <th>Status</th>
-                  <th>View/Edit</th>
+                  <th className="!text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => (
+                {filtered.map((row, index) => {
+                  const files = storedDocuments(row);
+                  const downloadLabel =
+                    files.length === 0
+                      ? "No bill or challan file"
+                      : "Download Bill and Challan PDFs";
+                  return (
                   <tr key={row.id}>
+                    <td className="!text-center tabular-nums">{index + 1}</td>
                     <td
                       className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold tabular-nums"
                       title={row.srNo}
@@ -967,30 +1016,41 @@ export function GreyPurchaseDesk({
                         {row.status}
                       </span>
                     </td>
-                    <td className="overflow-hidden">
-                      <div className="flex flex-col items-center gap-1">
+                    <td>
                       <div className="flex flex-nowrap items-center justify-center gap-1">
                         <button
                           type="button"
-                          className={buttonTinyClass}
+                          className={registerActionClass}
+                          aria-label="Edit grey bill"
+                          title="Edit grey bill"
                           onClick={() => openRow(row, "edit")}
                         >
-                          Edit
+                          <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
-                          className={buttonTinyClass}
+                          className={registerActionClass}
                           aria-label="Delete grey bill"
+                          title="Delete grey bill"
                           onClick={() => setPendingDelete(row)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
-                      </div>
-                      <DocumentActions documents={row.documents} />
+                        <button
+                          type="button"
+                          className={registerActionClass}
+                          aria-label={downloadLabel}
+                          title={downloadLabel}
+                          disabled={files.length === 0}
+                          onClick={() => void downloadBillDocuments(row)}
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </TableWrap>

@@ -108,27 +108,35 @@ function FormSection({
 }) {
   const visible = !collapsible || open;
   return (
-    <div className="border-b border-(--line) pb-1.5 last:border-b-0">
+    <section className="min-w-0">
       {collapsible ? (
         <button
           type="button"
-          className="mb-1 flex w-full items-center gap-1 text-left"
+          className="mb-2 flex items-center gap-1.5"
           onClick={onToggle}
+          aria-expanded={visible}
         >
           <ChevronRight
-            className={`h-3.5 w-3.5 shrink-0 text-(--muted) ${
+            className={`h-3.5 w-3.5 shrink-0 text-(--muted) transition ${
               visible ? "rotate-90" : ""
             }`}
           />
-          <span className="band-label mb-0">{title}</span>
+          <span className="text-[13px] font-semibold text-(--ink)">{title}</span>
         </button>
       ) : (
-        <p className="band-label mb-1">{title}</p>
+        <h3 className="mb-2 border-b border-(--line) pb-1 text-[13px] font-semibold text-(--ink)">
+          {title}
+        </h3>
       )}
-      {visible ? children : null}
-    </div>
+      <div className={visible ? "min-w-0" : "hidden"}>{children}</div>
+    </section>
   );
 }
+
+const formGrid =
+  "grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 xl:grid-cols-4";
+const controlClass = `${inputClass} !h-9 !py-0`;
+const areaClass = `${inputClass} max-h-24 min-h-9 resize-y py-1.5`;
 
 export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
   const [rows, setRows] = useState<LocalItem[]>(() => items.map(toLocal));
@@ -344,34 +352,40 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
         <Overlay
           title={mode === "create" ? "New Item" : "Edit Item"}
           onClose={unsaved.requestClose}
+          flushBody
+          frameWidthClass="max-h-[calc(100%-4rem)] min-h-0 w-[min(1360px,calc(100%-8vw))] max-w-[calc(100%-8vw)]"
         >
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-2">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-5 py-4">
               {error ? (
                 <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                   {error}
                 </p>
               ) : null}
 
-              <FormSection title="Basic details">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Item Name" className="col-span-2">
+              <FormSection title="Basic Details">
+                <div className={formGrid}>
+                  <Field
+                    label="Item Name"
+                    className="sm:col-span-2 xl:col-span-2"
+                  >
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.itemName}
+                      required
                       onChange={(e) => patch({ itemName: e.target.value })}
                     />
                   </Field>
                   <Field label="Quality">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.quality}
                       onChange={(e) => patch({ quality: e.target.value })}
                     />
                   </Field>
                   <Field label="Item Categories">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.itemCategories}
                       onChange={(e) =>
                         patch({ itemCategories: e.target.value })
@@ -380,21 +394,21 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Item Group">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.itemGroup}
                       onChange={(e) => patch({ itemGroup: e.target.value })}
                     />
                   </Field>
                   <Field label="HSN Code">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.hsnCode}
                       onChange={(e) => patch({ hsnCode: e.target.value })}
                     />
                   </Field>
                   <Field label="GST Perc. (%)">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.gstPercent}
                       onChange={(e) => patch({ gstPercent: e.target.value })}
@@ -403,12 +417,15 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                 </div>
               </FormSection>
 
-              <FormSection title="GST / description">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Description For GST" className="col-span-4">
+              <FormSection title="GST / Description">
+                <div className={formGrid}>
+                  <Field
+                    label="Description For GST"
+                    className="sm:col-span-2 xl:col-span-4"
+                  >
                     <textarea
-                      className={inputClass}
-                      rows={1}
+                      className={areaClass}
+                      rows={2}
                       value={draft.descriptionForGst}
                       onChange={(e) =>
                         patch({ descriptionForGst: e.target.value })
@@ -418,11 +435,11 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                 </div>
               </FormSection>
 
-              <FormSection title="Opening / pricing">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+              <FormSection title="Opening / Pricing">
+                <div className={formGrid}>
                   <Field label="Item Rate Per">
                     <select
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.itemRatePer}
                       onChange={(e) => patch({ itemRatePer: e.target.value })}
                     >
@@ -436,7 +453,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Opening Pcs">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.openingPcs}
                       onChange={(e) => patch({ openingPcs: e.target.value })}
@@ -444,7 +461,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Opening Mts">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.openingMts}
                       onChange={(e) => patch({ openingMts: e.target.value })}
@@ -452,7 +469,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Opening Value">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.openingValue}
                       onChange={(e) => patch({ openingValue: e.target.value })}
@@ -460,7 +477,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Rate Per Pcs">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.ratePerPcs}
                       onChange={(e) => patch({ ratePerPcs: e.target.value })}
@@ -468,7 +485,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Rate Per Mts">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.ratePerMts}
                       onChange={(e) => patch({ ratePerMts: e.target.value })}
@@ -476,7 +493,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Pur. Rate Per Pcs">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.purchaseRatePerPcs}
                       onChange={(e) =>
@@ -486,7 +503,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
                   </Field>
                   <Field label="Pur. Rate Per Mts">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.purchaseRatePerMts}
                       onChange={(e) =>
@@ -498,10 +515,10 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
               </FormSection>
 
               <FormSection title="Other">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+                <div className={formGrid}>
                   <Field label="Item Fold">
                     <input
-                      className={inputClass}
+                      className={`${controlClass} text-right`}
                       inputMode="decimal"
                       value={draft.itemFold}
                       onChange={(e) => patch({ itemFold: e.target.value })}
@@ -511,43 +528,43 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
               </FormSection>
 
               <FormSection
-                title="Item images"
+                title="Item Images"
                 collapsible
                 open={imagesOpen}
                 onToggle={() => setImagesOpen((prev) => !prev)}
               >
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                  <Field label="Image Path 1" className="col-span-2">
+                <div className={formGrid}>
+                  <Field label="Image Path 1" className="sm:col-span-2">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.imagePath1}
                       onChange={(e) => patch({ imagePath1: e.target.value })}
                     />
                   </Field>
-                  <Field label="Image Path 2" className="col-span-2">
+                  <Field label="Image Path 2" className="sm:col-span-2">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.imagePath2}
                       onChange={(e) => patch({ imagePath2: e.target.value })}
                     />
                   </Field>
-                  <Field label="Image Path 3" className="col-span-2">
+                  <Field label="Image Path 3" className="sm:col-span-2">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.imagePath3}
                       onChange={(e) => patch({ imagePath3: e.target.value })}
                     />
                   </Field>
-                  <Field label="Image Path 4" className="col-span-2">
+                  <Field label="Image Path 4" className="sm:col-span-2">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.imagePath4}
                       onChange={(e) => patch({ imagePath4: e.target.value })}
                     />
                   </Field>
-                  <Field label="Image Path 5" className="col-span-2">
+                  <Field label="Image Path 5" className="sm:col-span-2">
                     <input
-                      className={inputClass}
+                      className={controlClass}
                       value={draft.imagePath5}
                       onChange={(e) => patch({ imagePath5: e.target.value })}
                     />

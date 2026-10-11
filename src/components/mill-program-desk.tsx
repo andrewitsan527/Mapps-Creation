@@ -20,6 +20,7 @@ import {
   buttonWaClass,
   inputClass,
 } from "@/components/ui";
+import { lookupColorCode } from "@/server/actions/color-codes";
 import {
   createMillProgram,
   updateMillProgram,
@@ -207,6 +208,9 @@ export function MillProgramDesk({
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const savingRef = useRef(false);
+  const colorLookupRef = useRef(
+    new Map<string, { token: number; pendingKey: string | null; settledKey: string | null }>(),
+  );
 
   const mills = useMemo(() => {
     const seen = new Map<string, string>();
@@ -335,6 +339,7 @@ export function MillProgramDesk({
   }
 
   function closeModal() {
+    colorLookupRef.current.clear();
     setDraft(null);
     setMode(null);
     setError(null);
@@ -383,8 +388,89 @@ export function MillProgramDesk({
 
   function removeLine(id: string) {
     if (!draft) return;
+    colorLookupRef.current.delete(id);
     const next = draft.lines.filter((line) => line.id !== id);
     patch({ lines: next.length > 0 ? next : [emptyLine()] });
+  }
+
+  function lookupLineColor(lineId: string, raw: string) {
+    const key = raw.trim();
+    const current = colorLookupRef.current.get(lineId) ?? {
+      token: 0,
+      pendingKey: null,
+      settledKey: null,
+    };
+    if (!key) {
+      colorLookupRef.current.set(lineId, {
+        token: current.token + 1,
+        pendingKey: null,
+        settledKey: null,
+      });
+      return;
+    }
+    if (current.pendingKey === key || current.settledKey === key) return;
+    const token = current.token + 1;
+    colorLookupRef.current.set(lineId, {
+      token,
+      pendingKey: key,
+      settledKey: null,
+    });
+    void lookupColorCode(key)
+      .then((result) => {
+        const latest = colorLookupRef.current.get(lineId);
+        if (!latest || latest.token !== token) return;
+        colorLookupRef.current.set(lineId, {
+          token,
+          pendingKey: null,
+          settledKey: key,
+        });
+        if (result.status === "not_found") {
+          setDraft((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              lines: prev.lines.map((line) =>
+                line.id === lineId && line.codeNo.trim() === key
+                  ? { ...line, colour: "" }
+                  : line,
+              ),
+            };
+          });
+          setError(`Color code "${key}" was not found.`);
+          return;
+        }
+        if (result.status !== "found") return;
+        setDraft((prev) => {
+          if (!prev) return prev;
+          const line = prev.lines.find((row) => row.id === lineId);
+          if (!line || line.codeNo.trim() !== key || line.colour === result.colorName) {
+            return prev;
+          }
+          return {
+            ...prev,
+            lines: prev.lines.map((row) =>
+              row.id === lineId ? { ...row, colour: result.colorName } : row,
+            ),
+          };
+        });
+        setError((prev) =>
+          prev?.startsWith("Color code ") && prev.endsWith(" was not found.")
+            ? null
+            : prev,
+        );
+      })
+      .catch((err: unknown) => {
+        const latest = colorLookupRef.current.get(lineId);
+        if (!latest || latest.token !== token) return;
+        colorLookupRef.current.set(lineId, {
+          token,
+          pendingKey: null,
+          settledKey: null,
+        });
+        setError(
+          err instanceof Error ? err.message : "Could not look up the color code.",
+        );
+      });
   }
 
   function validateDraft(current: Program) {
@@ -857,9 +943,25 @@ export function MillProgramDesk({
                         <input
                           className={inputClass}
                           value={line.codeNo}
-                          onChange={(e) =>
-                            setLine(line.id, { codeNo: e.target.value })
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const nextKey = value.trim();
+                            const state = colorLookupRef.current.get(line.id);
+                            if (state && nextKey !== (state.pendingKey ?? state.settledKey)) {
+                              colorLookupRef.current.set(line.id, {
+                                token: state.token + 1,
+                                pendingKey: null,
+                                settledKey: null,
+                              });
+                            }
+                            setLine(line.id, {
+                              codeNo: value,
+                              ...(nextKey === line.codeNo.trim()
+                                ? {}
+                                : { colour: "" }),
+                            });
+                          }}
+                          onBlur={(e) => lookupLineColor(line.id, e.currentTarget.value)}
                         />
                       </td>
                       <td>

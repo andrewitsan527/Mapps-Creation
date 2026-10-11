@@ -38,7 +38,7 @@ type InwardItem = {
   rolls: string;
   qty: string;
 };
-type ReturnLine = { id: string; rolls: string; codeNo: string; colour: string };
+type ReturnLine = { id: string; rolls: string; codeNo: string; colour: string; finishedKg: string };
 
 type Inward = {
   id: string;
@@ -822,8 +822,21 @@ export function MillInwardDesk({
                   : `Pending inward ${draft.srNo}`
           }
           onClose={unsaved.requestClose}
+          flushBody={isQcReturn(draft)}
+          portal={isQcReturn(draft)}
+          trackViewport={isQcReturn(draft)}
+          overlayClassName={
+            isQcReturn(draft)
+              ? "px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-8 md:py-10"
+              : undefined
+          }
+          frameWidthClass={
+            isQcReturn(draft)
+              ? "h-[min(640px,100%)] max-h-full w-full min-h-0 max-w-[800px] self-stretch md:self-center"
+              : undefined
+          }
         >
-          <div className="space-y-2 px-4 py-2.5">
+          <div className={isQcReturn(draft) ? "flex min-h-0 flex-1 flex-col" : "space-y-2 px-4 py-2.5"}>
             {error ? (
               <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                 {error}
@@ -831,8 +844,8 @@ export function MillInwardDesk({
             ) : null}
 
             {isQcReturn(draft) ? (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-4 py-3">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
                   {(
                     [
                       ["Return Sr. No.", draft.srNo],
@@ -854,7 +867,6 @@ export function MillInwardDesk({
                           ? `${formatKg(num(draft.failedKg))} KG`
                           : "",
                       ],
-                      ["Grade", draft.grade ?? ""],
                       ["Defect Type", draft.defectType ?? ""],
                     ] as const
                   ).map(([label, value]) => (
@@ -868,13 +880,21 @@ export function MillInwardDesk({
                     <p className="mb-1 text-[12px] font-medium text-(--muted)">
                       Failed rolls
                     </p>
-                    <table className="erp-table">
+                    <table className="erp-table table-fixed">
+                      <colgroup>
+                        <col className="w-10" />
+                        <col className="w-16" />
+                        <col />
+                        <col />
+                        <col className="w-28" />
+                      </colgroup>
                       <thead>
                         <tr>
-                          <th className="w-16">#</th>
+                          <th>#</th>
                           <th className="num">Rolls</th>
                           <th>Code</th>
                           <th>Colour</th>
+                          <th className="num">Finished KG</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -882,8 +902,11 @@ export function MillInwardDesk({
                           <tr key={line.id}>
                             <td className="tabular-nums">{index + 1}</td>
                             <td className="num tabular-nums">{line.rolls}</td>
-                            <td>{line.codeNo || "—"}</td>
-                            <td>{line.colour || "—"}</td>
+                            <td className="truncate">{line.codeNo || "—"}</td>
+                            <td className="truncate">{line.colour || "—"}</td>
+                            <td className="num tabular-nums">
+                              {line.finishedKg.trim() ? formatKg(num(line.finishedKg)) : "—"}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1066,7 +1089,7 @@ export function MillInwardDesk({
             </>
             ) : null}
 
-            <div className="sticky bottom-0 flex justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5 -mx-4">
+            <div className={isQcReturn(draft) ? "flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5" : "sticky bottom-0 flex justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5 -mx-4"}>
               <button
                 type="button"
                 className={buttonGhostClass}

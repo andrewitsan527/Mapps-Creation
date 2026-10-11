@@ -1414,3 +1414,23 @@ model SalesBillEntryRoll {
 
   @@index([lineId])
 }
+
+model ColorQuality {
+  id          String      @id @default(cuid())
+  qualityName String      @unique
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  colorCodes  ColorCode[]
+}
+
+model ColorCode {
+  id        String       @id @default(cuid())
+  qualityId String
+  quality   ColorQuality @relation(fields: [qualityId], references: [id], onDelete: Cascade)
+  colorCode String       @unique
+  colorName String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([qualityId])
+}

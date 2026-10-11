@@ -20,6 +20,7 @@ import {
   buttonTinyClass,
   inputClass,
 } from "@/components/ui";
+import { lookupColorCode } from "@/server/actions/color-codes";
 import {
   createSaleBill,
   updateSaleBill,
@@ -37,13 +38,6 @@ type LocalSaleRoll = SaleDeskRoll;
 
 const CGST_PCT = 2.5;
 const SGST_PCT = 2.5;
-
-const MOCK_COLOURS = [
-  { id: "Black", label: "Black" },
-  { id: "White", label: "White" },
-  { id: "Navy", label: "Navy" },
-  { id: "Grey", label: "Grey" },
-];
 
 function todayIso() {
   const d = new Date();
@@ -351,6 +345,12 @@ export function SalesDesk({
   const pendingLineFocus = useRef<string | null>(null);
   const returnFocusLineId = useRef<string | null>(null);
   const savingRef = useRef(false);
+  const colorLookupRef = useRef(
+    new Map<string, { token: number; pendingKey: string | null; settledKey: string | null }>(),
+  );
+  const [colourNames, setColourNames] = useState<Record<string, string>>({});
+  const [colourMiss, setColourMiss] = useState<Record<string, boolean>>({});
+  const [editingColourId, setEditingColourId] = useState<string | null>(null);
   const readOnly = mode === "view";
   useFocusTrap(Boolean(draft && mode && !rollLineId), billTrapRef);
   useFocusTrap(Boolean(rollLineId), rollTrapRef);
@@ -444,16 +444,23 @@ export function SalesDesk({
     setMode("create");
     setError(null);
     setRollLineId(null);
+    clearColourState();
   }
 
   function openBill(row: LocalSaleBill, nextMode: "edit" | "view") {
-    setDraft(cloneBill(row));
+    const bill = cloneBill(row);
+    setDraft(bill);
     setMode(nextMode);
     setError(null);
     setRollLineId(null);
+    clearColourState();
+    for (const line of bill.lines) {
+      if (line.colourCode.trim()) lookupLineColor(line.id, line.colourCode);
+    }
   }
 
   function closeModal() {
+    clearColourState();
     setDraft(null);
     setMode(null);
     setError(null);
@@ -486,7 +493,83 @@ export function SalesDesk({
     patch({ lines: [...draft.lines, created] });
   }
 
+  function clearColourState() {
+    colorLookupRef.current.clear();
+    setColourNames({});
+    setColourMiss({});
+    setEditingColourId(null);
+  }
+
+  function forgetColour(lineId: string) {
+    setColourNames((prev) => {
+      if (!(lineId in prev)) return prev;
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
+    setColourMiss((prev) => {
+      if (!(lineId in prev)) return prev;
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
+  }
+
+  function lookupLineColor(lineId: string, raw: string) {
+    const key = raw.trim();
+    const current = colorLookupRef.current.get(lineId) ?? {
+      token: 0,
+      pendingKey: null,
+      settledKey: null,
+    };
+    if (!key) {
+      colorLookupRef.current.set(lineId, {
+        token: current.token + 1,
+        pendingKey: null,
+        settledKey: null,
+      });
+      forgetColour(lineId);
+      return;
+    }
+    if (current.pendingKey === key || current.settledKey === key) return;
+    const token = current.token + 1;
+    colorLookupRef.current.set(lineId, { token, pendingKey: key, settledKey: null });
+    void lookupColorCode(key)
+      .then((result) => {
+        const latest = colorLookupRef.current.get(lineId);
+        if (!latest || latest.token !== token) return;
+        colorLookupRef.current.set(lineId, { token, pendingKey: null, settledKey: key });
+        if (result.status === "found") {
+          setColourNames((prev) => ({ ...prev, [lineId]: result.colorName }));
+          setColourMiss((prev) => {
+            if (!prev[lineId]) return prev;
+            const next = { ...prev };
+            delete next[lineId];
+            return next;
+          });
+          setError((prev) =>
+            prev?.startsWith("Color code ") && prev.endsWith(" was not found.") ? null : prev,
+          );
+          return;
+        }
+        if (result.status === "not_found") {
+          forgetColour(lineId);
+          setColourMiss((prev) => ({ ...prev, [lineId]: true }));
+          setError(`Color code "${key}" was not found.`);
+        }
+      })
+      .catch((err: unknown) => {
+        const latest = colorLookupRef.current.get(lineId);
+        if (!latest || latest.token !== token) return;
+        colorLookupRef.current.set(lineId, { token, pendingKey: null, settledKey: null });
+        setError(err instanceof Error ? err.message : "Could not look up the color code.");
+      });
+  }
+
   function deleteLine(id: string) {
+    colorLookupRef.current.delete(id);
+    forgetColour(id);
+    setEditingColourId((current) => (current === id ? null : current));
     setDraft((prev) => {
       if (!prev) return prev;
       const remaining = prev.lines.filter((line) => line.id !== id);
@@ -1116,7 +1199,7 @@ export function SalesDesk({
                         <tr>
                           <th className="text-center">Sr.</th>
                           <th>Item Name</th>
-                          <th>Colour Code</th>
+                          <th>Color Code</th>
                           <th>HSN</th>
                           <th className="num">No. of Rolls</th>
                           <th className="text-center">Details</th>
@@ -1157,14 +1240,61 @@ export function SalesDesk({
                               />
                             </td>
                             <td>
-                              <SearchableSelect
-                                value={line.colourCode}
-                                options={MOCK_COLOURS}
-                                disabled={readOnly}
-                                placeholder="Colour"
-                                onChange={(id) =>
-                                  patchLine(line.id, { colourCode: id })
+                              <input
+                                className={cellInput}
+                                value={
+                                  editingColourId === line.id ||
+                                  !colourNames[line.id] ||
+                                  colourMiss[line.id]
+                                    ? line.colourCode
+                                    : colourNames[line.id]
                                 }
+                                disabled={readOnly}
+                                aria-label="Color Code"
+                                onFocus={(e) => {
+                                  if (readOnly) return;
+                                  setEditingColourId(line.id);
+                                  e.currentTarget.value = line.colourCode;
+                                }}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  const name = colourNames[line.id];
+                                  if (
+                                    editingColourId !== line.id &&
+                                    name &&
+                                    !colourMiss[line.id] &&
+                                    value.trim() === name.trim()
+                                  ) {
+                                    return;
+                                  }
+                                  const nextKey = value.trim();
+                                  const state = colorLookupRef.current.get(line.id);
+                                  if (state && nextKey !== (state.pendingKey ?? state.settledKey)) {
+                                    colorLookupRef.current.set(line.id, {
+                                      token: state.token + 1,
+                                      pendingKey: null,
+                                      settledKey: null,
+                                    });
+                                  }
+                                  if (nextKey !== line.colourCode.trim()) forgetColour(line.id);
+                                  patchLine(line.id, { colourCode: value });
+                                }}
+                                onBlur={(e) => {
+                                  setEditingColourId((current) =>
+                                    current === line.id ? null : current,
+                                  );
+                                  const typed = e.currentTarget.value;
+                                  const name = colourNames[line.id];
+                                  if (
+                                    name &&
+                                    !colourMiss[line.id] &&
+                                    typed.trim() === name.trim() &&
+                                    typed.trim() !== line.colourCode.trim()
+                                  ) {
+                                    return;
+                                  }
+                                  lookupLineColor(line.id, typed);
+                                }}
                               />
                             </td>
                             <td>
