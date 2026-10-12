@@ -33,6 +33,7 @@ import type { ItemRecord } from "@/server/actions/items";
 import type { KnitterRecord } from "@/server/actions/knitters";
 import { ensureMillInwardFromGreyBill } from "@/server/actions/mill-inward-entries";
 import type { MillRecord } from "@/server/actions/mills";
+import type { PurchaseAgentRecord } from "@/server/actions/purchase-agents";
 import type { PurchaseOrderRecord } from "@/server/actions/purchase-orders";
 import { GreyChallanUploadButton } from "@/components/grey-purchase-upload-test";
 import type { GreyBillExtract } from "@/lib/grey-upload-check";
@@ -331,12 +332,14 @@ export function GreyPurchaseDesk({
   mills,
   items,
   purchaseOrders: _purchaseOrders,
+  purchaseAgents,
 }: {
   bills: GreyBillRecord[];
   knitters: KnitterRecord[];
   mills: MillRecord[];
   items: ItemRecord[];
   purchaseOrders: PurchaseOrderRecord[];
+  purchaseAgents: PurchaseAgentRecord[];
 }) {
   const [rows, setRows] = useState<GreyBillRecord[]>(bills);
   const [query, setQuery] = useState("");
@@ -376,6 +379,19 @@ export function GreyPurchaseDesk({
     () => items.map((row) => ({ id: row.id, label: row.itemName })),
     [items],
   );
+  const agentOptions = useMemo(() => {
+    const names = [
+      ...new Set(
+        purchaseAgents.map((row) => row.agentName.trim()).filter(Boolean),
+      ),
+    ];
+    const current = draft?.agent.trim() ?? "";
+    const extra = current && !names.includes(current) ? [current] : [];
+    return [
+      { id: "", label: "Select agent" },
+      ...extra.concat(names).map((name) => ({ id: name, label: name })),
+    ];
+  }, [purchaseAgents, draft?.agent]);
 
   const live = useMemo(() => (draft ? moneyFor(draft) : null), [draft]);
 
@@ -1182,11 +1198,12 @@ export function GreyPurchaseDesk({
                 ) : null}
               </Field>
               <Field label="Agent Name">
-                <input
-                  className={inputClass}
+                <SearchableSelect
                   value={draft.agent}
+                  options={agentOptions}
                   disabled={readOnly}
-                  onChange={(e) => patch({ agent: e.target.value })}
+                  placeholder="Search agent"
+                  onChange={(id) => patch({ agent: id })}
                 />
               </Field>
             </div>

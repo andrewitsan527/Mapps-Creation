@@ -619,6 +619,9 @@ async function writeStock(
     finishedWorkEntryRollId: roll.id,
   };
   if (existing) {
+    if (existing.status !== "available") {
+      throw new Error("A selected roll is no longer available.");
+    }
     await tx.liveStockRoll.update({ where: { id: existing.id }, data });
     return;
   }
@@ -806,7 +809,16 @@ async function writeQc(tx: Tx, input: QualityCheckInput): Promise<QualityCheckSa
     if (mode === "without_qc" || roll.decision === "pass") {
       await writeStock(tx, savedId, roll, qualityState);
     } else {
-      await tx.liveStockRoll.deleteMany({ where: { finishedWorkEntryRollId: roll.id } });
+      const existing = await tx.liveStockRoll.findUnique({
+        where: { finishedWorkEntryRollId: roll.id },
+        select: { status: true },
+      });
+      if (existing && existing.status !== "available") {
+        throw new Error("A selected roll is no longer available.");
+      }
+      await tx.liveStockRoll.deleteMany({
+        where: { finishedWorkEntryRollId: roll.id, status: "available" },
+      });
     }
   }
 

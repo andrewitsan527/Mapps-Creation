@@ -10,6 +10,7 @@ import {
   type PurchaseOrderRecord,
 } from "@/server/actions/purchase-orders";
 import { type KnitterRecord } from "@/server/actions/knitters";
+import { type PurchaseAgentRecord } from "@/server/actions/purchase-agents";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import {
   EmptyState,
@@ -117,6 +118,7 @@ function OrderFields({
   srNo,
   draft,
   knitters,
+  purchaseAgents,
   previewKg,
   readOnly,
   onChange,
@@ -124,6 +126,7 @@ function OrderFields({
   srNo: string;
   draft: Draft;
   knitters: KnitterRecord[];
+  purchaseAgents: PurchaseAgentRecord[];
   previewKg: number | null;
   readOnly: boolean;
   onChange: (next: Draft) => void;
@@ -133,6 +136,19 @@ function OrderFields({
     (event: React.ChangeEvent<HTMLInputElement>) => {
       onChange({ ...draft, [key]: event.target.value });
     };
+
+  const agentNames = useMemo(() => {
+    const names = [
+      ...new Set(
+        purchaseAgents.map((row) => row.agentName.trim()).filter(Boolean),
+      ),
+    ];
+    const current = draft.agent.trim();
+    if (current && !names.includes(current)) {
+      return [current, ...names];
+    }
+    return names;
+  }, [purchaseAgents, draft.agent]);
 
   const shown =
     "flex min-h-[31px] items-center rounded-md border border-(--line) bg-(--panel-sunken) px-2.5 text-[12.5px]";
@@ -249,15 +265,22 @@ function OrderFields({
             {draft.agent || "—"}
           </p>
         ) : (
-          <input
+          <select
             tabIndex={0}
             data-po-tab="6"
             className={inputClass}
             value={draft.agent}
-            onChange={set("agent")}
-            placeholder="Atul Jain"
-            autoComplete="off"
-          />
+            onChange={(event) =>
+              onChange({ ...draft, agent: event.target.value })
+            }
+          >
+            <option value="">Select Agent</option>
+            {agentNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
         )}
       </div>
       <div className="grid grid-cols-[6.75rem_minmax(0,1fr)] items-start gap-x-3">
@@ -307,9 +330,11 @@ function toRow(row: PurchaseOrderRecord): PurchaseOrderRow {
 export function PurchaseOrderDesk({
   orders,
   knitters,
+  purchaseAgents,
 }: {
   orders: PurchaseOrderRecord[];
   knitters: KnitterRecord[];
+  purchaseAgents: PurchaseAgentRecord[];
 }) {
   const [rows, setRows] = useState<PurchaseOrderRow[]>(() => orders.map(toRow));
   const [saving, setSaving] = useState(false);
@@ -696,6 +721,7 @@ export function PurchaseOrderDesk({
               srNo={formSr}
               draft={formDraft}
               knitters={knitters}
+              purchaseAgents={purchaseAgents}
               previewKg={formKg}
               readOnly={mode === "view"}
               onChange={mode === "create" ? setDraft : setEditDraft}

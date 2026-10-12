@@ -17,7 +17,8 @@ import { usePathname } from "next/navigation";
 import { Suspense, use, useEffect, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 
-const SIDEBAR_KEY = "mapps.sidebar.collapsed";
+export const SIDEBAR_KEY = "mapps.sidebar.collapsed";
+export const SIDEBAR_CHANGE_EVENT = "mapps-sidebar";
 
 export type ShellAlert = {
   label: string;
@@ -116,6 +117,7 @@ export function ErpShell({
     setCollapsed((current) => {
       const next = !current;
       window.localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
+      window.dispatchEvent(new Event(SIDEBAR_CHANGE_EVENT));
       return next;
     });
   }

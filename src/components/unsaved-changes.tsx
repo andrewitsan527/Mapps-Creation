@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { buttonClass, buttonGhostClass } from "@/components/ui";
 
 function stableString(value: unknown) {
@@ -83,9 +84,9 @@ export function useUnsavedClose({
     return () => document.removeEventListener("keydown", onKey, true);
   }, [confirming, onSaveDraft]);
 
-  const dialog = confirming ? (
+  const dialogNode = confirming ? (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
       onMouseDown={onSaveDraft ? () => setConfirming(false) : undefined}
     >
       <div
@@ -132,6 +133,10 @@ export function useUnsavedClose({
       </div>
     </div>
   ) : null;
+  const dialog =
+    dialogNode && typeof document !== "undefined"
+      ? createPortal(dialogNode, document.body)
+      : dialogNode;
 
   return { requestClose, dialog };
 }

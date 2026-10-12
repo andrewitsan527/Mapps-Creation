@@ -66,7 +66,6 @@ function parseRegistrationDate(value: string) {
 
 function assertInput(input: PurchaseAgentInput) {
   if (!input.agentName.trim()) throw new Error("Enter agent name.");
-  if (!input.accountType.trim()) throw new Error("Select account type.");
   if (input.mobileNo.trim() && !phoneLooksValid(input.mobileNo)) {
     throw new Error("Enter a valid mobile number.");
   }

@@ -23,7 +23,15 @@ export type SaleLookups = {
   items: SaleLookupOption[];
 };
 
-export type SaleDeskRoll = { id: string; weight: string };
+export type SaleDeskRoll = {
+  id: string;
+  weight: string;
+  liveStockRollId: string;
+  rollNo: string;
+  stockKg: string;
+  qualityState: string;
+  reference: string;
+};
 
 export type SaleDeskLine = {
   id: string;
@@ -79,7 +87,7 @@ export type SaleLineInput = {
   hsn: string;
   noOfRolls: string;
   rate: string;
-  rolls: { weight: string }[];
+  rolls: { weight: string; liveStockRollId?: string }[];
 };
 
 export type SaleBillInput = {
@@ -170,10 +178,25 @@ function lineWeight(rolls: { weight: string }[]) {
   }, 0);
 }
 
-function syncRolls(rolls: { weight: string }[], count: number) {
+function kgKey(raw: string) {
+  const text = raw.trim();
+  if (!/^\d+(\.\d+)?$/.test(text)) return null;
+  const [whole, frac = ""] = text.split(".");
+  const normalizedWhole = whole.replace(/^0+(?=\d)/, "") || "0";
+  const normalizedFrac = frac.replace(/0+$/, "");
+  return normalizedFrac ? `${normalizedWhole}.${normalizedFrac}` : normalizedWhole;
+}
+
+function syncRolls(
+  rolls: { weight: string; liveStockRollId?: string }[],
+  count: number,
+) {
   const n = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
-  const next = rolls.slice(0, n).map((roll) => ({ weight: roll.weight }));
-  while (next.length < n) next.push({ weight: "" });
+  const next = rolls.slice(0, n).map((roll) => ({
+    weight: roll.weight,
+    liveStockRollId: roll.liveStockRollId ?? "",
+  }));
+  while (next.length < n) next.push({ weight: "", liveStockRollId: "" });
   return next;
 }
 
@@ -224,7 +247,28 @@ const billInclude = {
     orderBy: { sortOrder: "asc" as const },
     include: {
       item: { select: { itemName: true } },
-      rolls: { orderBy: { sortOrder: "asc" as const } },
+      rolls: {
+        orderBy: { sortOrder: "asc" as const },
+        include: {
+          liveStockRoll: {
+            select: {
+              rollNo: true,
+              qualityState: true,
+              qualityCheckEntry: { select: { srNo: true } },
+              finishedWorkEntryRoll: {
+                select: {
+                  finishedKg: true,
+                  line: {
+                    select: {
+                      entry: { select: { srNo: true, challanNo: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   },
 } as const;
@@ -271,7 +315,20 @@ type BillRow = {
     weightKg: { toString(): string };
     rate: string;
     item: { itemName: string } | null;
-    rolls: { id: string; weight: string }[];
+    rolls: {
+      id: string;
+      weight: string;
+      liveStockRollId: string | null;
+      liveStockRoll: {
+        rollNo: string;
+        qualityState: string;
+        qualityCheckEntry: { srNo: string };
+        finishedWorkEntryRoll: {
+          finishedKg: { toString(): string };
+          line: { entry: { srNo: string; challanNo: string } };
+        } | null;
+      } | null;
+    }[];
   }[];
 };
 
@@ -301,7 +358,31 @@ function toBill(row: BillRow): SaleDeskBill {
       colourCode: line.colourCode,
       hsn: line.hsn,
       noOfRolls: line.noOfRolls,
-      rolls: line.rolls.map((roll) => ({ id: roll.id, weight: roll.weight })),
+      rolls: line.rolls.map((roll) => {
+        const stock = roll.liveStockRoll;
+        const finished = stock?.finishedWorkEntryRoll ?? null;
+        const reference = stock
+          ? [
+              stock.qualityCheckEntry.srNo.trim()
+                ? `QC ${stock.qualityCheckEntry.srNo.trim()}`
+                : "",
+              finished?.line.entry.challanNo.trim() ||
+                finished?.line.entry.srNo.trim() ||
+                "",
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : "";
+        return {
+          id: roll.id,
+          weight: roll.weight,
+          liveStockRollId: roll.liveStockRollId ?? "",
+          rollNo: stock?.rollNo ?? "",
+          stockKg: finished ? finished.finishedKg.toString() : "",
+          qualityState: stock?.qualityState ?? "",
+          reference,
+        };
+      }),
       weightKg: decText(line.weightKg),
       rate: line.rate,
     })),
@@ -442,6 +523,7 @@ async function colourCodesFor(
 
 function lineCreates(
   prepared: ReturnType<typeof compute>["prepared"],
+  status: SaleBillStatus,
 ) {
   return prepared.map((line, index) => ({
     sortOrder: index,
@@ -456,6 +538,10 @@ function lineCreates(
       create: line.rolls.map((roll, rollIndex) => ({
         sortOrder: rollIndex,
         weight: roll.weight,
+        liveStockRollId:
+          status === "OPEN" && line.itemId.trim()
+            ? roll.liveStockRollId.trim() || null
+            : null,
       })),
     },
   }));
@@ -495,6 +581,162 @@ function headerData(
   };
 }
 
+function pairKey(qcId: string, rollId: string) {
+  return `${qcId}\u0000${rollId}`;
+}
+
+function codesByStockPair(
+  lines: { qcId: string; finishedWorkEntryRollId: string | null; codeNo: string }[],
+) {
+  const codeByPair = new Map<string, string | null>();
+  for (const line of lines) {
+    if (!line.finishedWorkEntryRollId) continue;
+    const key = pairKey(line.qcId, line.finishedWorkEntryRollId);
+    const code = line.codeNo.trim();
+    const previous = codeByPair.get(key);
+    if (previous === undefined) codeByPair.set(key, code);
+    else if (previous !== code) codeByPair.set(key, null);
+  }
+  return codeByPair;
+}
+
+async function releaseBillStock(tx: Prisma.TransactionClient, billId: string) {
+  const linked = await tx.salesBillEntryRoll.findMany({
+    where: { line: { billId }, liveStockRollId: { not: null } },
+    select: { liveStockRollId: true },
+  });
+  const ids = [
+    ...new Set(
+      linked
+        .map((row) => row.liveStockRollId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (ids.length === 0) return;
+  await tx.liveStockRoll.updateMany({
+    where: { id: { in: ids }, status: "sold" },
+    data: { status: "available" },
+  });
+}
+
+async function previousRollWeights(tx: Prisma.TransactionClient, billId: string) {
+  const rows = await tx.salesBillEntryRoll.findMany({
+    where: { line: { billId }, liveStockRollId: { not: null } },
+    select: { liveStockRollId: true, weight: true },
+  });
+  const weights = new Map<string, string>();
+  for (const row of rows) {
+    if (row.liveStockRollId && !weights.has(row.liveStockRollId)) {
+      weights.set(row.liveStockRollId, row.weight);
+    }
+  }
+  return weights;
+}
+
+async function claimStock(
+  tx: Prisma.TransactionClient,
+  lines: {
+    itemId: string;
+    colourCode: string;
+    rolls: { weight: string; liveStockRollId: string }[];
+  }[],
+  previousWeights: Map<string, string>,
+) {
+  const wanted: {
+    id: string;
+    itemId: string;
+    colourCode: string;
+    weight: string;
+  }[] = [];
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const itemId = line.itemId.trim();
+    if (!itemId) continue;
+    const colourCode = line.colourCode.trim();
+    if (!colourCode) throw new Error("Enter a color code.");
+    for (const roll of line.rolls) {
+      const id = roll.liveStockRollId.trim();
+      if (!id) throw new Error("Select stock rolls for every item.");
+      if (seen.has(id)) throw new Error("A stock roll is selected more than once.");
+      seen.add(id);
+      wanted.push({ id, itemId, colourCode, weight: roll.weight });
+    }
+  }
+  if (wanted.length === 0) return;
+
+  const stock = await tx.liveStockRoll.findMany({
+    where: { id: { in: wanted.map((row) => row.id) } },
+    select: {
+      id: true,
+      status: true,
+      qualityCheckEntryId: true,
+      finishedWorkEntryRollId: true,
+      finishedWorkEntryRoll: {
+        select: {
+          finishedKg: true,
+          line: { select: { itemId: true } },
+        },
+      },
+    },
+  });
+  const byId = new Map(stock.map((row) => [row.id, row]));
+  const qcIds = [...new Set(stock.map((row) => row.qualityCheckEntryId))];
+  const rollIds = [
+    ...new Set(
+      stock
+        .map((row) => row.finishedWorkEntryRollId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const qcLines =
+    qcIds.length === 0 || rollIds.length === 0
+      ? []
+      : await tx.qualityCheckEntryLine.findMany({
+          where: {
+            qcId: { in: qcIds },
+            finishedWorkEntryRollId: { in: rollIds },
+          },
+          select: { qcId: true, finishedWorkEntryRollId: true, codeNo: true },
+        });
+  const codes = codesByStockPair(qcLines);
+
+  for (const want of wanted) {
+    const row = byId.get(want.id);
+    const code = row?.finishedWorkEntryRollId
+      ? codes.get(pairKey(row.qualityCheckEntryId, row.finishedWorkEntryRollId))
+      : undefined;
+    const actual = row?.finishedWorkEntryRoll?.finishedKg?.toString() ?? "";
+    const previous = previousWeights.get(want.id);
+    const matchesActual = Boolean(actual) && kgKey(want.weight) === kgKey(actual);
+    const matchesHistory =
+      previous != null && kgKey(want.weight) === kgKey(previous);
+    if (
+      !row ||
+      row.status !== "available" ||
+      row.finishedWorkEntryRoll?.line.itemId !== want.itemId ||
+      !code ||
+      code !== want.colourCode ||
+      (!matchesActual && !matchesHistory)
+    ) {
+      throw new Error(
+        matchesActual || matchesHistory
+          ? "A selected roll is not available for this item and color code."
+          : "A selected roll weight does not match the available stock weight.",
+      );
+    }
+  }
+
+  for (const want of wanted) {
+    const result = await tx.liveStockRoll.updateMany({
+      where: { id: want.id, status: "available" },
+      data: { status: "sold" },
+    });
+    if (result.count !== 1) {
+      throw new Error("A selected roll is no longer available.");
+    }
+  }
+}
+
 async function writeBill(
   tx: Prisma.TransactionClient,
   id: string | null,
@@ -503,7 +745,15 @@ async function writeBill(
 ) {
   const resolved = await resolve(tx, input, status);
   const data = headerData(input, resolved);
-  const lines = lineCreates(resolved.totals.prepared);
+  const previousWeights = id ? await previousRollWeights(tx, id) : new Map<string, string>();
+  if (id) {
+    await releaseBillStock(tx, id);
+    await tx.salesBillEntryLine.deleteMany({ where: { billId: id } });
+  }
+  if (status === "OPEN") {
+    await claimStock(tx, resolved.totals.prepared, previousWeights);
+  }
+  const lines = lineCreates(resolved.totals.prepared, status);
   if (!id) {
     return tx.salesBillEntry.create({
       data: {
@@ -515,7 +765,6 @@ async function writeBill(
       include: billInclude,
     });
   }
-  await tx.salesBillEntryLine.deleteMany({ where: { billId: id } });
   return tx.salesBillEntry.update({
     where: { id },
     data: {
@@ -538,6 +787,7 @@ async function commit(
         writeBill(tx, id, input, status),
       );
       revalidatePath("/sales");
+      if (status === "OPEN" || id) revalidatePath("/live-stock");
       return toBill(row);
     } catch (error) {
       if (!isUnique(error) || attempt === 1) throw error;
@@ -624,4 +874,19 @@ export async function updateSaleBill(
   });
   if (!existing) throw new Error("Sales bill not found.");
   return commit(id, input, status);
+}
+
+export async function deleteSaleBill(id: string): Promise<void> {
+  await requireUser();
+  if (!id.trim()) throw new Error("Sales bill not found.");
+  const existing = await prisma.salesBillEntry.findUnique({
+    where: { id },
+    select: { id: true, status: true },
+  });
+  if (!existing) throw new Error("Sales bill not found.");
+  if (existing.status !== "DRAFT") {
+    throw new Error("Only draft sales bills can be deleted.");
+  }
+  await prisma.salesBillEntry.delete({ where: { id } });
+  revalidatePath("/sales");
 }

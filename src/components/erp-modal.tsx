@@ -44,6 +44,7 @@ export function ErpModal({
   overlayClassName,
   closeClassName,
   headerClassName,
+  headerAccessory,
   portal,
   trackViewport,
 }: {
@@ -63,6 +64,7 @@ export function ErpModal({
   overlayClassName?: string;
   closeClassName?: string;
   headerClassName?: string;
+  headerAccessory?: React.ReactNode;
   portal?: boolean;
   trackViewport?: boolean;
 }) {
@@ -168,7 +170,10 @@ export function ErpModal({
             form ? "px-4 py-2 pr-10" : headerClassName || "justify-between px-5 py-2.5"
           }`}
         >
-          <h2 className={`text-[14px] font-semibold text-(--ink) ${headerClassName ? "min-w-0 truncate" : ""}`}>{title}</h2>
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className={`truncate text-[14px] font-semibold text-(--ink) ${headerClassName ? "min-w-0" : ""}`}>{title}</h2>
+            {headerAccessory}
+          </div>
           {form ? null : closeButton}
         </div>
       )}

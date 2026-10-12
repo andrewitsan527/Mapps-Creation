@@ -36,14 +36,6 @@ import {
   type PurchaseAgentRecord,
 } from "@/server/actions/purchase-agents";
 
-const ACCOUNT_TYPES = [
-  "Commission Agent",
-  "Broker",
-  "Sole Selling Agent",
-  "Consignment Agent",
-  "Other",
-] as const;
-
 function blankAgent(masterType: LocalAgentMasterType): LocalAgent {
   const now = new Date().toISOString();
   return {
@@ -243,7 +235,6 @@ export function AgentMasterDesk({
 
   function validate(entry: LocalAgent) {
     if (!entry.name.trim()) return "Enter agent name.";
-    if (!isSales && !entry.accountType.trim()) return "Select account type.";
     if (entry.mobile.trim() && !phoneLooksValid(entry.mobile)) {
       return "Enter a valid mobile number.";
     }

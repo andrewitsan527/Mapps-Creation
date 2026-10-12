@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CreditCard, Plus, Search, Trash2 } from "lucide-react";
+import { Check, CreditCard, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
+import { SIDEBAR_CHANGE_EVENT, SIDEBAR_KEY } from "@/components/erp-shell";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { SearchableSelect } from "@/components/searchable-select";
 import { statusBadge } from "@/lib/format";
@@ -22,7 +23,12 @@ import {
 } from "@/components/ui";
 import { lookupColorCode } from "@/server/actions/color-codes";
 import {
+  listSelectableStockRolls,
+  type SelectableStockRoll,
+} from "@/server/actions/live-stock";
+import {
   createSaleBill,
+  deleteSaleBill,
   updateSaleBill,
   type SaleBillInput,
   type SaleCustomerOption,
@@ -35,6 +41,15 @@ import {
 type LocalSaleBill = SaleDeskBill;
 type LocalSaleLine = SaleDeskLine;
 type LocalSaleRoll = SaleDeskRoll;
+
+const registerActionClass =
+  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded border border-(--line) bg-white text-(--ink-soft) transition hover:border-(--accent) hover:text-(--accent) disabled:cursor-not-allowed disabled:opacity-40";
+
+function formatDisplayDate(iso: string) {
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
 
 const CGST_PCT = 2.5;
 const SGST_PCT = 2.5;
@@ -106,6 +121,78 @@ function formatKg(n: number) {
   });
 }
 
+function kgKey(raw: string) {
+  const text = raw.trim();
+  if (!/^\d+(\.\d+)?$/.test(text)) return null;
+  const [whole, frac = ""] = text.split(".");
+  const normalizedWhole = whole.replace(/^0+(?=\d)/, "") || "0";
+  const normalizedFrac = frac.replace(/0+$/, "");
+  return normalizedFrac ? `${normalizedWhole}.${normalizedFrac}` : normalizedWhole;
+}
+
+function addKg(values: string[]) {
+  let scale = 0;
+  const parts = values.map((value) => {
+    const text = value.trim();
+    if (!/^\d+(\.\d+)?$/.test(text)) return null;
+    const [whole, frac = ""] = text.split(".");
+    scale = Math.max(scale, frac.length);
+    return { whole: whole.replace(/^0+(?=\d)/, "") || "0", frac };
+  });
+  if (parts.some((part) => !part)) return "0";
+  let total = BigInt(0);
+  const unit = BigInt(10) ** BigInt(scale);
+  for (const part of parts) {
+    if (!part) continue;
+    const frac = (part.frac + "0".repeat(scale)).slice(0, scale);
+    total += BigInt(part.whole) * unit + BigInt(frac || "0");
+  }
+  if (scale === 0) return total.toString();
+  const text = total.toString().padStart(scale + 1, "0");
+  return `${text.slice(0, -scale)}.${text.slice(-scale)}`;
+}
+
+function matchEntryRows(
+  rows: LocalSaleRoll[],
+  stock: SelectableStockRoll[],
+  taken: Set<string>,
+) {
+  const buckets = new Map<string, SelectableStockRoll[]>();
+  for (const roll of stock) {
+    if (taken.has(roll.id) || !roll.finishedKg) continue;
+    const key = kgKey(roll.finishedKg);
+    if (!key) continue;
+    const list = buckets.get(key);
+    if (list) list.push(roll);
+    else buckets.set(key, [roll]);
+  }
+  for (const list of buckets.values()) {
+    list.sort((a, b) => a.id.localeCompare(b.id));
+  }
+  const byId = new Map(stock.map((roll) => [roll.id, roll]));
+  const used = new Set<string>();
+  return rows.map((row) => {
+    const key = kgKey(row.weight);
+    if (!key) return { stock: null, invalid: row.weight.trim().length > 0 };
+    const preferred = byId.get(row.liveStockRollId);
+    if (
+      preferred &&
+      !taken.has(preferred.id) &&
+      !used.has(preferred.id) &&
+      preferred.finishedKg &&
+      kgKey(preferred.finishedKg) === key
+    ) {
+      used.add(preferred.id);
+      return { stock: preferred, invalid: false };
+    }
+    const list = buckets.get(key) ?? [];
+    const next = list.find((roll) => !used.has(roll.id));
+    if (!next) return { stock: null, invalid: true };
+    used.add(next.id);
+    return { stock: next, invalid: false };
+  });
+}
+
 function optionLabel(
   options: { id: string; label: string }[],
   id: string,
@@ -114,7 +201,15 @@ function optionLabel(
 }
 
 function emptyRoll(): LocalSaleRoll {
-  return { id: crypto.randomUUID(), weight: "" };
+  return {
+    id: crypto.randomUUID(),
+    weight: "",
+    liveStockRollId: "",
+    rollNo: "",
+    stockKg: "",
+    qualityState: "",
+    reference: "",
+  };
 }
 
 function emptyLine(): LocalSaleLine {
@@ -252,7 +347,7 @@ function lineHasEntry(line: LocalSaleLine) {
       line.hsn.trim() ||
       line.noOfRolls.trim() ||
       line.rate.trim() ||
-      line.rolls.some((roll) => roll.weight.trim()),
+      line.rolls.some((roll) => roll.weight.trim() || roll.liveStockRollId),
   );
 }
 
@@ -313,6 +408,23 @@ function useFocusTrap(
   }, [active, ref]);
 }
 
+function useSidebarCollapsed() {
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    function read() {
+      setCollapsed(window.localStorage.getItem(SIDEBAR_KEY) === "1");
+    }
+    read();
+    window.addEventListener("storage", read);
+    window.addEventListener(SIDEBAR_CHANGE_EVENT, read);
+    return () => {
+      window.removeEventListener("storage", read);
+      window.removeEventListener(SIDEBAR_CHANGE_EVENT, read);
+    };
+  }, []);
+  return collapsed;
+}
+
 export function SalesDesk({
   records,
   customers,
@@ -335,6 +447,7 @@ export function SalesDesk({
   const [dateTo, setDateTo] = useState("");
   const [draft, setDraft] = useState<LocalSaleBill | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
+  const sidebarCollapsed = useSidebarCollapsed();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [rollLineId, setRollLineId] = useState<string | null>(null);
@@ -342,6 +455,9 @@ export function SalesDesk({
   const weightRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const billTrapRef = useRef<HTMLDivElement>(null);
   const rollTrapRef = useRef<HTMLDivElement>(null);
+  const rollScrollRef = useRef<HTMLDivElement>(null);
+  const rollPointerFocus = useRef(false);
+  const rollAdvanceScroll = useRef<number | null>(null);
   const pendingLineFocus = useRef<string | null>(null);
   const returnFocusLineId = useRef<string | null>(null);
   const savingRef = useRef(false);
@@ -363,6 +479,13 @@ export function SalesDesk({
       document.body.style.overflow = previous;
     };
   }, [draft, mode]);
+
+  const [stockChoices, setStockChoices] = useState<SelectableStockRoll[]>([]);
+  const [stockBusy, setStockBusy] = useState(false);
+  const [stockNote, setStockNote] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<LocalSaleBill | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const stockRequest = useRef(0);
 
   useEffect(() => {
     if (!draft || !mode || rollLineId) return;
@@ -604,51 +727,151 @@ export function SalesDesk({
     });
   }
 
+  function entryRows(line: LocalSaleLine) {
+    const count = Math.max(0, Math.floor(num(line.noOfRolls)));
+    return Array.from({ length: count }, (_, index) => {
+      const current = line.rolls[index];
+      if (!current) return emptyRoll();
+      return {
+        ...emptyRoll(),
+        id: current.id,
+        weight: current.weight,
+        liveStockRollId: current.liveStockRollId,
+        rollNo: current.rollNo,
+        stockKg: current.stockKg,
+        qualityState: current.qualityState,
+        reference: current.reference,
+      };
+    });
+  }
+
   function openRolls(line: LocalSaleLine) {
     returnFocusLineId.current = line.id;
-    if (readOnly) {
-      setRollDraft(syncRolls(line.rolls, num(line.noOfRolls)));
-      setRollLineId(line.id);
+    setStockNote(null);
+    setStockChoices([]);
+    setRollDraft(entryRows(line));
+    setRollLineId(line.id);
+    if (readOnly) return;
+    const colourCode = line.colourCode.trim();
+    if (!line.itemId || !colourCode || colourMiss[line.id]) return;
+    const billId = mode === "edit" ? draft?.id ?? "" : "";
+    const request = stockRequest.current + 1;
+    stockRequest.current = request;
+    setStockBusy(true);
+    void listSelectableStockRolls({
+      itemId: line.itemId,
+      colourCode,
+      billId,
+    })
+      .then((rows) => {
+        if (stockRequest.current !== request) return;
+        setStockChoices(rows);
+        const ids = new Set(rows.map((row) => row.id));
+        setRollDraft((prev) =>
+          prev.map((roll) =>
+            roll.liveStockRollId && !ids.has(roll.liveStockRollId)
+              ? {
+                  ...roll,
+                  liveStockRollId: "",
+                  rollNo: "",
+                  stockKg: "",
+                  qualityState: "",
+                  reference: "",
+                }
+              : roll,
+          ),
+        );
+      })
+      .catch(() => {
+        if (stockRequest.current !== request) return;
+        setStockNote("Could not load stock rolls.");
+      })
+      .finally(() => {
+        if (stockRequest.current === request) setStockBusy(false);
+      });
+  }
+
+  function keepEntryVisible(input: HTMLInputElement) {
+    const scroller = rollScrollRef.current;
+    const row = input.closest("tr");
+    const previousScroll = rollAdvanceScroll.current;
+    rollAdvanceScroll.current = null;
+    if (!scroller || !row || previousScroll == null) return;
+    const thead = scroller.querySelector("thead");
+    const headerHeight = thead?.getBoundingClientRect().height ?? 0;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    const topLimit = scrollerRect.top + headerHeight;
+    if (
+      scroller.scrollTop > previousScroll + 1 ||
+      rowRect.bottom > scrollerRect.bottom + 1
+    ) {
+      scroller.scrollTop += rowRect.bottom - scrollerRect.bottom;
       return;
     }
-    const rolls = syncRolls(line.rolls, num(line.noOfRolls));
-    patchLine(line.id, {
-      rolls,
-      weightKg: String(lineWeight({ ...line, rolls }) || ""),
-    });
-    setRollDraft(rolls.map((roll) => ({ ...roll })));
-    setRollLineId(line.id);
+    if (rowRect.top < topLimit) {
+      scroller.scrollTop -= topLimit - rowRect.top;
+    }
   }
 
   function saveRolls() {
-    if (!rollLineId) return;
-    const rolls = rollDraft.map((roll) => ({ ...roll }));
-    const weight = rolls.reduce((sum, roll) => {
-      const w = Number(roll.weight);
-      return Number.isFinite(w) && w > 0 ? sum + w : sum;
-    }, 0);
+    if (!rollLineId || !draft || stockBusy) return;
+    const line = draft.lines.find((row) => row.id === rollLineId);
+    if (!line) return;
+    const need = Math.floor(num(line.noOfRolls));
+    if (rollDraft.length !== need) {
+      setStockNote(
+        need > 0
+          ? `Enter exactly ${need} roll weights.`
+          : "Enter no. of rolls first.",
+      );
+      return;
+    }
+    const taken = new Set(
+      draft.lines
+        .filter((row) => row.id !== line.id)
+        .flatMap((row) => row.rolls.map((roll) => roll.liveStockRollId).filter(Boolean)),
+    );
+    const matches = matchEntryRows(rollDraft, stockChoices, taken);
+    if (matches.some((match) => !match.stock)) {
+      setStockNote("Every weight must match a distinct available stock roll.");
+      return;
+    }
+    const rolls = matches.map((match, index) => {
+      const stock = match.stock!;
+      return {
+        ...rollDraft[index],
+        weight: stock.finishedKg ?? "",
+        liveStockRollId: stock.id,
+        rollNo: stock.rollNo,
+        stockKg: stock.finishedKg ?? "",
+        qualityState: stock.qualityState,
+        reference: stock.reference,
+      };
+    });
+    const weight = addKg(rolls.map((roll) => roll.weight));
     patchLine(rollLineId, {
       rolls,
-      weightKg: weight ? String(weight) : "",
+      weightKg: weight === "0" ? "" : weight,
     });
     setRollLineId(null);
+    setStockChoices([]);
+    setStockNote(null);
+    stockRequest.current += 1;
     restoreRowFocus();
   }
 
   function cancelRolls() {
+    stockRequest.current += 1;
     setRollLineId(null);
     setRollDraft([]);
-    restoreRowFocus();
+    setStockChoices([]);
+    setStockNote(null);
+    setStockBusy(false);
   }
 
-  function onRollWeightKey(
-    index: number,
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    const next = rollDraft[index + 1];
-    if (next) weightRefs.current[next.id]?.focus();
+  function unlinkStock(rolls: LocalSaleRoll[]) {
+    return rolls.map(() => emptyRoll());
   }
 
   function validate(entry: LocalSaleBill) {
@@ -656,10 +879,28 @@ export function SalesDesk({
     if (!entry.billDate) return "Enter bill date.";
     const named = entry.lines.filter((line) => line.itemId || line.itemName);
     if (named.length === 0) return "Add at least one item.";
+    const usedRolls = new Set<string>();
     for (const line of named) {
       if (!line.itemId) return "Select a valid item.";
-      if (num(line.noOfRolls) <= 0) {
+      const count = Math.floor(num(line.noOfRolls));
+      if (count <= 0) {
         return `Enter no. of rolls for ${line.itemName || "item"}.`;
+      }
+      if (!line.colourCode.trim()) {
+        return `Enter color code for ${line.itemName || "item"}.`;
+      }
+      if (colourMiss[line.id]) {
+        return `Color code "${line.colourCode.trim()}" was not found.`;
+      }
+      const picked = syncRolls(line.rolls, count)
+        .map((roll) => roll.liveStockRollId.trim())
+        .filter(Boolean);
+      if (picked.length !== count) {
+        return `Enter ${count} matching roll weights for ${line.itemName || "item"}.`;
+      }
+      for (const id of picked) {
+        if (usedRolls.has(id)) return "A stock roll is selected more than once.";
+        usedRolls.add(id);
       }
     }
     return null;
@@ -689,6 +930,7 @@ export function SalesDesk({
         rate: line.rate,
         rolls: syncRolls(line.rolls, num(line.noOfRolls)).map((roll) => ({
           weight: roll.weight,
+          liveStockRollId: roll.liveStockRollId,
         })),
       })),
     };
@@ -770,11 +1012,86 @@ export function SalesDesk({
     onDiscard: cancelRolls,
   });
 
+  async function confirmDeleteBill() {
+    if (!pendingDelete || savingRef.current || deleting) return;
+    if (pendingDelete.status !== "DRAFT") {
+      setError("Only draft sales bills can be deleted.");
+      setPendingDelete(null);
+      return;
+    }
+    savingRef.current = true;
+    setDeleting(true);
+    setError(null);
+    try {
+      const id = pendingDelete.id;
+      const billNo = pendingDelete.billNo;
+      await deleteSaleBill(id);
+      setRows((prev) => prev.filter((row) => row.id !== id));
+      setPendingDelete(null);
+      setNotice(`Draft bill ${billNo} deleted.`);
+      if (draft?.id === id) closeModal();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete the sales bill.",
+      );
+      setPendingDelete(null);
+    } finally {
+      savingRef.current = false;
+      setDeleting(false);
+    }
+  }
+
   const rollLine = draft?.lines.find((line) => line.id === rollLineId) ?? null;
-  const rollWeightTotal = rollDraft.reduce((sum, roll) => {
-    const w = Number(roll.weight);
-    return Number.isFinite(w) && w > 0 ? sum + w : sum;
-  }, 0);
+  const entryPlan = useMemo(() => {
+    const required = rollLine ? Math.max(0, Math.floor(num(rollLine.noOfRolls))) : 0;
+    const taken = new Set(
+      (draft?.lines ?? [])
+        .filter((line) => line.id !== rollLineId)
+        .flatMap((line) =>
+          line.rolls.map((roll) => roll.liveStockRollId).filter(Boolean),
+        ),
+    );
+    const matches =
+      readOnly || stockBusy
+        ? rollDraft.map(() => ({ stock: null, invalid: false }))
+        : matchEntryRows(rollDraft, stockChoices, taken);
+    const matchedWeights = matches.flatMap((match) =>
+      match.stock?.finishedKg ? [match.stock.finishedKg] : [],
+    );
+    const storedWeights = rollDraft
+      .map((roll) => roll.weight)
+      .filter((weight) => kgKey(weight));
+    const colourReady = Boolean(
+      rollLine?.itemId &&
+        rollLine.colourCode.trim() &&
+        !colourMiss[rollLine.id],
+    );
+    return {
+      required,
+      matches,
+      available: stockChoices.filter((roll) => !taken.has(roll.id)).length,
+      total: readOnly ? addKg(storedWeights) : addKg(matchedWeights),
+      invalid: matches.some((match) => match.invalid),
+      colourReady,
+      ready:
+        !readOnly &&
+        !stockBusy &&
+        colourReady &&
+        required > 0 &&
+        rollDraft.length === required &&
+        matches.length === required &&
+        matches.every((match) => match.stock),
+    };
+  }, [
+    colourMiss,
+    draft?.lines,
+    readOnly,
+    rollDraft,
+    rollLine,
+    rollLineId,
+    stockBusy,
+    stockChoices,
+  ]);
 
   const cellInput = `${inputClass} h-8 py-1`;
 
@@ -826,37 +1143,41 @@ export function SalesDesk({
         />
       </MetricStrip>
 
-      <Panel
-        title="Sales register"
-        flush
-        action={
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
+      <Panel title="Sales Register" flush>
+        <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-(--line) bg-(--panel-alt)/40 px-3 py-2 text-[12px]">
+          <div className="relative flex min-w-[14rem] max-w-sm flex-1 items-center">
+            <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-(--muted)" />
+            <input
+              className="h-8 w-full rounded-md border border-(--line) bg-white pl-8 pr-2.5 text-[12.5px] outline-none transition placeholder:text-(--faint) hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
+              aria-label="Search"
+              placeholder="Search bill no. / customer / agent…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1.5 text-(--muted)">
+              <span className="font-medium text-(--ink-soft)">From:</span>
               <input
-                className={`${inputClass} w-56`}
-                aria-label="Search"
-                placeholder="Bill no. / customer / agent"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                className="h-8 rounded-md border border-(--line) bg-white px-2 text-[12.5px] outline-none transition hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
+                type="date"
+                aria-label="From"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
               />
-            </div>
-            <input
-              className={`${inputClass} w-[9.5rem]`}
-              type="date"
-              aria-label="From"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-            <input
-              className={`${inputClass} w-[9.5rem]`}
-              type="date"
-              aria-label="To"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
+            </label>
+            <label className="flex items-center gap-1.5 text-(--muted)">
+              <span className="font-medium text-(--ink-soft)">To:</span>
+              <input
+                className="h-8 rounded-md border border-(--line) bg-white px-2 text-[12.5px] outline-none transition hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
+                type="date"
+                aria-label="To"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </label>
             <select
-              className={`${inputClass} w-[8.5rem]`}
+              className="h-8 rounded-md border border-(--line) bg-white px-2.5 text-[12.5px] outline-none transition hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
               aria-label="Status"
               value={statusFilter}
               onChange={(e) =>
@@ -868,26 +1189,25 @@ export function SalesDesk({
               <option value="DRAFT">Draft</option>
             </select>
           </div>
-        }
-      >
+        </div>
         {filtered.length === 0 ? (
           <div className="p-2.5">
             <EmptyState icon={CreditCard} text="No sales bills yet." />
           </div>
         ) : (
           <TableWrap>
-            <table className="erp-table erp-register table-fixed">
+            <table className="erp-table erp-register w-full min-w-[58rem] table-fixed">
               <colgroup>
                 <col className="w-[7.5rem]" />
                 <col className="w-[6.5rem]" />
                 <col />
-                <col className="w-[8rem]" />
+                <col className="w-[8.5rem]" />
                 <col className="w-[4.5rem]" />
-                <col className="w-[6rem]" />
-                <col className="w-[6rem]" />
+                <col className="w-[5.5rem]" />
+                <col className="w-[6.5rem]" />
                 <col className="w-[7.5rem]" />
                 <col className="w-[5.5rem]" />
-                <col className="w-[7.5rem]" />
+                <col className="w-[6.5rem]" />
               </colgroup>
               <thead>
                 <tr>
@@ -900,23 +1220,25 @@ export function SalesDesk({
                   <th className="num">Total KG</th>
                   <th className="num">Net Amount</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th className="!text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((row) => (
                   <tr key={row.id}>
-                    <td className="whitespace-nowrap font-medium">
+                    <td className="whitespace-nowrap font-medium text-(--ink)">
                       {row.billNo}
                     </td>
-                    <td className="whitespace-nowrap">{row.billDate}</td>
+                    <td className="whitespace-nowrap tabular-nums">
+                      {formatDisplayDate(row.billDate)}
+                    </td>
                     <td>
-                      <div className="erp-clip" title={row.customerName || undefined}>
+                      <div className="erp-clip font-medium" title={row.customerName || undefined}>
                         {row.customerName || "—"}
                       </div>
                     </td>
                     <td>
-                      <div className="erp-clip" title={row.agentName || undefined}>
+                      <div className="erp-clip text-(--ink-soft)" title={row.agentName || undefined}>
                         {row.agentName || "—"}
                       </div>
                     </td>
@@ -924,31 +1246,52 @@ export function SalesDesk({
                       {row.lines.filter((line) => line.itemName).length || "—"}
                     </td>
                     <td className="num tabular-nums">{row.totalRolls}</td>
-                    <td className="num tabular-nums">
+                    <td className="num tabular-nums font-medium">
                       {formatKg(num(row.totalWeightKg))}
                     </td>
-                    <td className="num font-semibold">
+                    <td className="num font-semibold text-(--ink)">
                       {formatMoney(num(row.netAmount))}
                     </td>
                     <td>
                       <span className={statusBadge(row.status)}>{row.status}</span>
                     </td>
                     <td>
-                      <div className="flex justify-end gap-1">
+                      <div className="flex flex-nowrap items-center justify-center gap-1">
                         <button
                           type="button"
-                          className={buttonTinyClass}
+                          className={registerActionClass}
+                          aria-label={`View sales bill ${row.billNo}`}
+                          title="View sales bill"
                           onClick={() => openBill(row, "view")}
                         >
-                          View
+                          <Eye className="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
-                          className={buttonTinyClass}
+                          className={registerActionClass}
+                          aria-label={
+                            row.status === "DRAFT"
+                              ? `Open draft bill ${row.billNo}`
+                              : `Edit sales bill ${row.billNo}`
+                          }
+                          title={
+                            row.status === "DRAFT" ? "Open draft bill" : "Edit sales bill"
+                          }
                           onClick={() => openBill(row, "edit")}
                         >
-                          {row.status === "DRAFT" ? "Open Draft" : "Edit"}
+                          <Pencil className="h-3.5 w-3.5" />
                         </button>
+                        {row.status === "DRAFT" ? (
+                          <button
+                            type="button"
+                            className={`${registerActionClass} hover:border-(--danger) hover:text-(--danger)`}
+                            aria-label={`Delete draft bill ${row.billNo}`}
+                            title="Delete draft bill"
+                            onClick={() => setPendingDelete(row)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -961,18 +1304,79 @@ export function SalesDesk({
 
       {billGuard.dialog}
       {rollGuard.dialog}
-      {draft && mode && live ? (
-        <div ref={billTrapRef}>
-          <Overlay
-            wide
-            flushBody
-            cornerClose
-            title=""
-            closeTabIndex={-1}
-            onClose={billGuard.requestClose}
+
+      {pendingDelete ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4"
+          onMouseDown={() => {
+            if (!deleting) setPendingDelete(null);
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-(--line) bg-(--panel) p-4 shadow-(--shadow-sm)"
+            role="dialog"
+            aria-labelledby="delete-sale-bill-title"
+            onMouseDown={(event) => event.stopPropagation()}
           >
-            <div
-              className="flex min-h-0 flex-1 flex-col"
+            <h2
+              id="delete-sale-bill-title"
+              className="text-[15px] font-semibold text-(--ink)"
+            >
+              Delete Draft Sales Bill
+            </h2>
+            <p className="mt-1.5 text-[13px] text-(--muted)">
+              Are you sure you want to delete draft bill{" "}
+              <strong className="text-(--ink)">{pendingDelete.billNo}</strong>
+              {pendingDelete.customerName ? ` (${pendingDelete.customerName})` : ""}?
+              This action cannot be undone.
+            </p>
+            <div className="mt-4 flex justify-end gap-1.5">
+              <button
+                type="button"
+                className={buttonGhostClass}
+                disabled={deleting}
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="pressable inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent bg-(--danger) px-3 py-2 text-[13px] font-semibold text-white shadow-(--shadow-sm) transition hover:bg-(--danger-strong) disabled:opacity-50 md:min-h-0 md:px-2.5 md:py-1.5 md:text-[12px]"
+                disabled={deleting}
+                onClick={() => void confirmDeleteBill()}
+              >
+                {deleting ? "Deleting…" : "Delete Draft"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {draft && mode && live ? (
+        <Overlay
+          flushBody
+          portal
+          title={
+            mode === "create"
+              ? "New Sales Bill"
+              : mode === "edit"
+                ? `Edit Sales Bill ${draft.billNo}`
+                : `Sales Bill ${draft.billNo}`
+          }
+          headerAccessory={
+            <span className={statusBadge(draft.status)}>{draft.status}</span>
+          }
+          closeTabIndex={-1}
+          frameWidthClass={`h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none sm:h-[calc(100dvh-1.5rem)] ${
+            sidebarCollapsed
+              ? "sm:w-[calc(100vw-1.5rem)]"
+              : "sm:w-[calc(100vw-1.5rem)] md:w-[calc(100vw-13rem-1.5rem)]"
+          }`}
+          overlayClassName="[z-index:70] p-2 sm:p-3"
+          onClose={billGuard.requestClose}
+        >
+          <div
+            ref={billTrapRef}
+            className="flex min-h-0 flex-1 flex-col"
               onKeyDown={(e) => {
                 if (e.key !== "Enter" || e.defaultPrevented) return;
                 const target = e.target as HTMLElement;
@@ -1013,7 +1417,8 @@ export function SalesDesk({
                 list[i + 1]?.focus();
               }}
             >
-              <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden px-3 pt-2 pr-9 pb-1.5 [&_input]:h-8 [&_input]:py-1">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="flex min-h-full flex-col gap-1.5 px-3 py-1.5 [&_input]:h-8 [&_input]:py-1 sm:px-4">
                 {error ? (
                   <p className="shrink-0 rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                     {error}
@@ -1022,15 +1427,15 @@ export function SalesDesk({
 
                 <section className="shrink-0 border-b border-(--line) pb-1.5">
                   <p className="band-label mb-1">Bill information</p>
-                  <div className="grid grid-cols-5 gap-x-2 gap-y-1">
-                  <Field label="Bill No.">
-                    <input
-                      data-bill-start
-                      className={inputClass}
-                      value={draft.billNo}
-                      readOnly
-                    />
-                  </Field>
+                  <div className="grid grid-cols-1 gap-x-2 gap-y-1 sm:grid-cols-2 lg:grid-cols-5">
+                    <Field label="Bill No.">
+                      <input
+                        data-bill-start
+                        className={inputClass}
+                        value={draft.billNo}
+                        readOnly
+                      />
+                    </Field>
                     <Field label="Bill Date">
                       <input
                         className={inputClass}
@@ -1083,8 +1488,8 @@ export function SalesDesk({
 
                 <section className="shrink-0 border-b border-(--line) pb-1.5">
                   <p className="band-label mb-1">Customer / delivery</p>
-                  <div className="grid grid-cols-4 gap-x-2 gap-y-1">
-                    <Field label="Customer Name" className="col-span-2">
+                  <div className="grid grid-cols-1 gap-x-2 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <Field label="Customer Name" className="sm:col-span-2">
                       <SearchableSelect
                         value={draft.customerId}
                         options={customers}
@@ -1168,7 +1573,7 @@ export function SalesDesk({
                   </div>
                 </section>
 
-                <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <section className="flex min-h-[13.5rem] flex-1 flex-col">
                   <div className="mb-1 flex shrink-0 items-center justify-between">
                     <p className="band-label mb-0">Items / goods</p>
                     {!readOnly ? (
@@ -1182,7 +1587,7 @@ export function SalesDesk({
                     ) : null}
                   </div>
                   <div className="min-h-0 flex-1 overflow-auto rounded-md border border-(--line) [&_tbody_tr]:scroll-mt-8 [&_tbody_tr]:scroll-mb-10 [&_tbody_input]:scroll-mt-8 [&_tbody_input]:scroll-mb-10 [&_tbody_button]:scroll-mt-8 [&_tbody_button]:scroll-mb-10">
-                    <table className="erp-table table-fixed">
+                    <table className="erp-table w-full min-w-[58rem] table-fixed">
                       <colgroup>
                         <col className="w-11" />
                         <col />
@@ -1235,6 +1640,7 @@ export function SalesDesk({
                                   patchLine(line.id, {
                                     itemId: id,
                                     itemName: optionLabel(items, id),
+                                    rolls: unlinkStock(line.rolls),
                                   })
                                 }
                               />
@@ -1276,7 +1682,14 @@ export function SalesDesk({
                                       settledKey: null,
                                     });
                                   }
-                                  if (nextKey !== line.colourCode.trim()) forgetColour(line.id);
+                                  if (nextKey !== line.colourCode.trim()) {
+                                    forgetColour(line.id);
+                                    patchLine(line.id, {
+                                      colourCode: value,
+                                      rolls: unlinkStock(line.rolls),
+                                    });
+                                    return;
+                                  }
                                   patchLine(line.id, { colourCode: value });
                                 }}
                                 onBlur={(e) => {
@@ -1394,7 +1807,7 @@ export function SalesDesk({
                 </section>
 
                 <section className="shrink-0 border-t border-(--line) pt-1.5">
-                  <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 lg:grid-cols-4">
                     <Field label="Payment Within Days">
                       <input
                         className={inputClass}
@@ -1444,11 +1857,11 @@ export function SalesDesk({
                       />
                     </Field>
                   </div>
-                  <div className="mt-1.5 grid grid-cols-2 gap-2">
-                    <div className="rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
+                  <div className="mt-1.5 grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <div className="rounded-lg border border-(--line) bg-(--panel-alt) px-3 py-2 text-[12px] shadow-(--shadow-xs)">
                       <div className="flex items-center justify-between py-0.5">
                         <span className="text-(--muted)">Gross Amount</span>
-                        <span className="tabular-nums font-medium">
+                        <span className="tabular-nums font-semibold text-(--ink)">
                           {billMoney(live.grossAmount)}
                         </span>
                       </div>
@@ -1456,39 +1869,39 @@ export function SalesDesk({
                         <span className="text-(--muted)">
                           Discount {formatPct(draft.discount)}%
                         </span>
-                        <span className="tabular-nums font-medium">
+                        <span className="tabular-nums font-medium text-(--ink-soft)">
                           {billMoney(live.discountAmount)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-0.5">
                         <span className="text-(--muted)">Freight Amount</span>
-                        <span className="tabular-nums font-medium">
+                        <span className="tabular-nums font-medium text-(--ink-soft)">
                           {billMoney(live.freightAmount)}
                         </span>
                       </div>
                       <div className="mt-1 flex items-center justify-between border-t border-(--line) pt-1">
-                        <span className="font-medium">Taxable Amount</span>
-                        <span className="tabular-nums font-medium">
+                        <span className="font-semibold text-(--ink)">Taxable Amount</span>
+                        <span className="tabular-nums font-semibold text-(--ink)">
                           {billMoney(live.taxableAmount)}
                         </span>
                       </div>
                     </div>
-                    <div className="rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
+                    <div className="rounded-lg border border-(--line) bg-(--panel-alt) px-3 py-2 text-[12px] shadow-(--shadow-xs)">
                       <div className="flex items-center justify-between py-0.5">
-                        <span className="text-(--muted)">CGST (2.5%)</span>
-                        <span className="tabular-nums">
+                        <span className="text-(--muted)">CGST ({CGST_PCT}%)</span>
+                        <span className="tabular-nums font-medium text-(--ink-soft)">
                           {billMoney(live.cgstAmount)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-0.5">
-                        <span className="text-(--muted)">SGST (2.5%)</span>
-                        <span className="tabular-nums">
+                        <span className="text-(--muted)">SGST ({SGST_PCT}%)</span>
+                        <span className="tabular-nums font-medium text-(--ink-soft)">
                           {billMoney(live.sgstAmount)}
                         </span>
                       </div>
-                      <div className="mt-1.5 flex items-center justify-between border-t border-(--line) pt-1.5">
-                        <span className="font-semibold">Net Amount</span>
-                        <span className="text-[16px] font-semibold tabular-nums text-(--ink)">
+                      <div className="mt-1 flex items-center justify-between border-t border-(--line) pt-1">
+                        <span className="text-[13px] font-bold text-(--ink)">Net Amount</span>
+                        <span className="text-[16px] font-bold tabular-nums text-(--accent-strong)">
                           {billMoney(live.netAmount)}
                         </span>
                       </div>
@@ -1496,17 +1909,18 @@ export function SalesDesk({
                   </div>
                 </section>
               </div>
+            </div>
 
-              <div
-                data-bill-footer
-                className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-3 py-2"
-              >
+            <div
+              data-bill-footer
+              className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-3 py-2 sm:px-4"
+            >
                 <button
                   type="button"
                   className={buttonGhostClass}
                   onClick={billGuard.requestClose}
                 >
-                  Cancel
+                  {mode === "view" ? "Close" : "Cancel"}
                 </button>
                 {mode !== "view" ? (
                   <>
@@ -1526,105 +1940,192 @@ export function SalesDesk({
                     </button>
                   </>
                 ) : null}
-              </div>
             </div>
-          </Overlay>
-        </div>
+          </div>
+        </Overlay>
       ) : null}
 
       {rollLine ? (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-[4vw] py-8"
-          ref={rollTrapRef}
+        <Overlay
+          portal
+          title="Roll Details"
+          frameWidthClass="w-[min(100vw-2rem,454px)] max-h-[calc(100vh-2rem)] overflow-hidden"
+          overlayClassName="[z-index:80] p-2 sm:p-4"
+          onClose={rollGuard.requestClose}
         >
-          <div className="flex max-h-[calc(100vh-4rem)] w-[min(32rem,92vw)] flex-col overflow-hidden rounded-xl border border-(--line) bg-(--panel) shadow-(--shadow-sm)">
-            <div className="flex shrink-0 items-center justify-between border-b border-(--line) px-4 py-2">
-              <h2 className="text-[14px] font-semibold">Roll Details</h2>
-              <button
-                type="button"
-                className={buttonTinyClass}
-                onClick={rollGuard.requestClose}
-              >
-                Close
-              </button>
+          <div
+            ref={rollTrapRef}
+            className="flex min-h-0 flex-col overflow-hidden"
+            onFocus={(event) => {
+              const target = event.target as HTMLElement;
+              if (!target.closest("[data-roll-weight]")) rollAdvanceScroll.current = null;
+            }}
+          >
+            <div className="shrink-0 border-b border-(--line) px-4 py-2">
+              <p className="truncate text-[12px] leading-tight">
+                <span className="font-semibold text-(--ink)">
+                  {rollLine.itemName || "Item"}
+                </span>
+                <span className="text-(--muted)"> · </span>
+                <span className="text-(--ink-soft)">
+                  {rollLine.colourCode
+                    ? colourNames[rollLine.id] || rollLine.colourCode
+                    : "No color"}
+                </span>
+              </p>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-              <div className="mb-3 grid grid-cols-3 gap-2 rounded-md border border-(--line) bg-(--panel-alt) px-3 py-2 text-[12px]">
-                <div>
-                  <span className="text-[11px] text-(--muted)">Item Name</span>
-                  <p className="truncate font-medium">
-                    {rollLine.itemName || "—"}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <span className="text-[11px] text-(--muted)">
-                    No. of Rolls
-                  </span>
-                  <p className="font-medium tabular-nums">{rollDraft.length}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[11px] text-(--muted)">
-                    Total Weight
-                  </span>
-                  <p className="font-semibold tabular-nums">
-                    {formatKg(rollWeightTotal)} KG
-                  </p>
-                </div>
+            <div
+              className={`grid shrink-0 border-b border-(--line) bg-(--panel-alt) ${
+                readOnly ? "grid-cols-1" : "grid-cols-2"
+              }`}
+            >
+              <div className={`min-w-0 px-4 py-1.5 ${readOnly ? "" : "shadow-[inset_-1px_0_0_var(--line-soft)]"}`}>
+                <p className="truncate text-[10px] font-semibold tracking-wide text-(--muted) uppercase">
+                  Required
+                </p>
+                <p
+                  className="truncate text-[13px] leading-tight font-semibold tabular-nums text-(--ink)"
+                  title="Required rolls"
+                >
+                  {entryPlan.required}
+                </p>
               </div>
-              <div className="overflow-hidden rounded-md border border-(--line)">
-                <table className="erp-table table-fixed">
+              {readOnly ? null : (
+                <div className="min-w-0 px-4 py-1.5">
+                  <p className="truncate text-[10px] font-semibold tracking-wide text-(--muted) uppercase">
+                    Available
+                  </p>
+                  <p
+                    className="truncate text-[13px] leading-tight font-semibold tabular-nums text-(--ink)"
+                    title="Available stock rolls"
+                  >
+                    {stockBusy ? "…" : entryPlan.available}
+                  </p>
+                </div>
+              )}
+            </div>
+            {stockNote ? (
+              <p className="shrink-0 border-b border-(--danger)/40 bg-(--danger-soft) px-3 py-1.5 text-[11px] text-(--danger)">
+                {stockNote}
+              </p>
+            ) : null}
+            {!readOnly && !entryPlan.colourReady ? (
+              <p className="px-4 py-2 text-[12px] text-(--danger)">
+                {!rollLine.itemId || !rollLine.colourCode.trim()
+                  ? "Select an item and color code before entering weights."
+                  : "Color code was not found."}
+              </p>
+            ) : (
+              <div className="min-h-0 px-4 pt-2.5">
+                <table className="erp-table">
                   <colgroup>
                     <col className="w-16" />
                     <col />
+                    {!readOnly ? <col className="w-10" /> : null}
                   </colgroup>
                   <thead>
                     <tr>
-                      <th className="text-center">Roll</th>
-                      <th className="num">Weight (KG)</th>
+                      <th className="w-16">Roll</th>
+                      <th>Weight KG</th>
+                      {!readOnly ? <th className="w-10" /> : null}
                     </tr>
                   </thead>
-                  <tbody>
-                    {rollDraft.map((roll, index) => (
-                      <tr key={roll.id}>
-                        <td className="text-center tabular-nums text-(--muted)">
-                          {index + 1}
-                        </td>
-                        <td className="py-1">
-                          <input
-                            ref={(el) => {
-                              weightRefs.current[roll.id] = el;
-                            }}
-                            className={`${inputClass} h-8 py-1 text-right`}
-                            inputMode="decimal"
-                            value={roll.weight}
-                            disabled={readOnly}
-                            onChange={(e) =>
-                              setRollDraft((prev) =>
-                                prev.map((row) =>
-                                  row.id === roll.id
-                                    ? { ...row, weight: e.target.value }
-                                    : row,
-                                ),
-                              )
-                            }
-                            onKeyDown={(e) => onRollWeightKey(index, e)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td className="border-t border-(--line) bg-(--panel-alt) text-center font-medium tabular-nums">
-                        {rollDraft.length}
-                      </td>
-                      <td className="border-t border-(--line) bg-(--panel-alt) text-right font-semibold tabular-nums">
-                        {formatKg(rollWeightTotal)} KG
-                      </td>
-                    </tr>
-                  </tfoot>
                 </table>
+                <div ref={rollScrollRef} className="max-h-[15.75rem] overflow-y-auto">
+                  <table className="erp-table">
+                    <colgroup>
+                      <col className="w-16" />
+                      <col />
+                      {!readOnly ? <col className="w-10" /> : null}
+                    </colgroup>
+                    <tbody>
+                      {rollDraft.map((roll, index) => {
+                        const match = entryPlan.matches[index];
+                        const invalid = Boolean(match?.invalid);
+                        return (
+                          <tr key={roll.id}>
+                            <td className="font-semibold tabular-nums">{index + 1}</td>
+                            <td>
+                              {readOnly ? (
+                                <span className="block text-right font-medium tabular-nums">
+                                  {roll.weight || "—"}
+                                </span>
+                              ) : (
+                                <input
+                                  data-roll-weight
+                                  className={`${inputClass} text-right tabular-nums ${
+                                    invalid ? "border-(--danger)! focus:border-(--danger)!" : ""
+                                  }`}
+                                  inputMode="decimal"
+                                  value={roll.weight}
+                                  aria-label={`Weight for roll ${index + 1}`}
+                                  aria-invalid={invalid || undefined}
+                                  onMouseDown={() => {
+                                    rollPointerFocus.current = true;
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (
+                                      event.key === "Tab" &&
+                                      !event.shiftKey &&
+                                      rollScrollRef.current
+                                    ) {
+                                      rollAdvanceScroll.current =
+                                        rollScrollRef.current.scrollTop;
+                                    }
+                                  }}
+                                  onFocus={(event) => {
+                                    if (rollPointerFocus.current) {
+                                      rollPointerFocus.current = false;
+                                      rollAdvanceScroll.current = null;
+                                      return;
+                                    }
+                                    keepEntryVisible(event.currentTarget);
+                                  }}
+                                  onChange={(event) => {
+                                    const weight = event.target.value;
+                                    if (stockNote !== "Could not load stock rolls.") {
+                                      setStockNote(null);
+                                    }
+                                    setRollDraft((prev) =>
+                                      prev.map((row, rowIndex) =>
+                                        rowIndex === index ? { ...row, weight } : row,
+                                      ),
+                                    );
+                                  }}
+                                />
+                              )}
+                            </td>
+                            {!readOnly ? (
+                              <td className="text-center">
+                                {!match || (!match.stock && !invalid) ? null : match.stock ? (
+                                  <Check
+                                    className="mx-auto h-3.5 w-3.5 text-(--accent-strong)"
+                                    aria-label="Matching stock roll"
+                                  />
+                                ) : (
+                                  <X
+                                    className="mx-auto h-3.5 w-3.5 text-(--danger)"
+                                    aria-label="No matching stock roll"
+                                  />
+                                )}
+                              </td>
+                            ) : null}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+            )}
+            {!readOnly && entryPlan.invalid ? (
+              <p className="shrink-0 border-t border-(--danger)/30 px-4 py-1.5 text-[11px] text-(--danger)">
+                Incorrect weight — no matching available stock roll
+              </p>
+            ) : null}
+            <div className="flex shrink-0 justify-between border-t border-(--line) bg-(--panel) px-4 py-2 text-[12px] font-semibold">
+              <span>Total Weight</span>
+              <span className="tabular-nums">{entryPlan.total} KG</span>
             </div>
             <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
               <button
@@ -1632,16 +2133,21 @@ export function SalesDesk({
                 className={buttonGhostClass}
                 onClick={rollGuard.requestClose}
               >
-                Cancel
+                {readOnly ? "Close" : "Cancel"}
               </button>
               {!readOnly ? (
-                <button type="button" className={buttonClass} onClick={saveRolls}>
-                  Save
+                <button
+                  type="button"
+                  className={buttonClass}
+                  disabled={!entryPlan.ready}
+                  onClick={saveRolls}
+                >
+                  Confirm
                 </button>
               ) : null}
             </div>
           </div>
-        </div>
+        </Overlay>
       ) : null}
     </div>
   );

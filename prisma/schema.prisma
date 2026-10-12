@@ -1306,6 +1306,7 @@ model LiveStockRoll {
   qualityCheckEntry       QualityCheckEntry      @relation(fields: [qualityCheckEntryId], references: [id], onDelete: Cascade)
   finishedWorkEntryRollId String?                @unique
   finishedWorkEntryRoll   FinishedWorkEntryRoll? @relation(fields: [finishedWorkEntryRollId], references: [id], onDelete: Restrict)
+  salesRolls              SalesBillEntryRoll[]
 
   @@unique([qualityCheckEntryId, rollNo])
   @@index([status])
@@ -1406,11 +1407,13 @@ model SalesBillEntryLine {
 }
 
 model SalesBillEntryRoll {
-  id        String             @id @default(cuid())
-  lineId    String
-  line      SalesBillEntryLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
-  sortOrder Int
-  weight    String             @default("")
+  id              String             @id @default(cuid())
+  lineId          String
+  line            SalesBillEntryLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  sortOrder       Int
+  weight          String             @default("")
+  liveStockRollId String?            @unique
+  liveStockRoll   LiveStockRoll?     @relation(fields: [liveStockRollId], references: [id], onDelete: Restrict)
 
   @@index([lineId])
 }
