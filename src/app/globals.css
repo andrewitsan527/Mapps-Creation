@@ -56,6 +56,38 @@
 
   --radius: 11px;
 
+
+  /* Aurora Weave · Soft Ice — Grey Bill palette (consumed only under .gb-page) */
+  --gb-workspace: #eaf0f7;
+  --gb-workspace-deep: #dde7f1;
+  --gb-workspace-top: #f1f6fb;
+
+  --gb-midnight: #0f1a26;
+  --gb-midnight-lift: #17242f;
+  --gb-midnight-deep: #0c1621;
+  --gb-midnight-ink: #e8f1f8;
+  --gb-midnight-muted: rgba(232, 241, 248, 0.68);
+  --gb-midnight-faint: rgba(232, 241, 248, 0.45);
+  --gb-sheen: rgba(255, 255, 255, 0.05);
+
+  --gb-ice: #e6f0f8;
+  --gb-ice-line: rgba(120, 160, 195, 0.34);
+  --gb-lagoon: #e2f1ec;
+  --gb-lagoon-line: rgba(80, 150, 135, 0.32);
+  --gb-pearl: #f7f3e9;
+  --gb-pearl-line: rgba(176, 154, 110, 0.3);
+
+  --gb-row: #ffffff;
+  --gb-row-alt: #f6f9fc;
+  --gb-grid: #c9d7e3;
+  --gb-ink: #0c1319;
+  --gb-ink-soft: #2b3742;
+
+  --gb-radius: 14px;
+  --gb-shadow-card:
+    0 1px 1px rgba(14, 26, 38, 0.04), 0 10px 24px rgba(14, 26, 38, 0.07);
+  --gb-shadow-dark: 0 10px 26px rgba(8, 16, 24, 0.22);
+
   --background: var(--surface);
   --foreground: var(--ink);
 }
@@ -1538,6 +1570,2222 @@ button {
 :where(a, button, input, select, textarea):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* ---------- Grey Bill · Aurora Weave — Soft Ice ---------- */
+/* Everything here is scoped to .gb-page / .gb-app-header so no other desk
+   inherits it. Do not add transform / filter / backdrop-filter / will-change
+   to .gb-page — the register's modals render inside it as position: fixed. */
+
+.gb-page {
+  position: relative;
+  min-height: calc(100vh - 3rem);
+  /* Bleed past <main>'s padding (px-3 py-3.5 pb-20 md:pb-5) */
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 1.15rem 0.85rem 2rem;
+  color: var(--gb-ink);
+  background-color: var(--gb-workspace);
+  /* Woven field: two 1px threads at <=3.5% alpha over a cool ice wash.
+     Static layers only — no background-attachment: fixed (Windows GPU). */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.035) 0,
+      rgba(31, 58, 84, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.028) 0,
+      rgba(31, 58, 84, 0.028) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    radial-gradient(
+      ellipse 72% 46% at 12% 0%,
+      rgba(132, 183, 214, 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 48% 38% at 92% 96%,
+      rgba(120, 186, 170, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(
+      170deg,
+      var(--gb-workspace-top) 0%,
+      var(--gb-workspace) 46%,
+      var(--gb-workspace-deep) 100%
+    );
+}
+
+/* Mobile: cover main's pb-20 so the ice field reaches the footer */
+@media (max-width: 767px) {
+  .gb-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .gb-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding-right: 1.1rem;
+    padding-left: 1.1rem;
+  }
+}
+
+/* Coarse pointers / small screens: drop the thread layers, keep the wash */
+@media (max-width: 479px) {
+  .gb-page {
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 10% 0%,
+        rgba(132, 183, 214, 0.24),
+        transparent 62%
+      ),
+      linear-gradient(
+        170deg,
+        var(--gb-workspace-top) 0%,
+        var(--gb-workspace) 52%,
+        var(--gb-workspace-deep) 100%
+      );
+  }
+}
+
+.gb-stage {
+  width: min(96%, 110rem);
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .gb-stage {
+    width: 100%;
+  }
+}
+
+/* Dark midnight satin app header — bridges the sidebar to the ice workspace.
+   No backdrop-filter: this header sits above a scrolling register. */
+.gb-app-header {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.16);
+  background-color: var(--gb-midnight);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(
+      165deg,
+      var(--gb-midnight-lift) 0%,
+      var(--gb-midnight) 54%,
+      var(--gb-midnight-deep) 100%
+    );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.gb-app-header .font-serif,
+.gb-app-header p {
+  color: var(--gb-midnight-muted);
+}
+
+.gb-app-header .uppercase {
+  color: rgba(232, 197, 71, 0.82);
+}
+
+.gb-app-header [class*="text-(--ink)"] {
+  color: var(--gb-midnight-ink);
+}
+
+.gb-app-header [class*="text-(--muted)"] {
+  color: var(--gb-midnight-muted);
+}
+
+.gb-app-header [class*="text-(--faint)"] {
+  color: var(--gb-midnight-faint);
+}
+
+.gb-app-header button[aria-label="Open menu"] {
+  border-color: rgba(232, 241, 248, 0.22);
+  color: var(--gb-midnight-ink);
+}
+
+.gb-app-header button[aria-label="Open menu"]:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Stage rhythm ----------------------------------------------------
+   No page-header card: the app header crumb already names the page, and the
+   register's own dark bar is the heading. That buys ~125px above the table. */
+.gb-page {
+  --gb-grid-strong: #b6c8d8;
+  padding-top: 0.7rem;
+}
+
+.gb-page .gb-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ---- Aurora Weave KPI cards — SHARED, DO NOT RESTYLE PER PAGE ----------
+   One definition for every ERP page. The card box is a FIXED height, so a
+   metric that carries a hint line is exactly as tall as one that does not;
+   KPI cards must be identical on every page. Only tables differ between
+   pages (column count and width).
+
+   New page: put `aw-metrics` on the MetricStrip alongside the column classes
+   and nothing else. Do not add page-scoped overrides for these cards. */
+.aw-metrics {
+  gap: 0.5rem;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.aw-metrics > div {
+  display: flex;
+  min-width: 0;
+  height: 3.75rem;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--gb-ice-line);
+  border-radius: 11px;
+  padding: 0.4rem 0.8rem;
+  background-color: var(--gb-ice);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(31, 58, 84, 0.022) 0,
+    rgba(31, 58, 84, 0.022) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+  box-shadow: var(--gb-shadow-card);
+  animation: gb-card-in 0.24s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.aw-metrics > div:nth-child(2) {
+  border-color: var(--gb-lagoon-line);
+  background-color: var(--gb-lagoon);
+  animation-delay: 0.04s;
+}
+
+.aw-metrics > div:nth-child(3) {
+  border-color: var(--gb-pearl-line);
+  background-color: var(--gb-pearl);
+  animation-delay: 0.08s;
+}
+
+.aw-metrics > div:nth-child(4) {
+  border-color: var(--gb-pearl-line);
+  background-color: #f2ead9;
+  animation-delay: 0.12s;
+}
+
+.aw-metrics > div p:first-child {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  color: var(--gb-ink-soft);
+}
+
+.aw-metrics > div p:nth-child(2) {
+  margin-top: 0.08rem;
+  font-size: 1.15rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--gb-ink);
+}
+
+/* The hint fits inside the fixed box rather than growing it */
+.aw-metrics > div p:nth-child(3) {
+  margin-top: 0.05rem;
+  font-size: 9px;
+  line-height: 1.15;
+  color: var(--gb-ink-soft);
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-metrics > div {
+    animation: none;
+  }
+}
+
+/* ---- Register panel --------------------------------------------------- */
+.gb-page .gb-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+/* The panel bar is now the page heading */
+.gb-page .gb-panel > div:first-child {
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  padding: 0.55rem 0.85rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.gb-page .gb-panel > div:first-child h3 {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.gb-page .gb-panel > div:first-child svg {
+  color: rgba(232, 197, 71, 0.85);
+}
+
+.gb-page .gb-panel > div:first-child input {
+  border-color: rgba(232, 241, 248, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+}
+
+.gb-page .gb-panel > div:first-child input::placeholder {
+  color: rgba(232, 241, 248, 0.45);
+}
+
+.gb-page .gb-panel > div:first-child input:hover,
+.gb-page .gb-panel > div:first-child input:focus {
+  border-color: rgba(232, 197, 71, 0.5);
+  box-shadow: none;
+}
+
+.gb-page .gb-new {
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Accounting register ---------------------------------------------
+   Ruled like a ledger: every cell carries an inner line, and the panel's
+   1px frame closes the outside. The edge cells drop their outer border so
+   the frame stays a crisp single line instead of doubling against it. */
+.gb-page .gb-register.erp-register {
+  border-color: var(--gb-grid-strong);
+}
+
+.gb-page .gb-register.erp-register thead th {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.86);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.gb-page .gb-register.erp-register td {
+  height: var(--gb-register-row-h);
+  padding: 0.3rem 0.7rem;
+  color: var(--gb-ink);
+  border-right: 1px solid var(--gb-grid-strong);
+  border-bottom: 1px solid var(--gb-grid-strong);
+  background: var(--gb-row);
+}
+
+/* Last row keeps its rule; the panel frame sits directly under it */
+.gb-page .gb-register.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.gb-page .gb-register.erp-register th:last-child,
+.gb-page .gb-register.erp-register td:last-child {
+  border-right: 0;
+}
+
+.gb-page .gb-register.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.gb-page .gb-register.erp-register tbody tr:hover td {
+  background: #e7f0f8;
+}
+
+/* SAVED reads as settled (lagoon), DRAFT as in-progress (pearl) */
+.gb-page .gb-register .badge-muted {
+  border-color: var(--gb-lagoon-line);
+  background: var(--gb-lagoon);
+  color: #0a5547;
+}
+
+.gb-page .gb-register .badge-warn {
+  border-color: var(--gb-pearl-line);
+  background: var(--gb-pearl);
+  color: #7a5a12;
+}
+
+.gb-page .gb-register td button {
+  height: 1.6rem;
+  width: 1.6rem;
+  border-color: var(--gb-grid-strong);
+  border-radius: 7px;
+}
+
+.gb-page .gb-register td button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--gb-lagoon);
+}
+
+@media (max-width: 767px) {
+  .gb-page .gb-register td button {
+    height: 2.25rem;
+    width: 2.25rem;
+  }
+}
+
+/* ---- Toast -------------------------------------------------------------
+   Fixed overlay, never a layout block: a save or delete notification must
+   not move the register. Sits above the entry sheet (z 50) but below the
+   confirm (80) and unsaved-changes (100) dialogs, so it can never cover a
+   decision the user has to make. */
+.gb-toast-wrap {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 70;
+  display: flex;
+  max-width: min(26rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .gb-toast-wrap {
+    right: 0.75rem;
+    left: 0.75rem;
+    /* clear the fixed mobile bottom nav */
+    bottom: calc(5rem + env(safe-area-inset-bottom));
+    max-width: none;
+  }
+}
+
+.gb-toast {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.55rem;
+  border: 1px solid var(--gb-lagoon-line);
+  border-left: 3px solid var(--accent);
+  border-radius: 11px;
+  padding: 0.6rem 0.65rem 0.6rem 0.8rem;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--gb-ink);
+  background: var(--gb-lagoon);
+  box-shadow: 0 16px 38px rgba(8, 16, 24, 0.26);
+  pointer-events: auto;
+  animation: gb-toast-in 0.18s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.gb-toast[data-tone="warn"] {
+  border-color: var(--gb-pearl-line);
+  border-left-color: var(--warn);
+  background: var(--gb-pearl);
+}
+
+.gb-toast[data-tone="error"] {
+  border-color: rgba(179, 39, 28, 0.28);
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.gb-toast-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gb-toast-close {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--gb-ink-soft);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.gb-toast-close:hover {
+  background: rgba(12, 19, 25, 0.09);
+  color: var(--gb-ink);
+}
+
+@keyframes gb-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Register: a fixed 10-row box --------------------------------------
+   The register is a fixed-height box that scrolls inside itself. It does NOT
+   grow with the row count and it never makes the page scroll. Height is
+   derived from the row count, so "show N rows" is one number to change.
+
+   Row height must stay deterministic for that arithmetic to hold: the tallest
+   cell content (the action buttons + cell padding) is kept below the declared
+   row height, otherwise the content wins and the box shows fewer rows than
+   --gb-register-rows says. 1.6rem button + 0.6rem padding = 2.2rem < 2.3rem.
+
+   The min() guard keeps the box inside the viewport on short screens — note a
+   display at 150% OS scaling has a CSS viewport around 620px tall, not 930. */
+.gb-page {
+  --gb-register-rows: 12;
+  --gb-register-row-h: 2.3rem;
+  --gb-register-head-h: 1.9rem;
+  --gb-register-h: calc(
+    var(--gb-register-head-h) + var(--gb-register-rows) * var(--gb-register-row-h)
+  );
+}
+
+@media (min-width: 768px) {
+  .gb-page .gb-panel .table-scroll {
+    height: min(var(--gb-register-h), calc(100vh - 8.5rem));
+    max-height: none;
+  }
+
+  .gb-page .gb-empty {
+    min-height: min(var(--gb-register-h), calc(100vh - 8.5rem));
+  }
+}
+
+@media (max-width: 767px) {
+  .gb-page .gb-panel .table-scroll {
+    max-height: 62vh;
+  }
+}
+
+.gb-page .gb-empty {
+  display: flex;
+  min-height: 11rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.gb-page .gb-empty > div {
+  width: 100%;
+  max-width: 22rem;
+}
+
+/* Keep the header row's height deterministic too */
+.gb-page .gb-register.erp-register thead th {
+  height: var(--gb-register-head-h);
+}
+
+/* ---- Upload control ----------------------------------------------------
+   Extraction feedback is a popover anchored to the button, never a block in
+   the sheet body — a message must not re-align the form. The per-field
+   extraction log is developer diagnostics and is not shown at all. */
+.gb-sheet-head {
+  position: relative;
+  z-index: 3;
+}
+
+.gb-upload-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.gb-upload-pop {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  /* opens rightward into the sheet body: anchored right it ran off the
+     left edge and was clipped by the frame overflow */
+  left: 0;
+  right: auto;
+  z-index: 4;
+  display: flex;
+  width: max-content;
+  max-width: min(18rem, 60vw);
+  align-items: flex-start;
+  gap: 0.4rem;
+  border: 1px solid var(--gb-pearl-line);
+  border-left: 3px solid var(--warn);
+  border-radius: 10px;
+  padding: 0.45rem 0.45rem 0.45rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #5a4412;
+  background: var(--gb-pearl);
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.3);
+  animation: gb-toast-in 0.16s ease both;
+}
+
+.gb-upload-pop-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gb-upload-pop-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: #6b4e0f;
+  border: 1px solid rgba(122, 90, 18, 0.28);
+  transition: background 0.15s ease;
+}
+
+.gb-upload-pop-close:hover {
+  background: rgba(122, 90, 18, 0.14);
+}
+
+.gb-attach-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  border: 1px solid rgba(232, 197, 71, 0.35);
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: rgba(232, 197, 71, 0.95);
+  background: rgba(232, 197, 71, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-upload-pop {
+    animation: none;
+  }
+
+  .gb-upload-pop-close {
+    transition: none;
+  }
+}
+
+/* ---- Upload busy spinner ------------------------------------------------ */
+.gb-spin {
+  flex-shrink: 0;
+  animation: gb-spin 0.9s linear infinite;
+}
+
+@keyframes gb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-toast {
+    animation: none;
+  }
+
+  .gb-toast-close {
+    transition: none;
+  }
+
+  /* kept spinning — it reports progress — but slowed right down */
+  .gb-spin {
+    animation-duration: 2.4s;
+  }
+}
+
+/* ---- Entry sheets ------------------------------------------------------
+   A bill sheet is a fixed-height workspace, not a scrolling document, and it
+   is budgeted to fit a 100% zoom viewport: header, field block, grid, tail
+   and action bar all fit at 1366x768 with 4 item rows showing. Only the item
+   grid scrolls, and only once it passes its row cap. The grid is deliberately
+   NOT flex-grow — a greedy grid leaves a hole with one row and pushes the
+   totals off-screen. Slack goes to the remarks/totals tail instead. */
+
+.gb-sheet-overlay {
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .gb-sheet-overlay {
+    padding: 1rem 2.5vw;
+  }
+}
+
+.gb-sheet {
+  border-color: var(--gb-grid);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+}
+
+.gb-sheet-entry,
+.gb-sheet-roll {
+  width: 100%;
+  height: calc(100dvh - 1rem);
+}
+
+@media (min-width: 640px) {
+  .gb-sheet-entry {
+    width: min(96vw, 70rem);
+    height: min(92vh, 46rem);
+  }
+
+  .gb-sheet-roll {
+    width: min(94vw, 30rem);
+    height: min(86vh, 36rem);
+  }
+}
+
+.gb-sheet-head {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.gb-sheet-head h2 {
+  font-size: 13.5px;
+  color: var(--gb-midnight-ink);
+  letter-spacing: -0.01em;
+}
+
+/* Upload / document controls live in the header bar, not on a row of their own */
+.gb-sheet-tools {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gb-sheet-tools button {
+  min-height: 0;
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  border-color: rgba(232, 241, 248, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+}
+
+.gb-sheet-tools button:hover:not(:disabled) {
+  border-color: rgba(232, 197, 71, 0.55);
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.gb-sheet-tools a {
+  font-size: 11px;
+  color: rgba(232, 197, 71, 0.9);
+}
+
+.gb-sheet-close {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.gb-sheet-close:hover {
+  border-color: rgba(179, 39, 28, 0.85);
+  background: rgba(179, 39, 28, 0.8);
+  color: #fff;
+}
+
+/* ---- GP Entry regions -------------------------------------------------- */
+.gb-entry {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gb-workspace-top);
+}
+
+.gb-entry-main {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.65rem 0.85rem 0.75rem;
+}
+
+/* Default: hold natural height. Only the tail absorbs slack. */
+.gb-entry-main > * {
+  flex: 0 0 auto;
+}
+
+/* Compact density — the "zoom out" done as real sizing, not transform:scale */
+@media (min-width: 640px) {
+  .gb-entry label > span {
+    font-size: 11px;
+  }
+
+  .gb-entry input:not([type="file"]),
+  .gb-entry textarea {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    font-size: 12px;
+  }
+
+  .gb-entry .gb-entry-table input {
+    height: 1.8rem;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+  }
+}
+
+.gb-entry-grid {
+  display: flex;
+  /* header + 4 rows always visible; caps at 8 rows so it can never balloon */
+  min-height: 10.9rem;
+  max-height: 20rem;
+  flex: 0 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--gb-grid);
+  border-radius: 11px;
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+.gb-entry-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.gb-entry-table {
+  width: 100%;
+  /* fixed layout + colgroup: columns never reflow while typing */
+  min-width: 44rem;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.gb-entry-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.84);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.gb-entry-table td {
+  height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  color: var(--gb-ink);
+  border-right: 1px solid color-mix(in srgb, var(--gb-grid) 55%, white);
+  border-bottom: 1px solid var(--gb-grid);
+}
+
+.gb-entry-table th:last-child,
+.gb-entry-table td:last-child {
+  border-right: 0;
+}
+
+.gb-entry-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.gb-entry-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.gb-entry-table tbody tr:hover td {
+  background: #eef6fb;
+}
+
+/* Remarks + totals: this is what takes the leftover height */
+.gb-entry-main > .gb-entry-tail {
+  min-height: 8.25rem;
+  flex: 1 1 auto;
+}
+
+.gb-entry-tail > label {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  height: 100%;
+}
+
+.gb-entry-tail > label > textarea {
+  min-height: 4.5rem;
+  flex: 1 1 auto;
+  resize: none;
+}
+
+/* Pearl totals card */
+.gb-entry .gb-total {
+  overflow: auto;
+  border: 1px solid var(--gb-pearl-line);
+  border-radius: 11px;
+  background: var(--gb-pearl);
+  padding: 0.5rem 0.7rem;
+  font-size: 12px;
+}
+
+.gb-entry .gb-total > div > div:last-child {
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--gb-pearl-line);
+  padding-top: 0.35rem;
+  font-size: 14px;
+}
+
+/* Pinned action bar — outside the scroll area, always reachable */
+.gb-entry-foot {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--gb-grid);
+  padding: 0.55rem 0.85rem;
+  background: var(--gb-pearl);
+}
+
+/* ---- Roll / Taka sheet ------------------------------------------------- */
+.gb-roll {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gb-workspace-top);
+}
+
+.gb-roll-top {
+  flex: 0 0 auto;
+  padding: 0.6rem 0.85rem 0.45rem;
+}
+
+.gb-roll-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 0 0.85rem;
+  border: 1px solid var(--gb-grid);
+  border-radius: 11px;
+  background: var(--gb-row);
+}
+
+.gb-roll-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.gb-roll-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.84);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.gb-roll-table td {
+  height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  color: var(--gb-ink);
+  border-bottom: 1px solid var(--gb-grid);
+}
+
+.gb-roll-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.gb-roll-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+@media (min-width: 640px) {
+  .gb-roll input:not([type="file"]) {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    font-size: 12px;
+  }
+}
+
+.gb-roll-sum {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--gb-grid);
+  padding: 0.5rem 0.85rem;
+  font-size: 12px;
+  color: var(--gb-ink-soft);
+  background: var(--gb-ice);
+}
+
+.gb-roll-sum strong {
+  margin-left: 0.35rem;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gb-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Confirm dialog ---------------------------------------------------- */
+.gb-confirm {
+  width: 100%;
+  max-width: 24rem;
+  overflow: hidden;
+  border: 1px solid var(--gb-grid);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  padding: 1.1rem;
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+}
+
+.gb-confirm h2 {
+  color: var(--gb-ink);
+}
+
+.gb-confirm p {
+  color: var(--gb-ink-soft);
+}
+
+.gb-danger {
+  border-color: transparent;
+  background: var(--danger);
+  color: #fff;
+}
+
+.gb-danger:hover {
+  background: #8f1e15;
+}
+
+/* ---- Motion ------------------------------------------------------------ */
+@keyframes gb-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gb-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.gb-sheet {
+  /* opacity only: a transform here would make the sheet a containing
+     block for the fixed-position unsaved-changes dialog inside it */
+  animation: gb-fade-in 0.16s ease both;
+}
+
+.gb-confirm {
+  animation: gb-card-in 0.16s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.gb-page .gb-register tbody tr td,
+.gb-page .gb-register td button,
+.gb-entry-table tbody tr td {
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-sheet,
+  .gb-confirm,
+  .gb-page .gb-metrics > div {
+    animation: none;
+  }
+
+  .gb-page .gb-register tbody tr td,
+  .gb-page .gb-register td button,
+  .gb-entry-table tbody tr td,
+  .gb-sheet-close {
+    transition: none;
+  }
+}
+
+/* ---------- Purchase Order · Aurora Weave — Soft Ice ----------
+   Scoped to .po-page / .po-sheet. Reuses the --gb-* tokens defined for Grey
+   Purchase; no new palette. Same rules as that page: no transform/filter on
+   .po-page (fixed dialogs render inside it), no background-attachment: fixed,
+   and the register is a fixed row-count box rather than a growing panel. */
+
+.po-page {
+  position: relative;
+  min-height: calc(100vh - 3rem);
+  /* Bleed past <main>'s padding (px-3 py-3.5 pb-20 md:pb-5) */
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 0.7rem 0.85rem 2rem;
+  color: var(--gb-ink);
+  background-color: var(--gb-workspace);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.035) 0,
+      rgba(31, 58, 84, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.028) 0,
+      rgba(31, 58, 84, 0.028) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    radial-gradient(
+      ellipse 72% 46% at 12% 0%,
+      rgba(132, 183, 214, 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 48% 38% at 92% 96%,
+      rgba(120, 186, 170, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(
+      170deg,
+      var(--gb-workspace-top) 0%,
+      var(--gb-workspace) 46%,
+      var(--gb-workspace-deep) 100%
+    );
+
+  --po-register-rows: 12;
+  --po-register-row-h: 2.3rem;
+  --po-register-head-h: 1.9rem;
+  --po-register-h: calc(
+    var(--po-register-head-h) + var(--po-register-rows) * var(--po-register-row-h)
+  );
+}
+
+@media (max-width: 767px) {
+  .po-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .po-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding-right: 1.1rem;
+    padding-left: 1.1rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .po-page {
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 10% 0%,
+        rgba(132, 183, 214, 0.24),
+        transparent 62%
+      ),
+      linear-gradient(
+        170deg,
+        var(--gb-workspace-top) 0%,
+        var(--gb-workspace) 52%,
+        var(--gb-workspace-deep) 100%
+      );
+  }
+}
+
+.po-page .po-stage {
+  display: flex;
+  width: min(96%, 110rem);
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .po-page .po-stage {
+    width: 100%;
+  }
+}
+
+/* KPI cards: see the shared .aw-metrics block — no per-page overrides. */
+
+/* ---- Register panel ---------------------------------------------------- */
+.po-page .po-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+/* The panel bar is the page heading: it carries the title, filters and action */
+.po-page .po-panel > div:first-child {
+  /* title sits on row 1 beside the primary action */
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  padding: 0.55rem 0.85rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.po-page .po-panel > div:first-child h3 {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.po-page .po-panel > div:first-child svg {
+  color: rgba(232, 197, 71, 0.85);
+}
+
+/* Action slot must wrap instead of pushing out of the bar */
+.po-page .po-panel > div:first-child > div:last-child {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.po-page .po-panel > div:first-child > div:first-child {
+  padding-top: 0.3rem;
+}
+
+/* Two rows, never three:
+     row 1 — Create Purchase Order
+     row 2 — search, then the date filter on the right
+   Grid placement does the ordering, so the DOM order (filter, search,
+   button) and its focus order stay untouched. */
+.po-page .po-actions {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: end;
+  gap: 0.4rem 0.5rem;
+}
+
+.po-page .po-actions > .po-new {
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: end;
+}
+
+.po-page .po-actions > input {
+  grid-row: 2;
+  grid-column: 1;
+  width: min(20rem, 100%);
+}
+
+.po-page .po-actions > div:first-child {
+  grid-row: 2;
+  grid-column: 2;
+}
+
+@media (max-width: 639px) {
+  .po-page .po-actions {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .po-page .po-actions > .po-new,
+  .po-page .po-actions > input,
+  .po-page .po-actions > div:first-child {
+    grid-row: auto;
+    grid-column: 1;
+    justify-self: stretch;
+  }
+
+  .po-page .po-actions > input {
+    width: 100%;
+  }
+}
+
+.po-page .po-actions input {
+  border-color: rgba(232, 241, 248, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+}
+
+.po-page .po-actions input::placeholder {
+  color: rgba(232, 241, 248, 0.45);
+}
+
+.po-page .po-actions input:hover,
+.po-page .po-actions input:focus {
+  border-color: rgba(232, 197, 71, 0.5);
+  box-shadow: none;
+}
+
+/* Date filter reads as a segmented control on the dark bar */
+.po-page .po-actions > div:first-child {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.25rem;
+  border: 1px solid rgba(232, 241, 248, 0.16);
+  border-radius: 9px;
+  padding: 0.15rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.po-page .po-actions > div:first-child > button {
+  min-height: 0;
+  border-color: transparent;
+  border-radius: 7px;
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  background: transparent;
+  color: rgba(232, 241, 248, 0.72);
+  box-shadow: none;
+}
+
+.po-page .po-actions > div:first-child > button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--gb-midnight-ink);
+}
+
+/* the active filter keeps buttonClass's accent background */
+.po-page .po-actions > div:first-child > button.bg-\(--accent\) {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* The custom-date popover stays light — it is a form surface */
+.po-page .po-actions > div:first-child > div {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+}
+
+.po-page .po-actions > div:first-child > div input {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  background: #fff;
+  color: var(--gb-ink);
+}
+
+.po-page .po-actions > div:first-child > div input::placeholder {
+  color: var(--gb-ink-soft);
+}
+
+.po-page .po-new {
+  flex-shrink: 0;
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Accounting register ----------------------------------------------- */
+.po-page .po-reg.erp-register {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+}
+
+.po-page .po-reg.erp-register thead th {
+  height: var(--po-register-head-h);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.86);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.po-page .po-reg.erp-register td {
+  height: var(--po-register-row-h);
+  padding: 0.3rem 0.7rem;
+  color: var(--gb-ink);
+  border-right: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-bottom: 1px solid var(--gb-grid-strong, #b6c8d8);
+  background: var(--gb-row);
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.po-page .po-reg.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.po-page .po-reg.erp-register tbody tr:hover td {
+  background: #e7f0f8;
+}
+
+/* Row actions: text buttons, kept touch-sized on small screens */
+.po-page .po-reg td button {
+  min-height: 0;
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  border-radius: 7px;
+  padding: 0.15rem 0.5rem;
+  font-size: 11px;
+}
+
+.po-page .po-reg td button:hover {
+  border-color: var(--accent);
+  background: var(--gb-lagoon);
+  color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .po-page .po-reg td button {
+    min-height: 2.1rem;
+    padding: 0.25rem 0.6rem;
+  }
+}
+
+/* Fixed row-count box: scrolls inside itself, never grows the page */
+@media (min-width: 768px) {
+  .po-page .po-panel .table-scroll {
+    height: min(var(--po-register-h), calc(100vh - 8.5rem));
+    max-height: none;
+  }
+
+  .po-page .po-empty {
+    min-height: min(var(--po-register-h), calc(100vh - 8.5rem));
+  }
+}
+
+@media (max-width: 767px) {
+  .po-page .po-panel .table-scroll {
+    max-height: 62vh;
+  }
+}
+
+.po-page .po-empty {
+  display: flex;
+  min-height: 11rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.po-page .po-empty > div {
+  width: 100%;
+  max-width: 22rem;
+}
+
+/* ---- Create / edit dialog ----------------------------------------------
+   Capped height with the field block as the only scroll region and the
+   action bar pinned outside it. DOM order, data-po-tab values and the
+   unsaved-changes hook are untouched — only wrappers changed. */
+.po-sheet {
+  width: 100%;
+  max-width: 29rem;
+  max-height: min(88vh, 40rem);
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+  animation: gb-fade-in 0.16s ease both;
+}
+
+@media (max-width: 639px) {
+  .po-sheet {
+    max-height: calc(100dvh - 1rem);
+  }
+}
+
+/* the dialog header is the frame's first child */
+.po-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.po-sheet > div:first-child h2 {
+  font-size: 13.5px;
+  color: var(--gb-midnight-ink);
+}
+
+.po-form-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gb-workspace-top);
+}
+
+.po-form-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.75rem 1rem 0.85rem;
+}
+
+.po-form-scroll > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.po-form-scroll span,
+.po-form-scroll label {
+  color: var(--gb-ink-soft);
+}
+
+.po-form-foot {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin: 0;
+  border-top: 1px solid var(--gb-grid-strong, #b6c8d8);
+  padding: 0.6rem 1rem;
+  background: var(--gb-pearl);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-sheet,
+  .po-page .po-metrics > div {
+    animation: none;
+  }
+
+  .po-page .po-reg.erp-register td {
+    transition: none;
+  }
+}
+
+/* ---- Purchase Order · mobile ------------------------------------------
+   Phone layout for the register bar, the filter control and the entry
+   dialog. The table deliberately keeps its min-width and pans horizontally
+   rather than crushing its 9 columns. */
+
+.po-sheet-overlay {
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .po-sheet-overlay {
+    padding: 1.25rem 3vw;
+  }
+}
+
+@media (max-width: 639px) {
+  /* Register bar stacks: title, then the action block full width */
+  .po-page .po-panel > div:first-child {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .po-page .po-panel > div:first-child > div:first-child {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .po-page .po-panel > div:first-child > div:last-child {
+    width: 100%;
+    flex-shrink: 1;
+  }
+
+  /* Today / Yesterday / Custom share the row evenly */
+  .po-page .po-actions > div:first-child {
+    width: 100%;
+  }
+
+  .po-page .po-actions > div:first-child > button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.35rem 0.4rem;
+  }
+
+  /* The custom-date popover must stay inside the viewport */
+  .po-page .po-actions > div:first-child > div {
+    right: 0;
+    left: 0;
+    width: auto;
+  }
+
+  /* Entry dialog: label above field instead of a 6.75rem label column */
+  .po-form-scroll > div > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.2rem;
+  }
+
+  .po-form-scroll > div > div > span {
+    padding-top: 0;
+  }
+
+  .po-form-scroll {
+    padding: 0.7rem 0.85rem 0.8rem;
+  }
+
+  .po-form-foot {
+    padding: 0.6rem 0.85rem;
+  }
+
+  .po-form-foot button {
+    flex: 1 1 0;
+  }
+}
+
+/* Tablet: the bar fits on one line again but the search stays modest */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .po-page .po-actions > input {
+    width: min(14rem, 100%);
+  }
+}
+
+/* ---------- Mill Inward · Aurora Weave — Soft Ice ----------
+   Scoped to .mi-page / .mi-sheet. Reuses the --gb-* tokens and the shared
+   .aw-metrics cards; no new palette. No transform/filter on .mi-page (fixed
+   dialogs render inside it) and no background-attachment: fixed.
+   The QC-return dialog variant keeps its own inline classes and is not
+   styled here beyond the shared sheet chrome. */
+
+.mi-page {
+  position: relative;
+  min-height: calc(100vh - 3rem);
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 0.7rem 0.85rem 2rem;
+  color: var(--gb-ink);
+  background-color: var(--gb-workspace);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.035) 0,
+      rgba(31, 58, 84, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.028) 0,
+      rgba(31, 58, 84, 0.028) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    radial-gradient(
+      ellipse 72% 46% at 12% 0%,
+      rgba(132, 183, 214, 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 48% 38% at 92% 96%,
+      rgba(120, 186, 170, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(
+      170deg,
+      var(--gb-workspace-top) 0%,
+      var(--gb-workspace) 46%,
+      var(--gb-workspace-deep) 100%
+    );
+
+  --gb-grid-strong: #b6c8d8;
+  --mi-row-h: 2.3rem;
+  --mi-head-h: 1.9rem;
+  --mi-pending-rows: 8;
+  --mi-done-rows: 6;
+}
+
+@media (max-width: 767px) {
+  .mi-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .mi-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding-right: 1.1rem;
+    padding-left: 1.1rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .mi-page {
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 10% 0%,
+        rgba(132, 183, 214, 0.24),
+        transparent 62%
+      ),
+      linear-gradient(
+        170deg,
+        var(--gb-workspace-top) 0%,
+        var(--gb-workspace) 52%,
+        var(--gb-workspace-deep) 100%
+      );
+  }
+}
+
+.mi-page .mi-stage {
+  display: flex;
+  width: min(96%, 110rem);
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .mi-page .mi-stage {
+    width: 100%;
+  }
+}
+
+/* ---- Panels ------------------------------------------------------------ */
+.mi-page .mi-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+.mi-page .mi-panel > div:first-child {
+  flex-wrap: wrap;
+  row-gap: 0.4rem;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  padding: 0.55rem 0.85rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.mi-page .mi-panel > div:first-child h3 {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.mi-page .mi-panel > div:first-child svg {
+  color: rgba(232, 197, 71, 0.85);
+}
+
+.mi-page .mi-new {
+  flex-shrink: 0;
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Registers ---------------------------------------------------------
+   Both tables share the same widths for their nine leading columns, so the
+   Pending and Completed grids line up with each other. */
+.mi-page .mi-reg.erp-register {
+  border-color: var(--gb-grid-strong);
+}
+
+.mi-page .mi-reg.erp-register thead th {
+  height: var(--mi-head-h);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.86);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.mi-page .mi-reg.erp-register td {
+  height: var(--mi-row-h);
+  padding: 0.3rem 0.7rem;
+  color: var(--gb-ink);
+  border-right: 1px solid var(--gb-grid-strong);
+  border-bottom: 1px solid var(--gb-grid-strong);
+  background: var(--gb-row);
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.mi-page .mi-reg.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.mi-page .mi-reg.erp-register tbody tr:hover td,
+.mi-page .mi-reg.erp-register tbody tr:focus-visible td {
+  background: #e7f0f8;
+}
+
+.mi-page .mi-reg tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* the Completed table dims its rows; keep that, just make it readable */
+.mi-page .mi-reg.erp-register tbody tr.text-\(--muted\) td {
+  color: var(--gb-ink-soft);
+}
+
+.mi-page .mi-view {
+  min-height: 0;
+  border-color: var(--gb-grid-strong);
+  border-radius: 7px;
+  padding: 0.15rem 0.55rem;
+  font-size: 11px;
+}
+
+.mi-page .mi-view:hover {
+  border-color: var(--accent);
+  background: var(--gb-lagoon);
+  color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .mi-page .mi-view {
+    min-height: 2.1rem;
+    padding: 0.25rem 0.7rem;
+  }
+}
+
+/* Fixed row-count boxes: each table scrolls inside itself */
+@media (min-width: 768px) {
+  .mi-page .mi-pending .table-scroll {
+    height: min(
+      calc(var(--mi-head-h) + var(--mi-pending-rows) * var(--mi-row-h)),
+      calc(100vh - 26rem)
+    );
+    max-height: none;
+  }
+
+  .mi-page .mi-done .table-scroll {
+    height: min(
+      calc(var(--mi-head-h) + var(--mi-done-rows) * var(--mi-row-h)),
+      calc(100vh - 30rem)
+    );
+    max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .mi-page .mi-panel .table-scroll {
+    max-height: 48vh;
+  }
+}
+
+.mi-page .mi-empty {
+  display: flex;
+  min-height: 9rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.mi-page .mi-empty > div {
+  width: 100%;
+  max-width: 24rem;
+}
+
+/* ---- New Mill Inward sheet (normal variant only) ----------------------- */
+.mi-sheet-overlay {
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .mi-sheet-overlay {
+    padding: 1.25rem 3vw;
+  }
+}
+
+.mi-sheet {
+  width: 100%;
+  height: calc(100dvh - 1rem);
+  border-color: var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+  animation: gb-fade-in 0.16s ease both;
+}
+
+@media (min-width: 640px) {
+  .mi-sheet {
+    width: min(96vw, 52rem);
+    height: min(92vh, 44rem);
+  }
+}
+
+.mi-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.mi-sheet > div:first-child h2 {
+  font-size: 13.5px;
+  color: var(--gb-midnight-ink);
+}
+
+/* Region model: fields locked, rolls scroll, footer pinned outside */
+.mi-entry {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gb-workspace-top);
+}
+
+.mi-entry > * {
+  flex: 0 0 auto;
+}
+
+.mi-entry > p {
+  margin: 0.7rem 0.9rem 0;
+}
+
+.mi-entry-fields {
+  padding: 0.7rem 0.9rem 0.5rem;
+}
+
+.mi-entry-rolls {
+  display: flex;
+  min-height: 12.5rem;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 0.9rem;
+}
+
+.mi-entry-rolls > p {
+  flex: 0 0 auto;
+}
+
+/* RollTable's own root becomes the scroll region — no re-nesting */
+.mi-entry-rolls > div {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 11px;
+  background: var(--gb-row);
+  padding: 0.35rem;
+}
+
+.mi-roll-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.mi-roll-table thead th {
+  position: sticky;
+  top: -0.35rem;
+  z-index: 2;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.62rem;
+  color: rgba(232, 241, 248, 0.86);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.mi-roll-table td {
+  height: 2.5rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--gb-grid-strong);
+}
+
+.mi-roll-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mi-entry-remark {
+  padding: 0.5rem 0.9rem 0.7rem;
+}
+
+.mi-foot {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--gb-grid-strong);
+  padding: 0.6rem 0.9rem;
+  background: var(--gb-pearl);
+}
+
+@media (max-width: 639px) {
+  .mi-entry-fields > div,
+  .mi-page .mi-panel > div:first-child > div:first-child {
+    width: 100%;
+  }
+
+  .mi-foot {
+    flex-wrap: wrap;
+  }
+
+  .mi-foot button {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-sheet {
+    animation: none;
+  }
+
+  .mi-page .mi-reg.erp-register td {
+    transition: none;
+  }
+}
+
+/* ---- Mill Inward · fit both registers on one screen -------------------
+   11 and 12 columns have to land inside the stage without a horizontal
+   scrollbar, so the numeric/short columns are fixed and Mill, Knitter, Item
+   and Source share the remainder, with ellipsis instead of overflow.
+   Type/density are reduced here only — the page scope keeps the rest. */
+.mi-page {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .mi-page {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+}
+
+.mi-page .mi-stage {
+  width: min(99%, 120rem);
+}
+
+.mi-page .mi-reg.erp-register thead th {
+  padding: 0.4rem 0.45rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+}
+
+.mi-page .mi-reg.erp-register td {
+  overflow: hidden;
+  padding: 0.3rem 0.45rem;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+}
+
+/* the flexible text columns clip rather than widen the table */
+.mi-page .mi-reg.erp-register .erp-clip {
+  max-width: 100%;
+}
+
+.mi-page .mi-reg .badge {
+  padding: 0.08rem 0.32rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.02em;
+}
+
+.mi-page .mi-view {
+  padding: 0.12rem 0.4rem;
+  font-size: 10.5px;
+}
+
+/* Below the tablet breakpoint the columns cannot all fit: pan deliberately */
+@media (max-width: 1023px) {
+  .mi-page .mi-reg.erp-register {
+    min-width: 62rem;
+  }
+}
+
+/* ---- Mill Inward · dialog sizing + QC return skin ---------------------
+   The entry sheet is narrower (a weight field does not need 40rem) and the
+   QC-return sheet gets the same Aurora chrome. QC styling is CSS only — its
+   JSX, data and send behaviour are untouched. */
+@media (min-width: 640px) {
+  .mi-sheet {
+    width: min(96vw, 40rem);
+    height: min(92vh, 42rem);
+  }
+}
+
+/* a roll weight is a short number — stop the input spanning the sheet */
+.mi-roll-table td input {
+  max-width: 13rem;
+  margin-left: auto;
+}
+
+.mi-entry-rolls > div {
+  padding: 0.35rem 0.5rem 0.5rem;
+}
+
+/* ---- QC return sheet --------------------------------------------------- */
+.mi-qc-sheet {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+  animation: gb-fade-in 0.16s ease both;
+}
+
+.mi-qc-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.mi-qc-sheet > div:first-child h2 {
+  font-size: 13.5px;
+  color: var(--gb-midnight-ink);
+}
+
+.mi-qc-sheet > div:last-child {
+  background: var(--gb-workspace-top);
+}
+
+/* read-only field pairs read as a label/value grid, not form rows */
+.mi-qc-sheet label > span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gb-ink-soft);
+}
+
+.mi-qc-sheet label > p {
+  padding-top: 0.15rem;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gb-ink);
+}
+
+.mi-qc-sheet textarea {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  background: #fff;
+}
+
+/* failed-rolls table gets the same ledger treatment as the registers */
+.mi-qc-sheet table.erp-table {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-radius: 11px;
+}
+
+.mi-qc-sheet table.erp-table thead th {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 241, 248, 0.86);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.mi-qc-sheet table.erp-table td {
+  height: 2.2rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 11.5px;
+  color: var(--gb-ink);
+  border-bottom: 1px solid var(--gb-grid-strong, #b6c8d8);
+}
+
+.mi-qc-sheet table.erp-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mi-qc-sheet table.erp-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+/* footer bar matches the entry sheet */
+.mi-qc-sheet > div:last-child > div:last-child {
+  border-top: 1px solid var(--gb-grid-strong, #b6c8d8);
+  background: var(--gb-pearl);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-qc-sheet {
+    animation: none;
+  }
 }
 
 /* ---------- Program / swatch card (print + preview) ---------- */

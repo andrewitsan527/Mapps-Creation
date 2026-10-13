@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { Loader2 } from "lucide-react";
 import { buttonGhostClass } from "@/components/ui";
 
 export function GreyChallanUploadButton({
@@ -29,11 +30,19 @@ export function GreyChallanUploadButton({
       />
       <button
         type="button"
-        className={buttonGhostClass}
+        className={`${buttonGhostClass} min-w-[8.5rem]`}
         disabled={disabled || busy}
+        aria-busy={busy}
         onClick={() => inputRef.current?.click()}
       >
-        {busy ? "INTELIXA" : "Upload Challan"}
+        {busy ? (
+          <>
+            <Loader2 className="gb-spin h-3.5 w-3.5" aria-hidden />
+            Reading&hellip;
+          </>
+        ) : (
+          "Upload Challan"
+        )}
       </button>
     </div>
   );

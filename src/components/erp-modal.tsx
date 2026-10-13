@@ -47,6 +47,8 @@ export function ErpModal({
   headerAccessory,
   portal,
   trackViewport,
+  lockScroll,
+  bodyClassName,
 }: {
   title: string;
   onClose: () => void;
@@ -67,9 +69,23 @@ export function ErpModal({
   headerAccessory?: React.ReactNode;
   portal?: boolean;
   trackViewport?: boolean;
+  lockScroll?: boolean;
+  bodyClassName?: string;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [viewportBox, setViewportBox] = useState<{ top: number; height: number } | null>(null);
+
+  /* Opt-in: stops the page behind the dialog from scrolling. Nested
+     dialogs restore the previous value, so the lock survives until the
+     outermost one closes. */
+  useEffect(() => {
+    if (!lockScroll) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [lockScroll]);
 
   useEffect(() => {
     if (!trackViewport) return;
@@ -179,11 +195,13 @@ export function ErpModal({
       )}
       <div
         className={
-          form
-            ? ""
-            : flushBody
-              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
-              : "min-h-0 flex-1 overflow-y-auto"
+          bodyClassName
+            ? bodyClassName
+            : form
+              ? ""
+              : flushBody
+                ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+                : "min-h-0 flex-1 overflow-y-auto"
         }
       >
         {children}
@@ -195,7 +213,7 @@ export function ErpModal({
   if (cornerClose) {
     return (
       <div className="fixed inset-0 z-50 bg-black/40">
-        <div className="absolute inset-y-2 right-2 left-2 md:right-auto md:left-1/2 md:w-[calc(100vw-14.25rem)] md:-translate-x-1/2">
+        <div className="absolute inset-y-2 right-2 left-2 md:right-auto md:left-1/2 md:w-[calc(100vw-11rem)] md:-translate-x-1/2">
           <div className="relative h-full w-full">
             <button
               type="button"

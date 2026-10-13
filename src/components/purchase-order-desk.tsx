@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ClipboardList, Plus } from "lucide-react";
+import { ClipboardList, Plus, X } from "lucide-react";
 import { formatMoney, formatQty } from "@/lib/utils";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import {
@@ -17,7 +17,6 @@ import {
   Field,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -351,10 +350,30 @@ export function PurchaseOrderDesk({
   const customRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     setRows(orders.map(toRow));
   }, [orders]);
+
+  /* Close the custom-date popover on an outside click (customRef was
+     previously attached but never used). */
+  useEffect(() => {
+    if (!customOpen) return;
+    function onDown(event: MouseEvent) {
+      if (!customRef.current?.contains(event.target as Node)) {
+        setCustomOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [customOpen]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   const nextSr = nextSrNo(rows, todayIso());
   const draftQty = Number(draft.qtyUnits);
@@ -445,6 +464,7 @@ export function PurchaseOrderDesk({
     try {
       const saved = toRow(await createPurchaseOrder(parsed));
       setRows((prev) => [saved, ...prev.filter((row) => row.id !== saved.id)]);
+      setToast(`Purchase order ${saved.srNo} saved.`);
       closeModal();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save purchase order.");
@@ -464,6 +484,7 @@ export function PurchaseOrderDesk({
     try {
       const saved = toRow(await updatePurchaseOrder(editingId, parsed));
       setRows((prev) => prev.map((row) => (row.id === saved.id ? saved : row)));
+      setToast(`Purchase order ${saved.srNo} updated.`);
       closeModal();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save purchase order.");
@@ -473,20 +494,25 @@ export function PurchaseOrderDesk({
   }
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Purchase Order"
-        eyebrow="Procure"
-        icon={ClipboardList}
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Create Purchase Order
-          </button>
-        }
-      />
+    <div className="po-page">
+      <div className="po-stage">
+      {toast ? (
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{toast}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setToast(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-4">
+      <MetricStrip className="aw-metrics po-metrics grid-cols-2 lg:grid-cols-4">
         <Metric
           label={dateFilter === "today" ? "Orders today" : "Entries shown"}
           value={filtered.length}
@@ -501,11 +527,12 @@ export function PurchaseOrderDesk({
       </MetricStrip>
 
       <Panel
+        className="po-panel"
         title="Purchase Order Register"
         icon={ClipboardList}
         flush
         action={
-          <div className="flex items-center gap-1.5">
+          <div className="po-actions">
             <div className="relative flex gap-1" ref={customRef}>
               <button
                 type="button"
@@ -597,20 +624,28 @@ export function PurchaseOrderDesk({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search Sr. No., knitter, quality, agent"
             />
+            <button
+              type="button"
+              className={`${buttonClass} po-new`}
+              onClick={openCreate}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create Purchase Order
+            </button>
           </div>
         }
       >
 
         {filtered.length === 0 ? (
-          <div className="p-2.5">
+          <div className="po-empty">
             <EmptyState
               icon={ClipboardList}
               text="No purchase orders in this filter."
             />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register po-register w-full table-fixed">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register po-register po-reg w-full min-w-[62rem] table-fixed">
               <colgroup>
                 <col className="w-[7.25rem]" />
                 <col className="w-[12%]" />
@@ -702,6 +737,10 @@ export function PurchaseOrderDesk({
           form
           trapFocus
           closeTabIndex={-1}
+          closeClassName="gb-sheet-close"
+          bodyClassName="po-form-body"
+          frameWidthClass="po-sheet"
+          overlayClassName="po-sheet-overlay"
           title={
             mode === "create"
               ? "Create Purchase Order"
@@ -711,9 +750,12 @@ export function PurchaseOrderDesk({
           }
           onClose={unsaved.requestClose}
         >
-          <div className="space-y-2 px-4 py-3">
+          <div className="po-form-scroll">
             {error ? (
-              <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
+              <p
+                role="alert"
+                className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)"
+              >
                 {error}
               </p>
             ) : null}
@@ -726,7 +768,9 @@ export function PurchaseOrderDesk({
               readOnly={mode === "view"}
               onChange={mode === "create" ? setDraft : setEditDraft}
             />
-            <div className="-mx-4 mt-1 flex justify-end gap-1.5 border-t border-(--line) px-4 pt-2.5">
+          </div>
+
+            <div className="po-form-foot">
               <button
                 type="button"
                 tabIndex={-1}
@@ -748,9 +792,9 @@ export function PurchaseOrderDesk({
                 </button>
               )}
             </div>
-          </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

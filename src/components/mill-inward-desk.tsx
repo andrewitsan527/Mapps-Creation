@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, Plus, Trash2 } from "lucide-react";
+import { ArrowDownToLine, Plus, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
@@ -10,7 +10,6 @@ import {
   Field,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -286,7 +285,6 @@ function RollTable({
 }) {
   const weightRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const pendingFocus = useRef<string | null>(null);
-  const stats = rollStats(rolls);
 
   useEffect(() => {
     const id = pendingFocus.current;
@@ -321,7 +319,12 @@ function RollTable({
 
   return (
     <div className="space-y-2">
-      <table className="erp-table">
+      <table className="erp-table mi-roll-table">
+        <colgroup>
+          <col className="w-[3.25rem]" />
+          <col />
+          {!readOnly ? <col className="w-[3rem]" /> : null}
+        </colgroup>
         <thead>
           <tr>
             <th className="w-16">Roll</th>
@@ -382,10 +385,6 @@ function RollTable({
           Add Roll
         </button>
       ) : null}
-      <div className="flex justify-between border-t border-(--line) pt-2 text-[12px] font-semibold">
-        <span>Total Rolls: {stats.totalRolls}</span>
-        <span>Total Weight: {formatKg(stats.totalWeight)} KG</span>
-      </div>
     </div>
   );
 }
@@ -407,6 +406,12 @@ export function MillInwardDesk({
   );
   const [draft, setDraft] = useState<Inward | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    const id = window.setTimeout(() => setNotice(null), 5000);
+    return () => window.clearTimeout(id);
+  }, [notice]);
   const [error, setError] = useState<string | null>(null);
   const savingRef = useRef(false);
 
@@ -612,34 +617,25 @@ export function MillInwardDesk({
   }
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Mill Inward"
-        eyebrow="Produce"
-        icon={ArrowDownToLine}
-        description="Confirm grey at the mill, then send the inward."
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            New Mill Inward
-          </button>
-        }
-      />
-
+    <div className="mi-page">
+      <div className="mi-stage">
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-4">
+      <MetricStrip className="aw-metrics grid-cols-2 lg:grid-cols-4">
         <Metric
           label="Pending inward"
           value={pending.length}
@@ -654,17 +650,41 @@ export function MillInwardDesk({
         title="Pending inward"
         icon={ArrowDownToLine}
         flush
+        className="mi-panel mi-pending"
+        action={
+          <button
+            className={`${buttonClass} mi-new`}
+            type="button"
+            onClick={openCreate}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Mill Inward
+          </button>
+        }
       >
         {pending.length === 0 ? (
-          <div className="p-2.5">
+          <div className="mi-empty">
             <EmptyState
               icon={ArrowDownToLine}
               text="No pending inward. New grey bills will appear here, or create a manual inward."
             />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register mi-reg w-full table-fixed">
+              <colgroup>
+                <col className="w-[5.75rem]" />
+                <col className="w-[6rem]" />
+                <col className="w-[5rem]" />
+                <col />
+                <col />
+                <col />
+                <col className="w-[3.25rem]" />
+                <col className="w-[5.75rem]" />
+                <col />
+                <col className="w-[5rem]" />
+                <col className="w-[3.75rem]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Sr. No.</th>
@@ -677,6 +697,7 @@ export function MillInwardDesk({
                   <th className="num">KG</th>
                   <th>Source</th>
                   <th>Status</th>
+                  <th className="!text-center">View</th>
                 </tr>
               </thead>
               <tbody>
@@ -685,8 +706,17 @@ export function MillInwardDesk({
                   return (
                     <tr
                       key={row.id}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Open inward ${row.srNo}`}
                       className="cursor-pointer hover:bg-(--panel-sunken)"
                       onClick={() => openPending(row)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openPending(row);
+                        }
+                      }}
                     >
                       <td className="font-semibold tabular-nums">{row.srNo}</td>
                       <td>
@@ -720,6 +750,18 @@ export function MillInwardDesk({
                           {qcReturn ? "PENDING" : "Pending"}
                         </span>
                       </td>
+                      <td className="!text-center">
+                        <button
+                          type="button"
+                          className={`${buttonTinyClass} mi-view`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openPending(row);
+                          }}
+                        >
+                          View
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -729,14 +771,28 @@ export function MillInwardDesk({
         )}
       </Panel>
 
-      <Panel title="Completed inward" flush>
+      <Panel title="Completed inward" flush className="mi-panel mi-done">
         {settled.length === 0 ? (
-          <div className="p-2.5">
+          <div className="mi-empty">
             <EmptyState text="No completed inward yet." />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register mi-reg w-full table-fixed">
+              <colgroup>
+                <col className="w-[5.75rem]" />
+                <col className="w-[6rem]" />
+                <col className="w-[5rem]" />
+                <col />
+                <col />
+                <col />
+                <col className="w-[3.25rem]" />
+                <col className="w-[5.75rem]" />
+                <col />
+                <col className="w-[5rem]" />
+                <col className="w-[5rem]" />
+                <col className="w-[3.75rem]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Sr. No.</th>
@@ -750,6 +806,7 @@ export function MillInwardDesk({
                   <th>Source</th>
                   <th>Sent On</th>
                   <th>Status</th>
+                  <th className="!text-center">View</th>
                 </tr>
               </thead>
               <tbody>
@@ -758,8 +815,17 @@ export function MillInwardDesk({
                   return (
                     <tr
                       key={row.id}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Open inward ${row.srNo}`}
                       className="cursor-pointer text-(--muted) hover:bg-(--panel-sunken) hover:text-(--ink)"
                       onClick={() => openCompleted(row)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openCompleted(row);
+                        }
+                      }}
                     >
                       <td className="font-semibold tabular-nums text-(--ink)">
                         {row.srNo}
@@ -800,6 +866,18 @@ export function MillInwardDesk({
                           <span className={statusBadge("CLOSED")}>Completed</span>
                         )}
                       </td>
+                      <td className="!text-center">
+                        <button
+                          type="button"
+                          className={`${buttonTinyClass} mi-view`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openCompleted(row);
+                          }}
+                        >
+                          View
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -822,21 +900,22 @@ export function MillInwardDesk({
                   : `Pending inward ${draft.srNo}`
           }
           onClose={unsaved.requestClose}
-          flushBody={isQcReturn(draft)}
+          closeClassName="gb-sheet-close"
+          flushBody
           portal={isQcReturn(draft)}
           trackViewport={isQcReturn(draft)}
           overlayClassName={
             isQcReturn(draft)
               ? "px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-8 md:py-10"
-              : undefined
+              : "mi-sheet-overlay"
           }
           frameWidthClass={
             isQcReturn(draft)
-              ? "h-[min(640px,100%)] max-h-full w-full min-h-0 max-w-[800px] self-stretch md:self-center"
-              : undefined
+              ? "mi-qc-sheet h-[min(640px,100%)] max-h-full w-full min-h-0 max-w-[800px] self-stretch md:self-center"
+              : "mi-sheet"
           }
         >
-          <div className={isQcReturn(draft) ? "flex min-h-0 flex-1 flex-col" : "space-y-2 px-4 py-2.5"}>
+          <div className={isQcReturn(draft) ? "flex min-h-0 flex-1 flex-col" : "mi-entry"}>
             {error ? (
               <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                 {error}
@@ -935,7 +1014,7 @@ export function MillInwardDesk({
             ) : null}
             {!isQcReturn(draft) ? (
             <>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="mi-entry-fields grid grid-cols-1 gap-2 sm:grid-cols-2">
               {mode !== "create" ? (
                 <Field label="Sr. No.">
                   <p className="py-1.5 text-[12.5px] font-semibold tabular-nums">
@@ -1064,7 +1143,7 @@ export function MillInwardDesk({
               </Field>
             </div>
 
-            <div>
+            <div className="mi-entry-rolls">
               <p className="mb-1 text-[12px] font-medium text-(--muted)">
                 Roll / Taka
               </p>
@@ -1076,7 +1155,7 @@ export function MillInwardDesk({
             </div>
 
             {mode === "create" || draft.remarks || !readOnly ? (
-              <Field label="Remark">
+              <Field label="Remark" className="mi-entry-remark">
                 <textarea
                   className={inputClass}
                   rows={3}
@@ -1089,7 +1168,7 @@ export function MillInwardDesk({
             </>
             ) : null}
 
-            <div className={isQcReturn(draft) ? "flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5" : "sticky bottom-0 flex justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5 -mx-4"}>
+            <div className={isQcReturn(draft) ? "flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5" : "mi-foot"}>
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -1128,6 +1207,7 @@ export function MillInwardDesk({
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

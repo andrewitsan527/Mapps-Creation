@@ -122,6 +122,11 @@ export function ErpShell({
     });
   }
   const hideSidebar = pathname === "/menu";
+  /* Grey Bill uses the Aurora Weave (Soft Ice) chrome. */
+  const auroraHeader =
+    pathname === "/grey-purchase" ||
+    pathname === "/purchase-orders" ||
+    pathname === "/mill-inward";
   const textileHeader =
     pathname === "/grey" ||
     pathname === "/programs" ||
@@ -140,7 +145,7 @@ export function ErpShell({
         <aside
           className={cn(
             "no-print sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-white/6 bg-(--sidebar) text-(--sidebar-ink) transition-[width] duration-200 ease-out md:flex",
-            collapsed ? "w-[3.25rem]" : "w-52",
+            collapsed ? "w-[3.25rem]" : "w-[9.75rem]",
           )}
         >
           <div
@@ -257,9 +262,11 @@ export function ErpShell({
               "no-print sticky top-0 z-30 flex h-12 items-center justify-between gap-2 px-3 sm:px-4",
               hideSidebar
                 ? "menu-app-header"
-                : textileHeader
-                  ? "tx-app-header"
-                  : "border-b border-(--line) bg-(--panel)/90 backdrop-blur-md",
+                : auroraHeader
+                  ? "gb-app-header"
+                  : textileHeader
+                    ? "tx-app-header"
+                    : "border-b border-(--line) bg-(--panel)/90 backdrop-blur-md",
             )}
           >
             <div className="flex min-w-0 items-center gap-2">

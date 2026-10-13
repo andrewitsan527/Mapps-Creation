@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileDown, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  FileDown,
+  FileText,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useUnsavedClose } from "@/components/unsaved-changes";
@@ -11,7 +20,6 @@ import {
   Field,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -59,6 +67,12 @@ function pad2(n: number) {
 function todayIso() {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function displayDate(iso: string) {
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso || "\u2014";
+  return `${d}-${m}-${y}`;
 }
 
 function nextSrNo(srNos: string[], isoDate: string) {
@@ -345,7 +359,10 @@ export function GreyPurchaseDesk({
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{
+    text: string;
+    tone: "ok" | "warn" | "error";
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rollOpen, setRollOpen] = useState(false);
   const [billBusy, setBillBusy] = useState(false);
@@ -432,6 +449,13 @@ export function GreyPurchaseDesk({
     el?.scrollIntoView({ block: "nearest", inline: "nearest" });
     pendingRollFocus.current = null;
   }, [draft?.rolls.length, rollOpen]);
+
+  /* The upload message clears itself after 5s; it also has a close button. */
+  useEffect(() => {
+    if (billWarnings.length === 0) return;
+    const id = window.setTimeout(() => setBillWarnings([]), 5000);
+    return () => window.clearTimeout(id);
+  }, [billWarnings]);
 
   function closeModal() {
     setDraft(null);
@@ -808,11 +832,13 @@ export function GreyPurchaseDesk({
         );
         return false;
       }
-      setNotice(
-        status === "SAVED"
-          ? "Grey bill saved. Pending mill inward created if it did not already exist."
-          : "Draft saved.",
-      );
+      setNotice({
+        text:
+          status === "SAVED"
+            ? "Grey purchase saved. Pending mill inward created if it did not already exist."
+            : "Draft saved.",
+        tone: "ok",
+      });
       closeModal();
       return true;
     } catch (err) {
@@ -859,11 +885,13 @@ export function GreyPurchaseDesk({
       }
     }
     if (failed.length === 0) return;
-    setNotice(
-      failed.length === files.length
-        ? `Could not download ${failed.join(" and ")}.`
-        : `Could not download ${failed.join(" and ")}. The other file was downloaded.`,
-    );
+    setNotice({
+      text:
+        failed.length === files.length
+          ? `Could not download ${failed.join(" and ")}.`
+          : `Could not download ${failed.join(" and ")}. The other file was downloaded.`,
+      tone: "error",
+    });
   }
 
   async function confirmDeleteBill() {
@@ -875,12 +903,16 @@ export function GreyPurchaseDesk({
       await deleteGreyBill(id);
       setRows((prev) => prev.filter((row) => row.id !== id));
       setPendingDelete(null);
-      setNotice("Grey bill deleted.");
+      setNotice({ text: "Grey purchase deleted.", tone: "ok" });
       if (draft?.id === id) closeModal();
     } catch (err) {
-      setNotice(
-        err instanceof Error ? err.message : "Could not delete the grey bill.",
-      );
+      setNotice({
+        text:
+          err instanceof Error
+            ? err.message
+            : "Could not delete the grey purchase.",
+        tone: "error",
+      });
       setPendingDelete(null);
     } finally {
       savingRef.current = false;
@@ -897,34 +929,26 @@ export function GreyPurchaseDesk({
   const cellInput = `${inputClass} h-8 py-1`;
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Grey Purchase"
-        eyebrow="Procure"
-        icon={FileText}
-        actions={
-          <button type="button" className={buttonClass} onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            New Grey Bill
-          </button>
-        }
-      />
-
+    <div className="gb-page">
+      <div className="gb-stage">
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone={notice.tone}>
+            <span className="gb-toast-text">{notice.text}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-3">
-        <Metric label="Grey Bills" value={rows.length} />
+      <MetricStrip className="aw-metrics gb-metrics grid-cols-2 lg:grid-cols-4">
+        <Metric label="Grey Purchases" value={rows.length} />
         <Metric
           label="Saved"
           value={rows.filter((row) => row.status === "SAVED").length}
@@ -933,14 +957,22 @@ export function GreyPurchaseDesk({
           label="Drafts"
           value={rows.filter((row) => row.status === "DRAFT").length}
         />
+        <Metric
+          label="Net Value"
+          value={`\u20b9${rows
+            .reduce((sum, row) => sum + rupee(row.netAmount), 0)
+            .toLocaleString("en-IN")}`}
+        />
       </MetricStrip>
 
       <Panel
-        title="Grey Bill Register"
+        className="gb-panel"
+        title="Grey Purchase Register"
         icon={FileText}
         flush
         action={
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            <div className="flex items-center gap-1.5">
             <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
             <input
               className={`${inputClass} w-56`}
@@ -948,21 +980,31 @@ export function GreyPurchaseDesk({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            </div>
+            <button
+              type="button"
+              className={`${buttonClass} gb-new`}
+              onClick={openCreate}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New Grey Purchase
+            </button>
           </div>
         }
       >
         {filtered.length === 0 ? (
-          <div className="p-2.5">
-            <EmptyState icon={FileText} text="No grey bills" />
+          <div className="gb-empty">
+            <EmptyState icon={FileText} text="No grey purchases" />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register w-full min-w-[52rem] table-fixed">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register gb-register w-full min-w-[58rem] table-fixed">
               <colgroup>
                 <col className="w-[2.75rem]" />
-                <col className="w-[7.5rem]" />
-                <col className="w-[7rem]" />
-                <col className="w-[7rem]" />
+                <col className="w-[7.25rem]" />
+                <col className="w-[6.5rem]" />
+                <col className="w-[6.5rem]" />
+                <col className="w-[6.5rem]" />
                 <col />
                 <col />
                 <col className="w-[7.5rem]" />
@@ -973,6 +1015,7 @@ export function GreyPurchaseDesk({
                 <tr>
                   <th className="!text-center">No.</th>
                   <th>Sr. No.</th>
+                  <th>Date</th>
                   <th>Bill No.</th>
                   <th>Challan No.</th>
                   <th>Knitter</th>
@@ -997,6 +1040,9 @@ export function GreyPurchaseDesk({
                       title={row.srNo}
                     >
                       {row.srNo}
+                    </td>
+                    <td className="overflow-hidden whitespace-nowrap tabular-nums">
+                      {displayDate(row.billDate)}
                     </td>
                     <td
                       className="overflow-hidden text-ellipsis whitespace-nowrap"
@@ -1037,8 +1083,8 @@ export function GreyPurchaseDesk({
                         <button
                           type="button"
                           className={registerActionClass}
-                          aria-label="Edit grey bill"
-                          title="Edit grey bill"
+                          aria-label="Edit grey purchase"
+                          title="Edit grey purchase"
                           onClick={() => openRow(row, "edit")}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -1046,8 +1092,8 @@ export function GreyPurchaseDesk({
                         <button
                           type="button"
                           className={registerActionClass}
-                          aria-label="Delete grey bill"
-                          title="Delete grey bill"
+                          aria-label="Delete grey purchase"
+                          title="Delete grey purchase"
                           onClick={() => setPendingDelete(row)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1078,16 +1124,23 @@ export function GreyPurchaseDesk({
           title={mode === "create" ? "GP Entry" : `GP Entry ${draft.srNo}`}
           onClose={unsaved.requestClose}
           trapFocus={!rollOpen}
-          frameWidthClass="w-[63.75vw] max-w-[61.2rem] max-h-[calc(100vh-4rem)] overflow-hidden"
-        >
-          <div ref={billTrapRef} className="space-y-2 overflow-hidden px-4 py-2.5">
-            {error ? (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
-                {error}
-              </p>
-            ) : null}
-            <div className="flex items-center justify-end gap-3">
+          flushBody
+          overlayClassName="gb-sheet-overlay"
+          headerClassName="gb-sheet-head justify-between px-4 py-2"
+          closeClassName="gb-sheet-close"
+          lockScroll
+          headerAccessory={
+            <div className="gb-sheet-tools">
               <DocumentActions documents={draft.documents} />
+              {billFile || challanFile ? (
+                <span className="gb-attach-chip">
+                  {billFile && challanFile
+                    ? "Bill + challan ready"
+                    : billFile
+                      ? "Bill ready"
+                      : "Challan ready"}
+                </span>
+              ) : null}
               <input
                 ref={billFileRef}
                 className="hidden"
@@ -1098,29 +1151,48 @@ export function GreyPurchaseDesk({
                   if (file) void uploadBill(file);
                 }}
               />
+              <div className="gb-upload-wrap">
               <button
                 type="button"
-                className={buttonGhostClass}
+                className={`${buttonGhostClass} min-w-[6.25rem]`}
                 disabled={readOnly || billBusy}
+                aria-busy={billBusy}
                 onClick={() => billFileRef.current?.click()}
               >
-                {billBusy ? "INTELIXA" : "Upload Bill"}
+                {billBusy ? (
+                  <Loader2 className="gb-spin h-3.5 w-3.5" aria-hidden />
+                ) : null}
+                INTELIXA
               </button>
+              {billWarnings.length > 0 ? (
+                <div className="gb-upload-pop" role="status">
+                  <span className="gb-upload-pop-text">
+                    Could not read this bill. Please enter the details
+                    manually.
+                  </span>
+                  <button
+                    type="button"
+                    className="gb-upload-pop-close"
+                    onClick={() => setBillWarnings([])}
+                    aria-label="Dismiss message"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null}
+              </div>
             </div>
-            {billFile || challanFile ? (
-              <p className="text-[12px] text-(--muted)">
-                {billFile ? `Bill file ready to save: ${billFile.name}. ` : ""}
-                {challanFile ? `Challan file ready to save: ${challanFile.name}.` : ""}
+          }
+          frameWidthClass="gb-sheet gb-sheet-entry"
+        >
+          <div ref={billTrapRef} className="gb-entry">
+            <div className="gb-entry-main">
+            {error ? (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
+                {error}
               </p>
             ) : null}
-            {billWarnings.length > 0 ? (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
-                {billWarnings.map((warning) => (
-                  <p key={warning}>{warning}</p>
-                ))}
-              </div>
-            ) : null}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Sr. No.">
                 <input className={inputClass} value={draft.srNo} readOnly />
               </Field>
@@ -1162,7 +1234,7 @@ export function GreyPurchaseDesk({
                 />
               </Field>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Field label="Knitter Name">
                 <SearchableSelect
                   value={draft.knitterId}
@@ -1208,13 +1280,23 @@ export function GreyPurchaseDesk({
               </Field>
             </div>
 
-            <TableWrap>
+            <div className="gb-entry-grid">
               <div
                 ref={itemGridScrollRef}
-                className="max-h-[11.5rem] overflow-y-auto"
+                className="gb-entry-scroll"
               >
-              <table className="erp-table">
-                <thead className="sticky top-0 z-[1] bg-(--panel)">
+              <table className="erp-table gb-entry-table">
+                <colgroup>
+                  <col className="w-[2.6rem]" />
+                  <col />
+                  <col className="w-[7.5rem]" />
+                  <col className="w-[8rem]" />
+                  <col className="w-[3.5rem]" />
+                  <col className="w-[8rem]" />
+                  <col className="w-[8.5rem]" />
+                  {!readOnly ? <col className="w-[2.9rem]" /> : null}
+                </colgroup>
+                <thead>
                   <tr>
                     <th className="w-10">SR</th>
                     <th>Item Name</th>
@@ -1337,7 +1419,7 @@ export function GreyPurchaseDesk({
                 </tbody>
               </table>
               </div>
-            </TableWrap>
+            </div>
             {!readOnly ? (
               <div className="flex flex-wrap gap-1.5">
                 <button type="button" className={buttonGhostClass} onClick={addItem}>
@@ -1364,7 +1446,7 @@ export function GreyPurchaseDesk({
               </button>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="gb-entry-tail grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Remarks">
                 <textarea
                   ref={remarksRef}
@@ -1375,7 +1457,7 @@ export function GreyPurchaseDesk({
                   onChange={(e) => patch({ remarks: e.target.value })}
                 />
               </Field>
-              <div className="space-y-1 rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5">
+              <div className="gb-total space-y-1">
                 <Field label="Freight Rate ₹/KG">
                   <input
                     className={numericInputClass(
@@ -1424,7 +1506,9 @@ export function GreyPurchaseDesk({
               </div>
             </div>
 
-            <div className="-mx-4 flex justify-end gap-1.5 border-t border-(--line) px-4 pt-2.5">
+            </div>
+
+            <div className="gb-entry-foot">
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -1452,17 +1536,23 @@ export function GreyPurchaseDesk({
           title="Roll / Taka"
           onClose={closeRollDetails}
           trapFocus
-          frameWidthClass="w-[min(100vw-2rem,454px)] max-h-[calc(100vh-2rem)] overflow-hidden"
+          flushBody
+          overlayClassName="gb-sheet-overlay"
+          headerClassName="gb-sheet-head justify-between px-4 py-2"
+          closeClassName="gb-sheet-close"
+          frameWidthClass="gb-sheet gb-sheet-roll"
         >
-          <div className="flex min-h-0 flex-col overflow-hidden">
-          <div className="min-h-0 overflow-auto px-4 pt-2.5">
+          <div className="gb-roll">
+          <div className="gb-roll-top">
           {!readOnly ? (
             <GreyChallanUploadButton busy={challanBusy} onFile={uploadChallan} />
           ) : null}
           {challanNote ? (
             <p className="mb-2 text-[12px] text-amber-900">{challanNote}</p>
           ) : null}
-          <table className="erp-table">
+          </div>
+          <div className="gb-roll-scroll">
+          <table className="erp-table gb-roll-table">
             <colgroup>
               <col className="w-16" />
               <col />
@@ -1475,14 +1565,6 @@ export function GreyPurchaseDesk({
                 {!readOnly ? <th className="w-10" /> : null}
               </tr>
             </thead>
-          </table>
-          <div className="max-h-[15.75rem] overflow-y-auto">
-          <table className="erp-table">
-            <colgroup>
-              <col className="w-16" />
-              <col />
-              {!readOnly ? <col className="w-10" /> : null}
-            </colgroup>
             <tbody>
               {draft.rolls.map((roll, index) => (
                 <tr key={roll.id}>
@@ -1546,14 +1628,17 @@ export function GreyPurchaseDesk({
             </tbody>
           </table>
           </div>
-          </div>
-          <div className="flex shrink-0 justify-between border-t border-(--line) bg-(--panel) px-4 py-2 text-[12px] font-semibold">
-            <span>{rollStats(draft.rolls).totalRolls}</span>
+          <div className="gb-roll-sum">
             <span>
-              {formatKg(rollStats(draft.rolls).totalWeight)} KG
+              Rolls entered
+              <strong>{rollStats(draft.rolls).totalRolls}</strong>
+            </span>
+            <span>
+              Total weight
+              <strong>{formatKg(rollStats(draft.rolls).totalWeight)} KG</strong>
             </span>
           </div>
-          <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
+          <div className="gb-entry-foot">
             <button
               type="button"
               className={buttonClass}
@@ -1572,7 +1657,7 @@ export function GreyPurchaseDesk({
           onMouseDown={() => setPendingDelete(null)}
         >
           <div
-            className="w-full max-w-sm rounded-xl border border-(--line) bg-(--panel) p-4 shadow-(--shadow-sm)"
+            className="gb-confirm"
             role="dialog"
             aria-labelledby="delete-grey-bill-title"
             onMouseDown={(event) => event.stopPropagation()}
@@ -1581,10 +1666,10 @@ export function GreyPurchaseDesk({
               id="delete-grey-bill-title"
               className="text-[15px] font-semibold text-(--ink)"
             >
-              Delete Grey Bill
+              Delete Grey Purchase
             </h2>
             <p className="mt-1.5 text-[13px] text-(--muted)">
-              Delete Grey Bill {pendingDelete.srNo}? This cannot be undone.
+              Delete Grey Purchase {pendingDelete.srNo}? This cannot be undone.
             </p>
             <div className="mt-4 flex justify-end gap-1.5">
               <button
@@ -1592,19 +1677,20 @@ export function GreyPurchaseDesk({
                 className={buttonGhostClass}
                 onClick={() => setPendingDelete(null)}
               >
-                No
+                Cancel
               </button>
               <button
                 type="button"
-                className={buttonClass}
+                className={`${buttonClass} gb-danger`}
                 onClick={() => void confirmDeleteBill()}
               >
-                Yes
+                Delete Grey Purchase
               </button>
             </div>
           </div>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

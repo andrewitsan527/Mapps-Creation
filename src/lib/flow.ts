@@ -70,7 +70,7 @@ export const navClusters: NavCluster[] = [
     caption: "Grey in",
     items: [
       { href: "/purchase-orders", label: "Purchase order", icon: ClipboardList },
-      { href: "/grey-purchase", label: "Grey bills", icon: FileText },
+      { href: "/grey-purchase", label: "Grey Purchase", icon: FileText },
     ],
   },
   {
