@@ -36,6 +36,14 @@ import {
   type PurchaseAgentRecord,
 } from "@/server/actions/purchase-agents";
 
+const ACCOUNT_TYPES = [
+  "Commission Agent",
+  "Broker",
+  "Sole Selling Agent",
+  "Consignment Agent",
+  "Other",
+] as const;
+
 function blankAgent(masterType: LocalAgentMasterType): LocalAgent {
   const now = new Date().toISOString();
   return {
