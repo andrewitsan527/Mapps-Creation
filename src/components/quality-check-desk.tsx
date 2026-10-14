@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BadgeCheck, Plus, Search, X } from "lucide-react";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { ErpModal as Overlay } from "@/components/erp-modal";
@@ -106,6 +106,21 @@ export function QualityCheckDesk({
   withoutQc: WithoutQcGroup[];
 }) {
   const [rows, setRows] = useState(records);
+  const [tab, setTab] = useState<"pending" | "records" | "without">("pending");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  /* close the challan search on an outside click */
+  useEffect(() => {
+    if (!searchOpen) return;
+    function onDown(event: MouseEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) {
+        setSearchOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [searchOpen]);
   const [session, setSession] = useState<Session | null>(null);
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -238,31 +253,85 @@ export function QualityCheckDesk({
         </div>
       ) : null}
 
-      <Panel title="Search knitter challan" className="qc-panel qc-search">
-        <div className="qc-search-row">
-          <Field label="Knitter Challan No." className="min-w-0 flex-1">
-            <input
-              className={inputClass}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") searchChallan();
-              }}
-            />
-          </Field>
-          <button type="button" className={`${buttonClass} w-full sm:w-auto`} onClick={searchChallan}>
-            <Search className="h-3.5 w-3.5" />
-            Search
-          </button>
-        </div>
-        {lookupError ? (
-          <p className="mt-2 text-[12px] text-(--danger)" role="alert">
-            {lookupError}
-          </p>
-        ) : null}
-      </Panel>
+      {/* Three lists, one at a time, with the challan search folded in. This
+          screen is worked on standing up, so the blocks and the row actions
+          are deliberately larger than on the office desks. */}
+      <div className="qc-switch">
+        <button
+          type="button"
+          className="qc-tab"
+          data-kind="pending"
+          aria-pressed={tab === "pending"}
+          onClick={() => setTab("pending")}
+        >
+          <span className="qc-tab-label">Pending QC</span>
+          <span className="qc-tab-count tabular-nums">{works.length}</span>
+        </button>
+        <button
+          type="button"
+          className="qc-tab"
+          data-kind="records"
+          aria-pressed={tab === "records"}
+          onClick={() => setTab("records")}
+        >
+          <span className="qc-tab-label">QC Records</span>
+          <span className="qc-tab-count tabular-nums">{rows.length}</span>
+        </button>
+        <button
+          type="button"
+          className="qc-tab"
+          data-kind="without"
+          aria-pressed={tab === "without"}
+          onClick={() => setTab("without")}
+        >
+          <span className="qc-tab-label">Without QC</span>
+          <span className="qc-tab-count tabular-nums">{withoutQc.length}</span>
+        </button>
 
-      <Panel title="Pending finished work" flush className="qc-panel qc-pending">
+        <div className="qc-pop-wrap" ref={searchRef}>
+          <button
+            type="button"
+            className={`qc-icon-btn${searchOpen || search ? " is-on" : ""}`}
+            aria-label="Search knitter challan"
+            aria-expanded={searchOpen}
+            onClick={() => setSearchOpen((open) => !open)}
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          {searchOpen ? (
+            <div className="qc-pop">
+              <input
+                autoFocus
+                aria-label="Knitter Challan No."
+                placeholder="Knitter Challan No."
+                className={inputClass}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") searchChallan();
+                  if (event.key === "Escape") setSearchOpen(false);
+                }}
+              />
+              <button
+                type="button"
+                className={buttonClass}
+                onClick={searchChallan}
+              >
+                Search
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {lookupError ? (
+        <p className="qc-lookup-error" role="alert">
+          {lookupError}
+        </p>
+      ) : null}
+
+      {tab === "pending" ? (
+      <Panel flush className="qc-panel qc-pending">
         {works.length === 0 ? (
           <div className="qc-empty"><EmptyState icon={BadgeCheck} text="No finished work waiting for QC." /></div>
         ) : (
@@ -284,7 +353,7 @@ export function QualityCheckDesk({
               ))}
             </div>
             <div className="hidden md:block">
-          <TableWrap>
+          <TableWrap maxHeight={false}>
             <table className="erp-table erp-register qc-reg w-full min-w-[44rem] table-fixed">
               <colgroup>
                 <col className="w-[10rem]" />
@@ -330,8 +399,8 @@ export function QualityCheckDesk({
           </>
         )}
       </Panel>
-
-      <Panel title="QC records" flush className="qc-panel qc-records">
+      ) : tab === "records" ? (
+      <Panel flush className="qc-panel qc-records">
         {rows.length === 0 ? (
           <div className="qc-empty"><EmptyState text="No QC entries yet." /></div>
         ) : (
@@ -353,7 +422,7 @@ export function QualityCheckDesk({
               ))}
             </div>
             <div className="hidden md:block">
-          <TableWrap>
+          <TableWrap maxHeight={false}>
             <table className="erp-table erp-register qc-reg w-full min-w-[44rem] table-fixed">
               <colgroup>
                 <col className="w-[8rem]" />
@@ -395,8 +464,8 @@ export function QualityCheckDesk({
           </>
         )}
       </Panel>
-
-      <Panel title="Without QC stock" flush className="qc-panel qc-without">
+      ) : (
+      <Panel flush className="qc-panel qc-without">
         {withoutQc.length === 0 ? (
           <div className="qc-empty"><EmptyState text="No rolls are waiting without QC." /></div>
         ) : (
@@ -427,7 +496,7 @@ export function QualityCheckDesk({
               ))}
             </div>
             <div className="hidden md:block">
-          <TableWrap>
+          <TableWrap maxHeight={false}>
             <table className="erp-table erp-register qc-reg w-full min-w-[50rem] table-fixed">
               <colgroup>
                 <col className="w-[9rem]" />
@@ -469,6 +538,14 @@ export function QualityCheckDesk({
                     </td>
                   </tr>
                 ))}
+                <tr className="qc-filler" aria-hidden>
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                </tr>
               </tbody>
             </table>
           </TableWrap>
@@ -476,6 +553,7 @@ export function QualityCheckDesk({
           </>
         )}
       </Panel>
+      )}
 
       {unsaved.dialog}
       {session && work ? (

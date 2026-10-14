@@ -3797,7 +3797,7 @@ button {
 
 .mp-page {
   position: relative;
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100vh - 5.25rem);
   margin: -0.875rem -0.75rem -1.25rem;
   padding: 0.7rem 0.6rem 2rem;
   color: var(--gb-ink);
@@ -3835,10 +3835,10 @@ button {
     );
 
   --gb-grid-strong: #b6c8d8;
-  --mp-row-h: 2.3rem;
-  --mp-head-h: 1.9rem;
-  --mp-primary-rows: 12;
-  --mp-secondary-rows: 5;
+  --mp-row-h: 2.25rem;
+  --mp-head-h: 1.6rem;
+  --mp-primary-rows: 14;
+  --mp-secondary-rows: 14;
 }
 
 @media (max-width: 767px) {
@@ -3897,7 +3897,7 @@ button {
   box-shadow: var(--gb-shadow-card);
 }
 
-.mp-page .mp-panel > div:first-child {
+.mp-page .mp-panel > div:first-child:has(h3) {
   flex-wrap: wrap;
   row-gap: 0.4rem;
   border-bottom: 1px solid rgba(201, 162, 39, 0.2);
@@ -3911,7 +3911,7 @@ button {
   box-shadow: inset 0 1px 0 var(--gb-sheen);
 }
 
-.mp-page .mp-panel > div:first-child h3 {
+.mp-page .mp-panel > div:first-child:has(h3) h3 {
   font-size: 14px;
   font-weight: 650;
   letter-spacing: -0.01em;
@@ -3922,7 +3922,7 @@ button {
   font-size: 12.5px;
 }
 
-.mp-page .mp-panel > div:first-child svg {
+.mp-page .mp-panel > div:first-child:has(h3) svg {
   color: rgba(232, 197, 71, 0.85);
 }
 
@@ -4038,7 +4038,7 @@ button {
   .mp-page .mp-primary .table-scroll {
     height: min(
       calc(var(--mp-head-h) + var(--mp-primary-rows) * var(--mp-row-h)),
-      calc(100vh - 24rem)
+      calc(100vh - 13.95rem)
     );
     max-height: none;
   }
@@ -4046,7 +4046,7 @@ button {
   .mp-page .mp-secondary .table-scroll {
     height: min(
       calc(var(--mp-head-h) + var(--mp-secondary-rows) * var(--mp-row-h)),
-      calc(100vh - 32rem)
+      calc(100vh - 13.95rem)
     );
     max-height: none;
   }
@@ -10987,6 +10987,792 @@ button {
   .mi-page .mi-tab-label,
   .mi-page .mi-tab-count {
     transition: none;
+  }
+}
+
+/* ---------- Mill Program · one register, switched ------------------------
+   The same treatment Mill Inward got, scoped to .mp-page: three blocks at
+   35/35/30, one table at a time, and the selected block fused into the column
+   header by an opacity-faded layer rather than a gradient swap (gradients
+   cannot be transitioned, which is what made the first attempt snap).
+   Identity lives in the count, never in a rail that can escape the radius. */
+
+.mp-page .mp-switch {
+  display: grid;
+  gap: 0.4rem;
+  align-items: stretch;
+  grid-template-columns: 35fr 35fr 30fr;
+}
+
+/* ---- resting tab -------------------------------------------------------- */
+.mp-page .mp-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  overflow: visible;
+  border: 1px solid var(--gb-ice-line);
+  border-radius: 11px 11px 0 0;
+  padding: 0.55rem 0.9rem;
+  text-align: left;
+  color: var(--gb-ink);
+  background: var(--gb-row);
+  box-shadow: inset 0 -1px 0 var(--gb-ice-line);
+  transition:
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mp-page .mp-tab:hover {
+  border-color: var(--gb-grid-strong);
+  background: var(--gb-workspace-top);
+}
+
+.mp-page .mp-tab-label {
+  position: relative;
+  z-index: 1;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gb-ink);
+  transition: color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mp-page .mp-tab-count {
+  position: relative;
+  z-index: 1;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  transition: color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* identity in the number, so nothing can escape the rounded corner */
+.mp-page .mp-tab[data-kind="programs"] .mp-tab-count {
+  color: #1f5e8c;
+}
+
+.mp-page .mp-tab[data-kind="grey"] .mp-tab-count {
+  color: #a8801a;
+}
+
+.mp-page .mp-tab[aria-pressed="true"][data-kind="programs"] .mp-tab-count {
+  color: #7db8e4;
+}
+
+.mp-page .mp-tab[aria-pressed="true"][data-kind="grey"] .mp-tab-count {
+  color: #f0c24a;
+}
+
+/* ---- the fill: always present, only its opacity animates ---------------- */
+.mp-page .mp-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  bottom: calc(-0.4rem - 1px);
+  border-radius: 11px 11px 0 0;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 85%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(201, 162, 39, 0.35);
+  opacity: 0;
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mp-page .mp-tab[aria-pressed="true"]::before {
+  opacity: 1;
+}
+
+.mp-page .mp-tab[aria-pressed="true"] {
+  z-index: 2;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mp-page .mp-tab[aria-pressed="true"] .mp-tab-label {
+  color: var(--gb-midnight-ink);
+}
+
+/* ---- the panel carries no edge of its own ------------------------------- */
+.mp-page .mp-panel {
+  background: var(--gb-row);
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  animation: none;
+}
+
+/* ---- the register, Sales treatment -------------------------------------- */
+.mp-page .mp-reg.erp-register thead th,
+.mp-page .mp-panel .erp-register thead th {
+  height: var(--mp-head-h);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+}
+
+.mp-page .mp-reg.erp-register td,
+.mp-page .mp-panel .erp-register td {
+  position: relative;
+  height: var(--mp-row-h);
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.2;
+  /* the inner column grid is what made this read as a spreadsheet */
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+  transition: background-color 0.14s ease;
+}
+
+.mp-page .mp-reg.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mp-page .mp-reg.erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+.mp-page .mp-reg.erp-register tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.mp-page .mp-reg.erp-register tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+/* no row stagger: it replays on every switch and reads as a shudder */
+.mp-page .erp-register tbody tr {
+  animation: none;
+}
+
+.mp-page .erp-register td button:has(> svg):not(:has(> :not(svg))) {
+  height: 1.5rem;
+  width: 1.5rem;
+  padding: 0;
+}
+
+.mp-page .erp-register td button {
+  border-radius: 7px;
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.16s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.mp-page .erp-register td button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(8, 16, 24, 0.14);
+}
+
+.mp-page .erp-register td button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ---- page frame --------------------------------------------------------- */
+@media (min-width: 768px) {
+  .mp-page {
+    padding-top: 0.35rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+.mp-page .mp-stage {
+  gap: 0.3rem;
+}
+
+.mp-page .table-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 58, 84, 0.3) transparent;
+}
+
+.mp-page .table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mp-page .table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(31, 58, 84, 0.26);
+  background-clip: content-box;
+}
+
+.mp-page .mp-new {
+  align-self: stretch;
+  height: auto;
+  border-radius: 11px;
+}
+
+/* ---- phones: the action leads ------------------------------------------- */
+@media (max-width: 767px) {
+  .mp-page .mp-switch {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mp-page .mp-new {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .mp-page .mp-tab {
+    grid-row: 2;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .mp-page .mp-tab::before {
+    bottom: 0;
+    border-radius: 11px;
+  }
+
+  .mp-page .mp-tab-label {
+    font-size: 11.5px;
+  }
+
+  .mp-page .mp-tab-count {
+    font-size: 1.15rem;
+  }
+
+  .mp-page .mp-panel {
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-page .mp-tab,
+  .mp-page .mp-tab::before,
+  .mp-page .mp-tab-label,
+  .mp-page .mp-tab-count,
+  .mp-page .erp-register td button,
+  .mp-page .erp-register tbody tr td:first-child::before {
+    transition: none;
+  }
+
+  .mp-page .erp-register td button:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ---------- Mill Inward + Mill Program · metric cards --------------------
+   These two desks had their registers rebuilt but kept the plain shared
+   cards, so they were the only converted pages still showing pale ice.
+   Same treatment as Sales and the rest, scoped to the two page classes:
+   the shared .aw-metrics rule is untouched, and the 3.75rem box height is
+   inherited rather than restated, so cards stay identical everywhere. */
+
+.mi-page .aw-metrics > div,
+.mp-page .aw-metrics > div {
+  --aw-rail: rgba(132, 183, 214, 0.9);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding-left: 1rem;
+  background-color: var(--gb-midnight);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(
+      150deg,
+      var(--gb-midnight-lift) 0%,
+      var(--gb-midnight) 55%,
+      var(--gb-midnight-deep) 100%
+    );
+  box-shadow:
+    0 10px 24px rgba(8, 16, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* the rail grows from the centre on mount */
+.mi-page .aw-metrics > div::before,
+.mp-page .aw-metrics > div::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--aw-rail);
+  transform: scaleY(0);
+  animation: sl-rail-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  animation-delay: inherit;
+}
+
+/* a soft glow bleeding in from the rail side */
+.mi-page .aw-metrics > div::after,
+.mp-page .aw-metrics > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 120% at 0% 50%,
+    var(--aw-rail),
+    transparent 70%
+  );
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.mi-page .aw-metrics > div:hover,
+.mp-page .aw-metrics > div:hover {
+  transform: translateY(-2px);
+}
+
+.mi-page .aw-metrics > div p:first-child,
+.mp-page .aw-metrics > div p:first-child {
+  color: rgba(232, 241, 248, 0.58);
+}
+
+.mi-page .aw-metrics > div p:nth-child(2),
+.mp-page .aw-metrics > div p:nth-child(2) {
+  color: #e8f1f8;
+}
+
+.mi-page .aw-metrics > div p:nth-child(3),
+.mp-page .aw-metrics > div p:nth-child(3) {
+  color: rgba(232, 241, 248, 0.5);
+}
+
+/* the same four grounds every other desk uses */
+.mi-page .aw-metrics > div:nth-child(1),
+.mp-page .aw-metrics > div:nth-child(1) {
+  --aw-rail: rgba(125, 186, 228, 0.95);
+  border-color: rgba(125, 186, 228, 0.16);
+  background-color: #152a42;
+  background-image: linear-gradient(150deg, #1d3a56 0%, #152a42 55%, #101f33 100%);
+}
+
+.mi-page .aw-metrics > div:nth-child(1) p:nth-child(2),
+.mp-page .aw-metrics > div:nth-child(1) p:nth-child(2) {
+  color: #a9d2f0;
+}
+
+.mi-page .aw-metrics > div:nth-child(2),
+.mp-page .aw-metrics > div:nth-child(2) {
+  --aw-rail: rgba(104, 212, 176, 0.95);
+  border-color: rgba(104, 212, 176, 0.16);
+  background-color: #0f2e29;
+  background-image: linear-gradient(150deg, #154039 0%, #0f2e29 55%, #0b221e 100%);
+}
+
+.mi-page .aw-metrics > div:nth-child(2) p:nth-child(2),
+.mp-page .aw-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #7fe3c0;
+}
+
+.mi-page .aw-metrics > div:nth-child(3),
+.mp-page .aw-metrics > div:nth-child(3) {
+  --aw-rail: rgba(235, 196, 86, 0.95);
+  border-color: rgba(235, 196, 86, 0.16);
+  background-color: #2e2412;
+  background-image: linear-gradient(150deg, #3f3118 0%, #2e2412 55%, #231b0d 100%);
+}
+
+.mi-page .aw-metrics > div:nth-child(3) p:nth-child(2),
+.mp-page .aw-metrics > div:nth-child(3) p:nth-child(2) {
+  color: #f2d27e;
+}
+
+.mi-page .aw-metrics > div:nth-child(4),
+.mp-page .aw-metrics > div:nth-child(4) {
+  --aw-rail: rgba(226, 142, 92, 0.95);
+  border-color: rgba(226, 142, 92, 0.16);
+  background-color: #2f1e16;
+  background-image: linear-gradient(150deg, #3d271b 0%, #2f1e16 55%, #231610 100%);
+}
+
+.mi-page .aw-metrics > div:nth-child(4) p:nth-child(2),
+.mp-page .aw-metrics > div:nth-child(4) p:nth-child(2) {
+  color: #f3b588;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-page .aw-metrics > div,
+  .mp-page .aw-metrics > div {
+    transition: none;
+  }
+
+  .mi-page .aw-metrics > div::before,
+  .mp-page .aw-metrics > div::before {
+    animation: none;
+    transform: scaleY(1);
+  }
+
+  .mi-page .aw-metrics > div:hover,
+  .mp-page .aw-metrics > div:hover {
+    transform: none;
+  }
+}
+
+/* ---------- QC Desk · one list at a time, at worker weight ---------------
+   Four stacked panels became three blocks and one table, with the challan
+   search folded into the row. This screen is used standing up, so rows and
+   actions are deliberately larger than on the office desks — density is the
+   wrong instinct here. The mobile card lists that already existed are kept:
+   they put the Inspect / Start QC button under the thumb, which a sideways
+   scrolled table never would. */
+
+/* ---- 0. the header rule only ever paints a real header -----------------
+   Scoped up front this time: with no title, Panel renders no header and the
+   table wrapper becomes div:first-child, inheriting the dark ground and its
+   padding — the white band that cost two rounds on Mill Inward and Mill
+   Program. */
+.qc-page .qc-panel > div:first-child:not(:has(h3)) {
+  border-bottom: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ---- 1. the switch row -------------------------------------------------- */
+.qc-page .qc-switch {
+  display: grid;
+  gap: 0.4rem;
+  align-items: stretch;
+  grid-template-columns: 1fr 1fr 1fr 3.4rem;
+}
+
+.qc-page .qc-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  overflow: visible;
+  border: 1px solid var(--gb-ice-line);
+  border-radius: 11px 11px 0 0;
+  /* taller than the office desks: this is a standing, gloved tap target */
+  padding: 0.7rem 1rem;
+  text-align: left;
+  background: var(--gb-row);
+  box-shadow: inset 0 -1px 0 var(--gb-ice-line);
+  transition:
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qc-page .qc-tab:hover {
+  border-color: var(--gb-grid-strong);
+  background: var(--gb-workspace-top);
+}
+
+.qc-page .qc-tab-label {
+  position: relative;
+  z-index: 1;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--gb-ink);
+  transition: color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qc-page .qc-tab-count {
+  position: relative;
+  z-index: 1;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  transition: color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* identity in the number, never a rail that can escape the radius */
+.qc-page .qc-tab[data-kind="pending"] .qc-tab-count {
+  color: #a8801a;
+}
+
+.qc-page .qc-tab[data-kind="records"] .qc-tab-count {
+  color: #0b6558;
+}
+
+.qc-page .qc-tab[data-kind="without"] .qc-tab-count {
+  color: #a6453c;
+}
+
+.qc-page .qc-tab[aria-pressed="true"][data-kind="pending"] .qc-tab-count {
+  color: #f0c24a;
+}
+
+.qc-page .qc-tab[aria-pressed="true"][data-kind="records"] .qc-tab-count {
+  color: #68d4b0;
+}
+
+.qc-page .qc-tab[aria-pressed="true"][data-kind="without"] .qc-tab-count {
+  color: #e28e5c;
+}
+
+/* ---- 2. the fill: only its opacity animates ----------------------------- */
+.qc-page .qc-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  bottom: calc(-0.4rem - 1px);
+  border-radius: 11px 11px 0 0;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 85%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(201, 162, 39, 0.35);
+  opacity: 0;
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.qc-page .qc-tab[aria-pressed="true"]::before {
+  opacity: 1;
+}
+
+.qc-page .qc-tab[aria-pressed="true"] {
+  z-index: 2;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.qc-page .qc-tab[aria-pressed="true"] .qc-tab-label {
+  color: var(--gb-midnight-ink);
+}
+
+/* ---- 3. the challan search ---------------------------------------------- */
+.qc-page .qc-pop-wrap {
+  position: relative;
+  display: flex;
+}
+
+.qc-page .qc-icon-btn {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 11px;
+  color: var(--gb-ink-soft);
+  background: var(--gb-row);
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.qc-page .qc-icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(11, 101, 88, 0.07);
+}
+
+.qc-page .qc-icon-btn.is-on {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+.qc-page .qc-pop {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 11px;
+  padding: 0.65rem;
+  background: var(--gb-row);
+  box-shadow: 0 16px 38px rgba(8, 16, 24, 0.28);
+  animation: sl-pop-in 0.14s ease both;
+}
+
+.qc-page .qc-pop input {
+  width: 15rem;
+}
+
+.qc-page .qc-lookup-error {
+  margin: 0;
+  border-radius: 9px;
+  padding: 0.4rem 0.7rem;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+/* ---- 4. the panel carries no edge of its own ---------------------------- */
+.qc-page .qc-panel {
+  background: var(--gb-row);
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* ---- 5. worker weight: taller rows, real buttons ------------------------ */
+.qc-page {
+  --qc-row-h: 2.75rem;
+  --qc-rows: 10;
+}
+
+.qc-page .qc-reg.erp-register td {
+  height: var(--qc-row-h);
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  font-size: 12.5px;
+}
+
+.qc-page .qc-reg.erp-register thead th {
+  font-size: 0.66rem;
+}
+
+/* the row action is the thing the worker came for: give it a real target.
+   The earlier fw/qc parity block pins text actions to 1.55rem at a higher
+   specificity, so this has to match it to win. */
+.qc-page .qc-reg.erp-register td button,
+.qc-page .qc-reg.erp-register td button:not(:has(> svg)) {
+  min-height: 2rem;
+  height: auto;
+  width: auto;
+  border-radius: 8px;
+  padding-inline: 0.8rem;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.qc-page .qc-reg tbody tr.qc-filler td {
+  height: auto;
+  padding: 0;
+}
+
+@media (min-width: 768px) {
+  .qc-page .qc-pending .table-scroll,
+  .qc-page .qc-records .table-scroll,
+  .qc-page .qc-without .table-scroll {
+    height: min(
+      calc(var(--fq-head-h) + var(--qc-rows) * var(--qc-row-h)),
+      calc(100vh - 11.5rem)
+    );
+    max-height: none;
+  }
+}
+
+.qc-page .table-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 58, 84, 0.3) transparent;
+}
+
+.qc-page .table-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.qc-page .table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(31, 58, 84, 0.3);
+  background-clip: content-box;
+}
+
+/* ---- 6. the mobile lists stay, at worker weight ------------------------- */
+@media (max-width: 767px) {
+  .qc-page .qc-switch {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .qc-page .qc-pop-wrap {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .qc-page .qc-icon-btn {
+    min-height: 2.6rem;
+  }
+
+  .qc-page .qc-tab {
+    padding: 0.55rem 0.7rem;
+  }
+
+  .qc-page .qc-tab[data-kind="without"] {
+    grid-column: 1 / -1;
+  }
+
+  .qc-page .qc-tab::before {
+    bottom: 0;
+    border-radius: 11px;
+  }
+
+  .qc-page .qc-pop {
+    right: auto;
+    left: 0;
+    width: 100%;
+  }
+
+  .qc-page .qc-pop input {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .qc-page .qc-panel {
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+  }
+
+  /* the existing card lists are the right pattern here — the action sits
+     under the thumb instead of behind a sideways scroll. Only bigger. */
+  .qc-page .qc-panel [class*="divide-y"] > div {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .qc-page .qc-panel [class*="divide-y"] button {
+    min-height: 2.6rem;
+    padding-inline: 1rem;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qc-page .qc-tab,
+  .qc-page .qc-tab::before,
+  .qc-page .qc-tab-label,
+  .qc-page .qc-tab-count,
+  .qc-page .qc-icon-btn {
+    transition: none;
+  }
+
+  .qc-page .qc-pop {
+    animation: none;
   }
 }
 

@@ -201,6 +201,7 @@ export function MillProgramDesk({
   sources: MillProgramSource[];
 }) {
   const [rows, setRows] = useState<Program[]>(() => programs.map(toProgram));
+  const [tab, setTab] = useState<"programs" | "grey">("programs");
   const [draft, setDraft] = useState<Program | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -606,21 +607,43 @@ export function MillProgramDesk({
         <Metric label="Total Programs" value={totals.programs} />
       </MetricStrip>
 
-      <Panel
-        title="Mill programs"
-        flush
-        className="mp-panel mp-primary"
-        action={
-          <button
-            className={`${buttonClass} mp-new`}
-            type="button"
-            onClick={openCreate}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Create Mill Program
-          </button>
-        }
-      >
+      {/* Two stacked registers meant scrolling past the first to reach the
+          second. One table now, switched by the block above it, and the
+          selected block joins the table so the pairing is visible. The
+          Available Grey count stays readable whichever table is showing. */}
+      <div className="mp-switch">
+        <button
+          type="button"
+          className="mp-tab"
+          data-kind="programs"
+          aria-pressed={tab === "programs"}
+          onClick={() => setTab("programs")}
+        >
+          <span className="mp-tab-label">Mill Programs</span>
+          <span className="mp-tab-count tabular-nums">{rows.length}</span>
+        </button>
+        <button
+          type="button"
+          className="mp-tab"
+          data-kind="grey"
+          aria-pressed={tab === "grey"}
+          onClick={() => setTab("grey")}
+        >
+          <span className="mp-tab-label">Available Grey</span>
+          <span className="mp-tab-count tabular-nums">{totals.remaining}</span>
+        </button>
+        <button
+          type="button"
+          className={`${buttonClass} mp-new`}
+          onClick={openCreate}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Create Mill Program
+        </button>
+      </div>
+
+      {tab === "programs" ? (
+      <Panel flush className="mp-panel mp-primary">
         {rows.length === 0 ? (
           <div className="mp-empty">
             <EmptyState
@@ -731,8 +754,8 @@ export function MillProgramDesk({
           </TableWrap>
         )}
       </Panel>
-
-      <Panel title="Available grey" flush className="mp-panel mp-secondary">
+      ) : (
+      <Panel flush className="mp-panel mp-secondary">
         {availableRows.length === 0 ? (
           <div className="mp-empty">
             <EmptyState text="No mill inward rolls available to program." />
@@ -776,6 +799,7 @@ export function MillProgramDesk({
           </TableWrap>
         )}
       </Panel>
+      )}
 
       {unsaved.dialog}
       {draft && mode ? (
