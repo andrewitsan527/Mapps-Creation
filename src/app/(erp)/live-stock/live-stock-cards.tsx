@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight } from "lucide-react";
 import type { LiveStockRollRow } from "@/server/actions/live-stock";
@@ -50,9 +56,44 @@ const DEMO_SPECS: {
   { item: "Canvas", code: "G1", colour: "Olive", rolls: 44, withoutQc: 6, totalKg: 1102.2 },
   { item: "Canvas", code: "G2", colour: "Sand", rolls: 36, withoutQc: 0, totalKg: 904.5 },
   { item: "Denim", code: "H1", colour: "Indigo", rolls: 32, withoutQc: 0, totalKg: 817.2 },
+
+  /* A quality carrying 12 colour codes, with the master's own trade names.
+     Shows two things at once: the card capping at four colours with the rest
+     behind the overflow link, and the blank square a name like Chikoo gets
+     because it is a trade name, not a colour. */
+  { item: "Valentino", code: "901", colour: "Mouse", rolls: 46, withoutQc: 6, totalKg: 1154.6 },
+  { item: "Valentino", code: "902", colour: "Chikoo", rolls: 38, withoutQc: 0, totalKg: 952.8 },
+  { item: "Valentino", code: "903", colour: "Magenta", rolls: 34, withoutQc: 4, totalKg: 851.4 },
+  { item: "Valentino", code: "904", colour: "Rani", rolls: 29, withoutQc: 3, totalKg: 727.5 },
+  { item: "Valentino", code: "905", colour: "D.Coffee", rolls: 26, withoutQc: 0, totalKg: 652.6 },
+  { item: "Valentino", code: "906", colour: "N.Blue", rolls: 24, withoutQc: 2, totalKg: 601.2 },
+  { item: "Valentino", code: "907", colour: "Coffee", rolls: 21, withoutQc: 0, totalKg: 526.8 },
+  { item: "Valentino", code: "908", colour: "Onion", rolls: 18, withoutQc: 4, totalKg: 451.4 },
+  { item: "Valentino", code: "909", colour: "Airforce", rolls: 16, withoutQc: 0, totalKg: 401.6 },
+  { item: "Valentino", code: "910", colour: "Olive", rolls: 14, withoutQc: 2, totalKg: 351.2 },
+  { item: "Valentino", code: "911", colour: "Pista", rolls: 11, withoutQc: 0, totalKg: 276.4 },
+  { item: "Valentino", code: "912", colour: "Firozi", rolls: 9, withoutQc: 1, totalKg: 226.8 },
 ];
 
 const UNRESOLVED = "Unresolved";
+
+/* A seven-column register needs 672px and a phone gives it 370: you end up
+   dragging sideways to read one row. Below this width the board is the only
+   sensible view, so the table is not offered at all. Read through
+   useSyncExternalStore rather than an effect, so there is no setState during
+   render and the server snapshot stays stable. */
+const NARROW = "(max-width: 767px)";
+
+function subscribeToNarrow(onChange: () => void) {
+  const query = window.matchMedia(NARROW);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+/* A quality can carry 10+ colour codes. Showing them all would make the card
+   grow without bound and break the one rule these cards must keep: every card
+   the same size. The rest are one click away in the table. */
+const LOTS_PER_CARD = 4;
 
 function expandDemo(specs: typeof DEMO_SPECS): StockGroup[] {
   return specs.map((spec) => {
@@ -140,6 +181,66 @@ function codeLabel(code: string) {
   return code.trim() || UNRESOLVED;
 }
 
+/* ---------------------------------------------------------------
+   Colour swatches.
+
+   ColorCode stores only { colorCode, colorName } — there is no hex in the
+   schema, and the names are trade names (Mouse, Chikoo, Rani, Onion,
+   Airforce), not colours. Painting a guess would be worse than painting
+   nothing: a wrong swatch is read as fact.
+
+   So: a name that IS a colour gets its colour. Anything else gets its code
+   on a neutral chip, which is honest and still unique per lot. The "D." /
+   "L." / "N." prefixes the client actually uses are resolved first.
+----------------------------------------------------------------- */
+const COLOUR_HEX: Record<string, string> = {
+  white: "#f4f6f8", ivory: "#f2ead9", cream: "#f0e4c8", beige: "#e4d5bb",
+  sand: "#ddc9a3", khaki: "#c3b091", tan: "#cf9f6e", camel: "#bf8f55",
+  gold: "#d2a53c", mustard: "#cf9f1c", yellow: "#e8c53f", lime: "#9fcb3b",
+  green: "#3f8f4f", olive: "#6f7a33", bottle: "#1f5137", mint: "#8fd3b6",
+  teal: "#1f7a78", aqua: "#5fc4c9", sky: "#7fb8e0", blue: "#2b6cb0",
+  navy: "#1b2f52", indigo: "#38427a", violet: "#6b4e9b", purple: "#6a3d8f",
+  lavender: "#b5a8dd", magenta: "#b5267e", pink: "#dd7fa6", rose: "#cf6b82",
+  peach: "#efb08c", orange: "#d97b2b", rust: "#a4532a", brown: "#6f4a30",
+  coffee: "#5a4030", maroon: "#6d2230", wine: "#5d1f33", red: "#b3271c",
+  grey: "#8a949e", gray: "#8a949e", silver: "#c3c9cf", charcoal: "#3b4248",
+  black: "#1a1f24",
+};
+
+const SHADE_PREFIX: Record<string, "dark" | "light" | "navy"> = {
+  d: "dark",
+  l: "light",
+  n: "navy",
+};
+
+function shade(hex: string, amount: number) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const mix = (channel: number) =>
+    Math.round(
+      amount < 0 ? channel * (1 + amount) : channel + (255 - channel) * amount,
+    );
+  const r = mix((value >> 16) & 255);
+  const g = mix((value >> 8) & 255);
+  const b = mix(value & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
+function swatchFor(colour: string): string | null {
+  const raw = colour.trim().toLowerCase();
+  if (!raw) return null;
+  const prefixed = /^([a-z])[.\s]+(.+)$/.exec(raw);
+  const base = prefixed ? prefixed[2].trim() : raw;
+  const word = base.split(/[\s/-]+/).find((part) => COLOUR_HEX[part]) ?? base;
+  const hex = COLOUR_HEX[word];
+  if (!hex) return null;
+  if (!prefixed) return hex;
+  const kind = SHADE_PREFIX[prefixed[1]];
+  if (kind === "dark") return shade(hex, -0.35);
+  if (kind === "light") return shade(hex, 0.35);
+  if (kind === "navy") return shade(COLOUR_HEX.navy, 0.1);
+  return hex;
+}
+
 function rollOrder(a: string, b: string) {
   const left = a.trim();
   const right = b.trim();
@@ -200,6 +301,14 @@ const fieldClass =
 export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
   const [demo, setDemo] = useState(false);
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<"cards" | "table">("cards");
+  const isNarrow = useSyncExternalStore(
+    subscribeToNarrow,
+    () => window.matchMedia(NARROW).matches,
+    () => false,
+  );
+  const shownView = isNarrow ? "cards" : view;
+  const [sort, setSort] = useState<"rolls" | "kg" | "name">("rolls");
   const [openId, setOpenId] = useState<string | null>(null);
   const [canPortal, setCanPortal] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -235,9 +344,18 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
       next?.focus();
     }
     focusables()[0]?.focus();
+    /* the sheet is centred now, so the page must not scroll behind it; the
+       gutter is compensated or the sheet jumps sideways as it opens */
+    const previousOverflow = document.body.style.overflow;
+    const previousPad = document.body.style.paddingRight;
+    const gutter = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (gutter > 0) document.body.style.paddingRight = `${gutter}px`;
     document.addEventListener("keydown", onKey, true);
     return () => {
       document.removeEventListener("keydown", onKey, true);
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPad;
       returnFocusRef.current?.focus();
     };
   }, [openId]);
@@ -271,6 +389,56 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
     });
   }, [groups, query]);
 
+  /* One card per quality, its colour codes inside — the shape the Color Code
+     master already uses (ColorQuality -> ColorCode). Rolls lead: the client
+     counts rolls, not kilos, so KG rides along as the second line. */
+  const qualities = useMemo(() => {
+    type Lot = (typeof visible)[number];
+    const map = new Map<
+      string,
+      {
+        item: string;
+        lots: Lot[];
+        rolls: number;
+        kg: number | null;
+        passed: number;
+        withoutQc: number;
+        codes: string[];
+      }
+    >();
+    for (const lot of visible) {
+      const entry = map.get(lot.item) ?? {
+        item: lot.item,
+        lots: [],
+        rolls: 0,
+        kg: null,
+        passed: 0,
+        withoutQc: 0,
+        codes: [],
+      };
+      entry.lots.push(lot);
+      entry.rolls += lot.rolls.length;
+      entry.passed += lot.rolls.filter((roll) => roll.qualityState === "PASSED").length;
+      entry.withoutQc += lot.rolls.filter(
+        (roll) => roll.qualityState === "WITHOUT_QC",
+      ).length;
+      if (lot.totalKg != null) entry.kg = (entry.kg ?? 0) + lot.totalKg;
+      if (!entry.codes.includes(lot.code)) entry.codes.push(lot.code);
+      map.set(lot.item, entry);
+    }
+    const list = [...map.values()];
+    for (const entry of list) {
+      entry.lots.sort((x, y) => y.rolls.length - x.rolls.length);
+      entry.codes.sort((x, y) => x.localeCompare(y, undefined, { numeric: true }));
+    }
+    list.sort((x, y) => {
+      if (sort === "name") return x.item.localeCompare(y.item);
+      if (sort === "kg") return (y.kg ?? 0) - (x.kg ?? 0);
+      return y.rolls - x.rolls;
+    });
+    return list;
+  }, [visible, sort]);
+
   const open = visible.find((group) => group.id === openId) ?? null;
 
   function toggleDemo() {
@@ -283,12 +451,12 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
     open && canPortal
       ? createPortal(
           <div
-            className="ls-drawer-overlay fixed inset-0 z-50 flex justify-end bg-black/30"
+            className="ls-sheet-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
             onMouseDown={() => setOpenId(null)}
           >
             <div
               ref={drawerRef}
-              className="ls-drawer flex h-full w-full max-w-xl min-w-0 flex-col"
+              className="ls-sheet flex min-w-0 flex-col"
               onMouseDown={(event) => event.stopPropagation()}
               role="dialog"
               aria-label={`${open.item} ${open.code} ${open.colour}`}
@@ -323,7 +491,7 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
                 />
               </div>
               <div className="table-scroll min-h-0 flex-1 overflow-auto px-4 pb-4">
-                <table className="erp-table erp-register ls-roll-table w-full min-w-[24rem] table-fixed">
+                <table className="erp-table erp-register ls-roll-table ls-reg w-full min-w-[24rem] table-fixed">
                   <colgroup>
                     <col className="w-[6rem]" />
                     <col className="w-[9.5rem]" />
@@ -397,21 +565,184 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
       </div>
       <div className="ls-panel">
         <div className="ls-panel-bar">
-          <h2 className="ls-panel-title">Live Stock Register</h2>
-          <label className="ls-search">
-            <span>Search item / code / colour</span>
-            <input
-              className={fieldClass}
-              value={query}
-              placeholder="Search"
-              autoComplete="off"
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            <button type="button" className="ls-clear" onClick={() => setQuery("")}>
-              Clear
-            </button>
-          </label>
+          <h2 className="ls-panel-title">Live Stock</h2>
+          <div className="ls-bar-tools">
+            <label className="ls-search">
+              <span className="sr-only">Search quality / code / colour</span>
+              <input
+                className={fieldClass}
+                value={query}
+                placeholder="Search quality / code / colour"
+                autoComplete="off"
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              {query ? (
+                <button type="button" className="ls-clear" onClick={() => setQuery("")}>
+                  Clear
+                </button>
+              ) : null}
+            </label>
+            <select
+              className="ls-sort"
+              aria-label="Sort by"
+              value={sort}
+              onChange={(event) =>
+                setSort(
+                  event.target.value === "kg"
+                    ? "kg"
+                    : event.target.value === "name"
+                      ? "name"
+                      : "rolls",
+                )
+              }
+            >
+              <option value="rolls">Most rolls</option>
+              <option value="kg">Most KG</option>
+              <option value="name">Quality A&ndash;Z</option>
+            </select>
+            {isNarrow ? null : (
+            <div className="ls-view-switch" role="group" aria-label="View">
+              <button
+                type="button"
+                className={view === "cards" ? "is-on" : undefined}
+                aria-pressed={view === "cards"}
+                onClick={() => setView("cards")}
+              >
+                Cards
+              </button>
+              <button
+                type="button"
+                className={view === "table" ? "is-on" : undefined}
+                aria-pressed={view === "table"}
+                onClick={() => setView("table")}
+              >
+                Table
+              </button>
+            </div>
+            )}
+          </div>
         </div>
+        {shownView === "cards" ? (
+          <div className="ls-board">
+            {qualities.length === 0 ? (
+              <p className="ls-board-empty">
+                {query.trim() || demo ? "No matching stock." : "No available stock."}
+              </p>
+            ) : (
+              qualities.map((quality, index) => {
+                const cleared =
+                  quality.rolls > 0
+                    ? Math.round((quality.passed / quality.rolls) * 100)
+                    : 0;
+                return (
+                  <article
+                    key={quality.item}
+                    className="ls-card"
+                    data-accent={index % 5}
+                    data-flag={quality.withoutQc > 0 ? "hold" : "clear"}
+                  >
+                    <header className="ls-card-head">
+                      <div className="ls-card-id">
+                        <h3 title={quality.item}>{quality.item}</h3>
+                      </div>
+                      <div className="ls-card-figure">
+                        <span className="ls-card-rolls tabular-nums">{quality.rolls}</span>
+                        <span className="ls-card-unit">rolls</span>
+                        <span className="ls-card-kg tabular-nums">
+                          {quality.kg == null
+                            ? "\u2014"
+                            : `${formatThousandths(quality.kg)} KG`}
+                        </span>
+                      </div>
+                    </header>
+
+                    <div
+                      className="ls-qcbar"
+                      role="img"
+                      aria-label={`${quality.passed} of ${quality.rolls} rolls QC passed`}
+                    >
+                      <span style={{ width: `${cleared}%` }} />
+                    </div>
+                    <p className="ls-card-note">
+                      {quality.withoutQc > 0
+                        ? `${quality.withoutQc} roll${quality.withoutQc === 1 ? "" : "s"} waiting on QC`
+                        : "All rolls QC cleared"}
+                    </p>
+
+                    <ul className="ls-lots">
+                      {quality.lots.slice(0, LOTS_PER_CARD).map((lot) => {
+                        const hex = swatchFor(lot.colour);
+                        const held = lot.rolls.filter(
+                          (roll) => roll.qualityState === "WITHOUT_QC",
+                        ).length;
+                        return (
+                          <li key={lot.id} className="ls-lot">
+                            <button
+                              type="button"
+                              className="ls-lot-btn"
+                              aria-label={`View rolls for ${quality.item} code ${lot.code} ${lot.colour}`}
+                              onClick={(event) => {
+                                returnFocusRef.current = event.currentTarget;
+                                setOpenId(lot.id);
+                              }}
+                            >
+                              <span
+                                className="ls-swatch"
+                                data-known={hex ? "yes" : "no"}
+                                style={hex ? { background: hex } : undefined}
+                                aria-hidden
+                              />
+                              <span className="ls-lot-text">
+                                <span className="ls-lot-name" title={lot.colour}>
+                                  {lot.colour}
+                                </span>
+                                {/* the code never sits beside the roll count:
+                                    real codes are 102 / 701 / 1001 and two bare
+                                    numbers side by side cannot be told apart */}
+                                <span className="ls-lot-code">{lot.code}</span>
+                              </span>
+                              <span className="ls-lot-kg tabular-nums">
+                                {lot.totalKg == null
+                                  ? "\u2014"
+                                  : `${formatThousandths(lot.totalKg)} KG`}
+                              </span>
+                              <span
+                                className="ls-lot-rolls tabular-nums"
+                                data-held={held > 0 ? "yes" : "no"}
+                                title={
+                                  held > 0
+                                    ? `${lot.rolls.length} rolls, ${held} waiting on QC`
+                                    : `${lot.rolls.length} rolls, all QC cleared`
+                                }
+                              >
+                                {lot.rolls.length}
+                                <small>rolls</small>
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {quality.lots.length > LOTS_PER_CARD ? (
+                      <button
+                        type="button"
+                        className="ls-more"
+                        onClick={() => {
+                          setQuery(quality.item);
+                          if (!isNarrow) setView("table");
+                        }}
+                      >
+                        +{quality.lots.length - LOTS_PER_CARD} more colour
+                        {quality.lots.length - LOTS_PER_CARD === 1 ? "" : "s"}
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    ) : null}
+                  </article>
+                );
+              })
+            )}
+          </div>
+        ) : (
         <div className="table-scroll ls-scroll min-w-0 overflow-auto">
         <table className="erp-table erp-register ls-reg w-full min-w-[42rem] table-fixed">
           <colgroup>
@@ -515,6 +846,7 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
           </tbody>
         </table>
         </div>
+        )}
       </div>
       {drawer}
       </div>

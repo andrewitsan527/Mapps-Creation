@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ClipboardList, Plus, X } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { ClipboardList, Plus, Search, X } from "lucide-react";
 import { formatMoney, formatQty } from "@/lib/utils";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import {
@@ -235,16 +241,16 @@ function OrderFields({
       </div>
       <div className={row}>
         <span className={label}>Rate</span>
-        <div className="flex items-center gap-1.5">
+        <div className="po-affix">
           {readOnly ? (
-            <p tabIndex={0} data-po-tab="5" className={`${shown} min-w-0 flex-1 justify-end tabular-nums`}>
+            <p tabIndex={0} data-po-tab="5" className={`${shown} po-affix-field min-w-0 flex-1 justify-end tabular-nums`}>
               {draft.rate || "—"}
             </p>
           ) : (
             <input
               tabIndex={0}
               data-po-tab="5"
-              className={`${inputClass} min-w-0 flex-1 text-right`}
+              className={`${inputClass} po-affix-field min-w-0 flex-1 text-right`}
               value={draft.rate}
               onChange={set("rate")}
               placeholder="170"
@@ -252,7 +258,7 @@ function OrderFields({
               autoComplete="off"
             />
           )}
-          <span className={`${shown} w-[5.25rem] shrink-0 justify-center text-(--muted)`}>
+          <span className="po-affix-sign" aria-hidden>
             ₹
           </span>
         </div>
@@ -326,6 +332,14 @@ function toRow(row: PurchaseOrderRecord): PurchaseOrderRow {
   };
 }
 
+const NARROW = "(max-width: 767px)";
+
+function subscribeToNarrow(onChange: () => void) {
+  const query = window.matchMedia(NARROW);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
 export function PurchaseOrderDesk({
   orders,
   knitters,
@@ -349,6 +363,25 @@ export function PurchaseOrderDesk({
   const [pendingTo, setPendingTo] = useState(todayIso());
   const customRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const isNarrow = useSyncExternalStore(
+    subscribeToNarrow,
+    () => window.matchMedia(NARROW).matches,
+    () => false,
+  );
+
+  /* close the search popover on an outside click */
+  useEffect(() => {
+    if (!searchOpen) return;
+    function onDown(event: MouseEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) {
+        setSearchOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [searchOpen]);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -618,12 +651,40 @@ export function PurchaseOrderDesk({
                 </div>
               ) : null}
             </div>
-            <input
-              className={`${inputClass} w-56`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search Sr. No., knitter, quality, agent"
-            />
+            <div className="po-pop-wrap" ref={searchRef}>
+              <button
+                type="button"
+                className={`po-icon-btn${searchOpen || search ? " is-on" : ""}`}
+                aria-label="Search purchase orders"
+                aria-expanded={searchOpen}
+                onClick={() => setSearchOpen((open) => !open)}
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+              {searchOpen ? (
+                <div className="po-pop">
+                  <input
+                    autoFocus
+                    aria-label="Search"
+                    placeholder="Sr. No. / knitter / quality / agent"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setSearchOpen(false);
+                    }}
+                  />
+                  {search ? (
+                    <button
+                      type="button"
+                      className="po-pop-clear"
+                      onClick={() => setSearch("")}
+                    >
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
             <button
               type="button"
               className={`${buttonClass} po-new`}
@@ -643,6 +704,66 @@ export function PurchaseOrderDesk({
               text="No purchase orders in this filter."
             />
           </div>
+        ) : isNarrow ? (
+          <ul className="po-cards">
+            {filtered.map((row) => (
+              <li key={row.id} className="po-card">
+                <div className="po-card-head">
+                  <span className="po-card-sr tabular-nums">{row.srNo}</span>
+                  <span className="po-card-rate tabular-nums">
+                    {formatMoney(row.rate)}
+                  </span>
+                </div>
+                <p className="po-card-knitter" title={row.knitter}>
+                  {row.knitter}
+                </p>
+                <p className="po-card-quality" title={row.quality}>
+                  {row.quality}
+                </p>
+                <dl className="po-card-figures">
+                  <div>
+                    <dt>Qty</dt>
+                    <dd className="tabular-nums">{row.qtyUnits}</dd>
+                  </div>
+                  <div>
+                    <dt>Actual KG</dt>
+                    <dd className="tabular-nums">
+                      {formatQty(actualKg(row.qtyUnits))}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Agent</dt>
+                    <dd title={row.agent}>{row.agent || "\u2014"}</dd>
+                  </div>
+                </dl>
+                {row.remark ? (
+                  <p className="po-card-remark" title={row.remark}>
+                    {row.remark}
+                  </p>
+                ) : null}
+                <div className="po-card-actions">
+                  <button
+                    className={buttonTinyClass}
+                    data-act="view"
+                    type="button"
+                    aria-label={`View purchase order ${row.srNo}`}
+                    onClick={() => openRecord(row, "view")}
+                  >
+                    View
+                  </button>
+                  <button
+                    className={buttonTinyClass}
+                    data-act="edit"
+                    type="button"
+                    aria-label={`Edit purchase order ${row.srNo}`}
+                    onClick={() => openRecord(row, "edit")}
+                  >
+                    Edit
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
           <TableWrap maxHeight={false}>
             <table className="erp-table erp-register po-register po-reg w-full min-w-[62rem] table-fixed">
@@ -709,14 +830,18 @@ export function PurchaseOrderDesk({
                       <div className="flex gap-1">
                         <button
                           className={buttonTinyClass}
+                          data-act="view"
                           type="button"
+                          aria-label={`View purchase order ${row.srNo}`}
                           onClick={() => openRecord(row, "view")}
                         >
                           View
                         </button>
                         <button
                           className={buttonTinyClass}
+                          data-act="edit"
                           type="button"
+                          aria-label={`Edit purchase order ${row.srNo}`}
                           onClick={() => openRecord(row, "edit")}
                         >
                           Edit
@@ -725,6 +850,19 @@ export function PurchaseOrderDesk({
                     </td>
                   </tr>
                 ))}
+                {filtered.length > 0 ? (
+                  <tr className="po-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>

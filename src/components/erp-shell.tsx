@@ -130,7 +130,8 @@ export function ErpShell({
     pathname === "/mill-program" ||
     pathname === "/finished-work" ||
     pathname === "/quality-check" ||
-    pathname === "/live-stock";
+    pathname === "/live-stock" ||
+    pathname === "/sales";
   const textileHeader =
     pathname === "/grey" ||
     pathname === "/programs" ||

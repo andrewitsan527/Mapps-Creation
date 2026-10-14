@@ -1302,6 +1302,18 @@ export function FinishedWorkDesk({
                         </tr>
                       );
                     })}
+                    <tr className="fw-item-filler" aria-hidden>
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                    </tr>
                   </tbody>
                   <tfoot>
                     <tr>
@@ -1345,9 +1357,15 @@ export function FinishedWorkDesk({
                   </p>
                 </Field>
               </div>
-              {weightIssue ? (
-                <p className="text-[11px] text-(--danger)">{weightIssue}</p>
-              ) : null}
+              {/* always rendered: a validation line that appears and
+                  disappears must not resize the sheet */}
+              <p
+                className="fw-weight-issue text-[11px] text-(--danger)"
+                role="status"
+                aria-live="polite"
+              >
+                {weightIssue ?? ""}
+              </p>
             </FieldGroup>
             </div>
 

@@ -357,6 +357,20 @@ export function GreyPurchaseDesk({
 }) {
   const [rows, setRows] = useState<GreyBillRecord[]>(bills);
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const barToolsRef = useRef<HTMLDivElement>(null);
+
+  /* close the search popover on an outside click */
+  useEffect(() => {
+    if (!searchOpen) return;
+    function onDown(event: MouseEvent) {
+      if (!barToolsRef.current?.contains(event.target as Node)) {
+        setSearchOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [searchOpen]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
   const [notice, setNotice] = useState<{
@@ -412,6 +426,17 @@ export function GreyPurchaseDesk({
 
   const live = useMemo(() => (draft ? moneyFor(draft) : null), [draft]);
 
+  /* the pinned TOTAL line of the item grid */
+  const entryTotals = useMemo(() => {
+    const items = draft?.items ?? [];
+    const rolls = items.reduce((sum, item) => sum + num(item.rolls), 0);
+    const qty = items.reduce((sum, item) => sum + num(item.qty), 0);
+    return {
+      rolls: rolls > 0 ? formatEnteredDecimal(String(rolls)) : "",
+      qty: qty > 0 ? formatEnteredDecimal(String(qty)) : "",
+    };
+  }, [draft?.items]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
@@ -438,6 +463,8 @@ export function GreyPurchaseDesk({
         `[data-line-id="${id}"]`,
       );
       row?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      const scroller = itemGridScrollRef.current;
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
     }
   }, [draft?.items]);
 
@@ -971,16 +998,42 @@ export function GreyPurchaseDesk({
         icon={FileText}
         flush
         action={
-          <div className="flex flex-wrap items-center justify-end gap-1.5">
-            <div className="flex items-center gap-1.5">
-            <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
-            <input
-              className={`${inputClass} w-56`}
-              placeholder="Search sr no, bill, challan, knitter, mill"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+          <div className="gb-bar-tools" ref={barToolsRef}>
+            <div className="gb-pop-wrap">
+              <button
+                type="button"
+                className={`gb-icon-btn${searchOpen || query ? " is-on" : ""}`}
+                aria-label="Search grey purchases"
+                aria-expanded={searchOpen}
+                onClick={() => setSearchOpen((open) => !open)}
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+              {searchOpen ? (
+                <div className="gb-pop gb-pop-search">
+                  <input
+                    autoFocus
+                    aria-label="Search"
+                    placeholder="Sr no / bill / challan / knitter / mill"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setSearchOpen(false);
+                    }}
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      className="gb-pop-clear"
+                      onClick={() => setQuery("")}
+                    >
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
+
             <button
               type="button"
               className={`${buttonClass} gb-new`}
@@ -1113,6 +1166,20 @@ export function GreyPurchaseDesk({
                   </tr>
                   );
                 })}
+                {filtered.length > 0 ? (
+                  <tr className="gb-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>
@@ -1417,7 +1484,30 @@ export function GreyPurchaseDesk({
                       ) : null}
                     </tr>
                   ))}
+                  <tr className="gb-entry-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    {!readOnly ? <td /> : null}
+                  </tr>
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={2}>Total</td>
+                    <td className="num">{entryTotals.rolls}</td>
+                    <td className="num">{entryTotals.qty}</td>
+                    <td />
+                    <td />
+                    <td className="num">
+                      {live ? formatRupeeAmount(live.goodsAmount) : ""}
+                    </td>
+                    {!readOnly ? <td /> : null}
+                  </tr>
+                </tfoot>
               </table>
               </div>
             </div>

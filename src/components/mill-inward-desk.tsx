@@ -406,6 +406,7 @@ export function MillInwardDesk({
   );
   const [draft, setDraft] = useState<Inward | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [tab, setTab] = useState<"pending" | "done">("pending");
 
   useEffect(() => {
     if (!notice) return;
@@ -646,22 +647,42 @@ export function MillInwardDesk({
         <Metric label="Today's inward" value={todayCount} hint={formatDisplayDate(todayIso())} />
       </MetricStrip>
 
-      <Panel
-        title="Pending inward"
-        icon={ArrowDownToLine}
-        flush
-        className="mi-panel mi-pending"
-        action={
-          <button
-            className={`${buttonClass} mi-new`}
-            type="button"
-            onClick={openCreate}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New Mill Inward
-          </button>
-        }
-      >
+      {/* Two stacked registers meant scrolling past the first to reach the
+          second. One table now, switched by the block above it, and the
+          selected block joins the table so the pairing is visible. */}
+      <div className="mi-switch">
+        <button
+          type="button"
+          className="mi-tab"
+          data-kind="pending"
+          aria-pressed={tab === "pending"}
+          onClick={() => setTab("pending")}
+        >
+          <span className="mi-tab-label">Pending Inward</span>
+          <span className="mi-tab-count tabular-nums">{pending.length}</span>
+        </button>
+        <button
+          type="button"
+          className="mi-tab"
+          data-kind="done"
+          aria-pressed={tab === "done"}
+          onClick={() => setTab("done")}
+        >
+          <span className="mi-tab-label">Completed Inward</span>
+          <span className="mi-tab-count tabular-nums">{settled.length}</span>
+        </button>
+        <button
+          type="button"
+          className={`${buttonClass} mi-new`}
+          onClick={openCreate}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New Mill Inward
+        </button>
+      </div>
+
+      {tab === "pending" ? (
+      <Panel flush className="mi-panel mi-pending">
         {pending.length === 0 ? (
           <div className="mi-empty">
             <EmptyState
@@ -682,6 +703,9 @@ export function MillInwardDesk({
                 <col className="w-[3.25rem]" />
                 <col className="w-[5.75rem]" />
                 <col />
+                {/* Sent On: empty while pending, but present so both tables
+                    share one column layout and switching shifts nothing */}
+                <col className="w-[5rem]" />
                 <col className="w-[5rem]" />
                 <col className="w-[3.75rem]" />
               </colgroup>
@@ -696,6 +720,7 @@ export function MillInwardDesk({
                   <th className="num">Rolls</th>
                   <th className="num">KG</th>
                   <th>Source</th>
+                  <th>Sent On</th>
                   <th>Status</th>
                   <th className="!text-center">View</th>
                 </tr>
@@ -745,6 +770,7 @@ export function MillInwardDesk({
                           {sourceLabel(row)}
                         </div>
                       </td>
+                      <td className="text-(--muted)">&mdash;</td>
                       <td>
                         <span className={statusBadge("PENDING_QC")}>
                           {qcReturn ? "PENDING" : "Pending"}
@@ -770,8 +796,8 @@ export function MillInwardDesk({
           </TableWrap>
         )}
       </Panel>
-
-      <Panel title="Completed inward" flush className="mi-panel mi-done">
+      ) : (
+      <Panel flush className="mi-panel mi-done">
         {settled.length === 0 ? (
           <div className="mi-empty">
             <EmptyState text="No completed inward yet." />
@@ -886,6 +912,7 @@ export function MillInwardDesk({
           </TableWrap>
         )}
       </Panel>
+      )}
 
       {unsaved.dialog}
       {draft && mode ? (

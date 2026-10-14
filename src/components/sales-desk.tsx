@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, CreditCard, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { CalendarDays, Check, CreditCard, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { SIDEBAR_CHANGE_EVENT, SIDEBAR_KEY } from "@/components/erp-shell";
 import { useUnsavedClose } from "@/components/unsaved-changes";
@@ -13,7 +13,6 @@ import {
   Field,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -444,6 +443,22 @@ export function SalesDesk({
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "DRAFT">("ALL");
   const [dateFrom, setDateFrom] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const barToolsRef = useRef<HTMLDivElement>(null);
+
+  /* close the bar popovers on an outside click */
+  useEffect(() => {
+    if (!searchOpen && !rangeOpen) return;
+    function onDown(event: MouseEvent) {
+      if (!barToolsRef.current?.contains(event.target as Node)) {
+        setSearchOpen(false);
+        setRangeOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [searchOpen, rangeOpen]);
   const [dateTo, setDateTo] = useState("");
   const [draft, setDraft] = useState<LocalSaleBill | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
@@ -1096,34 +1111,25 @@ export function SalesDesk({
   const cellInput = `${inputClass} h-8 py-1`;
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Sales"
-        eyebrow="Sell"
-        icon={CreditCard}
-        description="Create sales bills and review the sales register."
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Create Sales Bill
-          </button>
-        }
-      />
-
+    <div className="sl-page">
+      <div className="sl-stage">
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-4">
+      <MetricStrip className="aw-metrics sl-metrics grid-cols-2 lg:grid-cols-4">
         <Metric label="Total Bills" value={rows.length} />
         <Metric
           label="Today's Bills"
@@ -1143,41 +1149,115 @@ export function SalesDesk({
         />
       </MetricStrip>
 
-      <Panel title="Sales Register" flush>
-        <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-(--line) bg-(--panel-alt)/40 px-3 py-2 text-[12px]">
-          <div className="relative flex min-w-[14rem] max-w-sm flex-1 items-center">
-            <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-(--muted)" />
-            <input
-              className="h-8 w-full rounded-md border border-(--line) bg-white pl-8 pr-2.5 text-[12.5px] outline-none transition placeholder:text-(--faint) hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
-              aria-label="Search"
-              placeholder="Search bill no. / customer / agent…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1.5 text-(--muted)">
-              <span className="font-medium text-(--ink-soft)">From:</span>
-              <input
-                className="h-8 rounded-md border border-(--line) bg-white px-2 text-[12.5px] outline-none transition hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
-                type="date"
-                aria-label="From"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </label>
-            <label className="flex items-center gap-1.5 text-(--muted)">
-              <span className="font-medium text-(--ink-soft)">To:</span>
-              <input
-                className="h-8 rounded-md border border-(--line) bg-white px-2 text-[12.5px] outline-none transition hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
-                type="date"
-                aria-label="To"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </label>
+      <Panel
+        title="Sales Register"
+        flush
+        className="sl-panel"
+        action={
+          <div className="sl-bar-tools" ref={barToolsRef}>
+            <div className="sl-pop-wrap">
+              <button
+                type="button"
+                className={`sl-icon-btn${searchOpen || query ? " is-on" : ""}`}
+                aria-label="Search bills"
+                aria-expanded={searchOpen}
+                onClick={() => {
+                  setRangeOpen(false);
+                  setSearchOpen((open) => !open);
+                }}
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+              {searchOpen ? (
+                <div className="sl-pop sl-pop-search">
+                  <input
+                    autoFocus
+                    aria-label="Search"
+                    placeholder="Bill no. / customer / agent…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setSearchOpen(false);
+                    }}
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      className="sl-pop-clear"
+                      onClick={() => setQuery("")}
+                    >
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="sl-pop-wrap">
+              <button
+                type="button"
+                className={`sl-icon-btn${dateFrom || dateTo ? " is-on" : ""}`}
+                aria-expanded={rangeOpen}
+                aria-label={
+                  dateFrom || dateTo
+                    ? `Date range ${dateFrom ? formatDisplayDate(dateFrom) : "…"} to ${dateTo ? formatDisplayDate(dateTo) : "…"}`
+                    : "Date range"
+                }
+                title={
+                  dateFrom || dateTo
+                    ? `${dateFrom ? formatDisplayDate(dateFrom) : "…"} – ${dateTo ? formatDisplayDate(dateTo) : "…"}`
+                    : "Date range"
+                }
+                onClick={() => {
+                  setSearchOpen(false);
+                  setRangeOpen((open) => !open);
+                }}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+              </button>
+              {rangeOpen ? (
+                <div className="sl-pop sl-pop-range">
+                  <label>
+                    <span>From</span>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>To</span>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </label>
+                  <div className="sl-pop-actions">
+                    <button
+                      type="button"
+                      className="sl-pop-clear"
+                      onClick={() => {
+                        setDateFrom("");
+                        setDateTo("");
+                      }}
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      className="sl-pop-apply"
+                      onClick={() => setRangeOpen(false)}
+                    >
+                      Search
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
             <select
-              className="h-8 rounded-md border border-(--line) bg-white px-2.5 text-[12.5px] outline-none transition hover:border-(--line-strong) focus:border-(--accent) focus:ring-0"
+              className="sl-status"
               aria-label="Status"
               value={statusFilter}
               onChange={(e) =>
@@ -1188,15 +1268,25 @@ export function SalesDesk({
               <option value="OPEN">Open</option>
               <option value="DRAFT">Draft</option>
             </select>
+
+            <button
+              className={`${buttonClass} sl-new`}
+              type="button"
+              onClick={openCreate}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create Sales Bill
+            </button>
           </div>
-        </div>
+        }
+      >
         {filtered.length === 0 ? (
-          <div className="p-2.5">
+          <div className="sl-empty">
             <EmptyState icon={CreditCard} text="No sales bills yet." />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register w-full min-w-[58rem] table-fixed">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register sl-reg w-full min-w-[58rem] table-fixed">
               <colgroup>
                 <col className="w-[7.5rem]" />
                 <col className="w-[6.5rem]" />
@@ -1296,6 +1386,20 @@ export function SalesDesk({
                     </td>
                   </tr>
                 ))}
+                {filtered.length > 0 ? (
+                  <tr className="sl-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>
@@ -1366,7 +1470,7 @@ export function SalesDesk({
             <span className={statusBadge(draft.status)}>{draft.status}</span>
           }
           closeTabIndex={-1}
-          frameWidthClass={`h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none sm:h-[calc(100dvh-1.5rem)] ${
+          frameWidthClass={`sl-sheet h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none sm:h-[calc(100dvh-1.5rem)] ${
             sidebarCollapsed
               ? "sm:w-[calc(100vw-1.5rem)]"
               : "sm:w-[calc(100vw-1.5rem)] md:w-[calc(100vw-13rem-1.5rem)]"
@@ -1779,6 +1883,18 @@ export function SalesDesk({
                             </td>
                           </tr>
                         ))}
+                        <tr className="sl-line-filler" aria-hidden>
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                        </tr>
                       </tbody>
                       <tfoot>
                         <tr className="font-semibold">
@@ -2149,6 +2265,7 @@ export function SalesDesk({
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

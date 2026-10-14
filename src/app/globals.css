@@ -1579,7 +1579,7 @@ button {
 
 .gb-page {
   position: relative;
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100vh - 5.25rem);
   /* Bleed past <main>'s padding (px-3 py-3.5 pb-20 md:pb-5) */
   margin: -0.875rem -0.75rem -1.25rem;
   padding: 1.15rem 0.85rem 2rem;
@@ -2060,9 +2060,9 @@ button {
    The min() guard keeps the box inside the viewport on short screens — note a
    display at 150% OS scaling has a CSS viewport around 620px tall, not 930. */
 .gb-page {
-  --gb-register-rows: 12;
-  --gb-register-row-h: 2.3rem;
-  --gb-register-head-h: 1.9rem;
+  --gb-register-rows: 14;
+  --gb-register-row-h: 2.25rem;
+  --gb-register-head-h: 1.6rem;
   --gb-register-h: calc(
     var(--gb-register-head-h) + var(--gb-register-rows) * var(--gb-register-row-h)
   );
@@ -2070,12 +2070,12 @@ button {
 
 @media (min-width: 768px) {
   .gb-page .gb-panel .table-scroll {
-    height: min(var(--gb-register-h), calc(100vh - 8.5rem));
+    height: min(var(--gb-register-h), calc(100vh - 12.65rem));
     max-height: none;
   }
 
   .gb-page .gb-empty {
-    min-height: min(var(--gb-register-h), calc(100vh - 8.5rem));
+    min-height: min(var(--gb-register-h), calc(100vh - 12.65rem));
   }
 }
 
@@ -2677,7 +2677,7 @@ button {
 
 .po-page {
   position: relative;
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100vh - 5.25rem);
   /* Bleed past <main>'s padding (px-3 py-3.5 pb-20 md:pb-5) */
   margin: -0.875rem -0.75rem -1.25rem;
   padding: 0.7rem 0.85rem 2rem;
@@ -2715,9 +2715,9 @@ button {
       var(--gb-workspace-deep) 100%
     );
 
-  --po-register-rows: 12;
-  --po-register-row-h: 2.3rem;
-  --po-register-head-h: 1.9rem;
+  --po-register-rows: 14;
+  --po-register-row-h: 2.25rem;
+  --po-register-head-h: 1.6rem;
   --po-register-h: calc(
     var(--po-register-head-h) + var(--po-register-rows) * var(--po-register-row-h)
   );
@@ -3003,12 +3003,12 @@ button {
 /* Fixed row-count box: scrolls inside itself, never grows the page */
 @media (min-width: 768px) {
   .po-page .po-panel .table-scroll {
-    height: min(var(--po-register-h), calc(100vh - 8.5rem));
+    height: min(var(--po-register-h), calc(100vh - 13.3rem));
     max-height: none;
   }
 
   .po-page .po-empty {
-    min-height: min(var(--po-register-h), calc(100vh - 8.5rem));
+    min-height: min(var(--po-register-h), calc(100vh - 13.3rem));
   }
 }
 
@@ -3208,7 +3208,7 @@ button {
 
 .mi-page {
   position: relative;
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100vh - 5.25rem);
   margin: -0.875rem -0.75rem -1.25rem;
   padding: 0.7rem 0.85rem 2rem;
   color: var(--gb-ink);
@@ -3246,10 +3246,10 @@ button {
     );
 
   --gb-grid-strong: #b6c8d8;
-  --mi-row-h: 2.3rem;
-  --mi-head-h: 1.9rem;
-  --mi-pending-rows: 8;
-  --mi-done-rows: 6;
+  --mi-row-h: 2.25rem;
+  --mi-head-h: 1.6rem;
+  --mi-pending-rows: 14;
+  --mi-done-rows: 14;
 }
 
 @media (max-width: 767px) {
@@ -3308,7 +3308,7 @@ button {
   box-shadow: var(--gb-shadow-card);
 }
 
-.mi-page .mi-panel > div:first-child {
+.mi-page .mi-panel > div:first-child:has(h3) {
   flex-wrap: wrap;
   row-gap: 0.4rem;
   border-bottom: 1px solid rgba(201, 162, 39, 0.2);
@@ -3322,14 +3322,14 @@ button {
   box-shadow: inset 0 1px 0 var(--gb-sheen);
 }
 
-.mi-page .mi-panel > div:first-child h3 {
+.mi-page .mi-panel > div:first-child:has(h3) h3 {
   font-size: 14px;
   font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--gb-midnight-ink);
 }
 
-.mi-page .mi-panel > div:first-child svg {
+.mi-page .mi-panel > div:first-child:has(h3) svg {
   color: rgba(232, 197, 71, 0.85);
 }
 
@@ -3419,7 +3419,7 @@ button {
   .mi-page .mi-pending .table-scroll {
     height: min(
       calc(var(--mi-head-h) + var(--mi-pending-rows) * var(--mi-row-h)),
-      calc(100vh - 26rem)
+      calc(100vh - 14rem)
     );
     max-height: none;
   }
@@ -3427,7 +3427,7 @@ button {
   .mi-page .mi-done .table-scroll {
     height: min(
       calc(var(--mi-head-h) + var(--mi-done-rows) * var(--mi-row-h)),
-      calc(100vh - 30rem)
+      calc(100vh - 14rem)
     );
     max-height: none;
   }
@@ -3589,7 +3589,7 @@ button {
 
 @media (max-width: 639px) {
   .mi-entry-fields > div,
-  .mi-page .mi-panel > div:first-child > div:first-child {
+  .mi-page .mi-panel > div:first-child:has(h3) > div:first-child {
     width: 100%;
   }
 
@@ -4250,7 +4250,7 @@ button {
 .fw-page,
 .qc-page {
   position: relative;
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100vh - 5.25rem);
   margin: -0.875rem -0.75rem -1.25rem;
   padding: 0.7rem 0.6rem 2rem;
   color: var(--gb-ink);
@@ -4288,9 +4288,10 @@ button {
     );
 
   --gb-grid-strong: #b6c8d8;
-  --fq-row-h: 2.3rem;
-  --fq-head-h: 1.9rem;
+  --fq-row-h: 2.25rem;
+  --fq-head-h: 1.6rem;
   --qc-rows: 8;
+  --fw-rows: 14;
 }
 
 @media (max-width: 767px) {
@@ -4726,7 +4727,7 @@ button {
 /* Fixed row-count boxes */
 @media (min-width: 768px) {
   .fw-page .fw-panel .table-scroll {
-    height: min(calc(var(--fq-head-h) + 12 * var(--fq-row-h)), calc(100vh - 22rem));
+    height: min(calc(var(--fq-head-h) + var(--fw-rows) * var(--fq-row-h)), calc(100vh - 12.65rem));
     max-height: none;
   }
 
@@ -4911,7 +4912,7 @@ button {
 
 .ls-page {
   position: relative;
-  min-height: calc(100vh - 3rem);
+  min-height: calc(100vh - 5.25rem);
   margin: -0.875rem -0.75rem -1.25rem;
   padding: 0.7rem 0.6rem 2rem;
   color: var(--gb-ink);
@@ -4949,9 +4950,9 @@ button {
     );
 
   --gb-grid-strong: #b6c8d8;
-  --ls-row-h: 2.3rem;
-  --ls-head-h: 1.9rem;
-  --ls-rows: 12;
+  --ls-row-h: 2.25rem;
+  --ls-head-h: 1.6rem;
+  --ls-rows: 14;
 }
 
 @media (max-width: 767px) {
@@ -5251,7 +5252,7 @@ button {
   .ls-page .ls-scroll {
     height: min(
       calc(var(--ls-head-h) + var(--ls-rows) * var(--ls-row-h)),
-      calc(100vh - 16rem)
+      calc(100vh - 12.65rem)
     );
     max-height: none;
   }
@@ -5403,6 +5404,5588 @@ button {
   .ls-page .ls-view,
   .ls-page .ls-demo-toggle,
   .ls-drawer-close {
+    transition: none;
+  }
+}
+
+/* ---------- Sales · Aurora Weave — Soft Ice ----------
+   Sales is the money desk, so the accent leans warm: pearl and gold carry
+   value, lagoon carries settled state, ice stays neutral. Scoped to
+   .sl-page; nothing here edits other pages' scopes or .aw-metrics.
+   No transform/filter on .sl-page — the bill sheet is portaled and fixed. */
+
+.sl-page {
+  position: relative;
+  /* app header 3rem + site footer ~2.25rem, so the page never scrolls */
+  min-height: calc(100vh - 5.25rem);
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 0.7rem 0.6rem 1rem;
+  color: var(--gb-ink);
+  background-color: var(--gb-workspace);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.032) 0,
+      rgba(31, 58, 84, 0.032) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.026) 0,
+      rgba(31, 58, 84, 0.026) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    radial-gradient(
+      ellipse 70% 44% at 14% 0%,
+      rgba(132, 183, 214, 0.24),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 52% 40% at 90% 98%,
+      rgba(201, 162, 39, 0.1),
+      transparent 60%
+    ),
+    linear-gradient(
+      170deg,
+      var(--gb-workspace-top) 0%,
+      var(--gb-workspace) 46%,
+      var(--gb-workspace-deep) 100%
+    );
+
+  --gb-grid-strong: #b6c8d8;
+  --sl-row-h: 2.25rem;
+  --sl-head-h: 2rem;
+  --sl-rows: 14;
+}
+
+@media (max-width: 767px) {
+  .sl-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .sl-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding-right: 0.7rem;
+    padding-left: 0.7rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .sl-page {
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 10% 0%,
+        rgba(132, 183, 214, 0.22),
+        transparent 62%
+      ),
+      linear-gradient(
+        170deg,
+        var(--gb-workspace-top) 0%,
+        var(--gb-workspace) 52%,
+        var(--gb-workspace-deep) 100%
+      );
+  }
+}
+
+.sl-page .sl-stage {
+  display: flex;
+  width: min(99%, 120rem);
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .sl-page .sl-stage {
+    width: 100%;
+  }
+}
+
+/* ---- Metrics: money card carries the weight ---------------------------- */
+.sl-page .sl-metrics > div:nth-child(3) {
+  border-color: var(--gb-pearl-line);
+  background-color: var(--gb-pearl);
+}
+
+.sl-page .sl-metrics > div:nth-child(3) p:nth-child(2) {
+  font-size: 1.3rem;
+  color: #5c4412;
+}
+
+.sl-page .sl-metrics > div:nth-child(4) {
+  border-color: var(--gb-pearl-line);
+  background-color: #f3ece0;
+}
+
+/* a hairline of gold under the money card's label */
+.sl-page .sl-metrics > div:nth-child(3)::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.75),
+    transparent
+  );
+}
+
+.sl-page .sl-metrics > div {
+  position: relative;
+}
+
+/* ---- Register panel ---------------------------------------------------- */
+.sl-page .sl-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+.sl-page .sl-panel > div:first-child {
+  position: relative;
+  flex-wrap: wrap;
+  row-gap: 0.45rem;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.22);
+  padding: 0.6rem 0.9rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+/* gold hairline along the top of the register bar */
+.sl-page .sl-panel > div:first-child::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0.9rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.65),
+    transparent
+  );
+}
+
+.sl-page .sl-panel > div:first-child h3 {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.sl-page .sl-panel > div:first-child svg {
+  color: rgba(232, 197, 71, 0.85);
+}
+
+.sl-page .sl-bar-tools {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.sl-page .sl-search {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(232, 241, 248, 0.2);
+  border-radius: 9px;
+  padding: 0.2rem 0.6rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(232, 241, 248, 0.6);
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.sl-page .sl-search:focus-within {
+  border-color: rgba(232, 197, 71, 0.55);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(232, 197, 71, 0.12);
+}
+
+.sl-page .sl-search input {
+  width: min(17rem, 100%);
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  color: var(--gb-midnight-ink);
+  outline: none;
+}
+
+.sl-page .sl-search input::placeholder {
+  color: rgba(232, 241, 248, 0.42);
+}
+
+.sl-page .sl-new {
+  flex-shrink: 0;
+  border-color: rgba(201, 162, 39, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.sl-page .sl-new:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.sl-page .sl-new:active {
+  transform: translateY(0);
+}
+
+/* ---- Filter strip ------------------------------------------------------ */
+.sl-page .sl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--gb-grid-strong);
+  padding: 0.45rem 0.9rem;
+  font-size: 12px;
+  background: linear-gradient(
+    180deg,
+    var(--gb-workspace-top) 0%,
+    var(--gb-row) 100%
+  );
+}
+
+.sl-page .sl-filters > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sl-page .sl-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 9px;
+  padding: 0.1rem 0.5rem 0.1rem 0.6rem;
+  background: var(--gb-row);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.sl-page .sl-filters label:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.1);
+}
+
+.sl-page .sl-filters label > span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gb-ink-soft);
+}
+
+.sl-page .sl-filters input,
+.sl-page .sl-filters select {
+  height: 1.65rem;
+  border: 0;
+  padding: 0 0.1rem;
+  font-size: 12px;
+  color: var(--gb-ink);
+  background: transparent;
+  outline: none;
+}
+
+.sl-page .sl-filters select {
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 9px;
+  padding: 0 0.45rem;
+  background: var(--gb-row);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.sl-page .sl-filters select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.1);
+}
+
+/* ---- The register ------------------------------------------------------ */
+.sl-page .sl-reg.erp-register {
+  height: 100%;
+  border-color: var(--gb-grid-strong);
+}
+
+.sl-page .sl-reg.erp-register thead th {
+  height: var(--sl-head-h);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.88);
+  border-right-color: rgba(255, 255, 255, 0.18);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.sl-page .sl-reg.erp-register td {
+  position: relative;
+  height: var(--sl-row-h);
+  padding: 0.3rem 0.6rem;
+  font-size: 11.5px;
+  color: var(--gb-ink);
+  border-right: 1px solid var(--gb-grid-strong);
+  border-bottom: 1px solid var(--gb-grid-strong);
+  background: var(--gb-row);
+  transition: background-color 0.14s ease;
+}
+
+.sl-page .sl-reg.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.sl-page .sl-reg.erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+/* a gold marker slides in on hover — the row you are reading is obvious */
+.sl-page .sl-reg tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.sl-page .sl-reg tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+/* money reads as money */
+.sl-page .sl-reg tbody td:nth-child(8) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #3f2f08;
+  background: rgba(201, 162, 39, 0.05);
+}
+
+.sl-page .sl-reg tbody tr:nth-child(even) td:nth-child(8) {
+  background: rgba(201, 162, 39, 0.08);
+}
+
+/* rows settle in on first paint, capped so a long list never feels slow */
+.sl-page .sl-reg tbody tr {
+  animation: sl-row-in 0.22s ease both;
+}
+
+.sl-page .sl-reg tbody tr:nth-child(1) { animation-delay: 0.01s; }
+.sl-page .sl-reg tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.sl-page .sl-reg tbody tr:nth-child(3) { animation-delay: 0.05s; }
+.sl-page .sl-reg tbody tr:nth-child(4) { animation-delay: 0.07s; }
+.sl-page .sl-reg tbody tr:nth-child(5) { animation-delay: 0.09s; }
+.sl-page .sl-reg tbody tr:nth-child(n + 6) { animation-delay: 0.11s; }
+
+@keyframes sl-row-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* status chips, page scoped */
+.sl-page .sl-reg .badge {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.58rem;
+}
+
+/* row actions */
+.sl-page .sl-reg td button {
+  height: 1.7rem;
+  width: 1.7rem;
+  border-color: var(--gb-grid-strong);
+  border-radius: 7px;
+  transition:
+    transform 0.14s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.sl-page .sl-reg td button:hover {
+  border-color: var(--accent);
+  background: var(--gb-lagoon);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.sl-page .sl-reg td button:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 767px) {
+  .sl-page .sl-reg td button {
+    height: 2.2rem;
+    width: 2.2rem;
+  }
+}
+
+/* filler keeps the ledger ruled when the register is short */
+.sl-page .sl-reg tbody tr.sl-filler {
+  height: 100%;
+  animation: none;
+}
+
+.sl-page .sl-reg tbody tr.sl-filler td {
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--gb-row);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--sl-row-h) - 1px),
+    var(--gb-grid-strong) calc(var(--sl-row-h) - 1px),
+    var(--gb-grid-strong) var(--sl-row-h)
+  );
+}
+
+.sl-page .sl-reg tbody tr.sl-filler td:first-child::before {
+  display: none;
+}
+
+.sl-page .sl-reg tbody tr.sl-filler td:nth-child(8) {
+  background-color: rgba(201, 162, 39, 0.04);
+}
+
+/* fixed box: the page never scrolls, the register does */
+@media (min-width: 768px) {
+  .sl-page .sl-panel .table-scroll {
+    height: min(
+      calc(var(--sl-head-h) + var(--sl-rows) * var(--sl-row-h)),
+      calc(100vh - 12.65rem)
+    );
+    max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .sl-page .sl-panel .table-scroll {
+    max-height: 54vh;
+  }
+}
+
+.sl-page .sl-empty {
+  display: flex;
+  min-height: 8.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.sl-page .sl-empty > div {
+  width: 100%;
+  max-width: 24rem;
+  animation: sl-row-in 0.3s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-page .sl-reg tbody tr,
+  .sl-page .sl-empty > div {
+    animation: none;
+  }
+
+  .sl-page .sl-reg.erp-register td,
+  .sl-page .sl-reg td button,
+  .sl-page .sl-reg tbody tr td:first-child::before,
+  .sl-page .sl-new,
+  .sl-page .sl-search,
+  .sl-page .sl-filters label,
+  .sl-page .sl-filters select {
+    transition: none;
+  }
+
+  .sl-page .sl-new:hover,
+  .sl-page .sl-reg td button:hover {
+    transform: none;
+  }
+}
+
+
+/* ---------- Sales bill sheet ----------
+   The sheet is portaled, so it is styled from its own frame class. Sections
+   read as a stacked ledger: satin header, ruled section captions, an
+   accounting grid for the lines, and a pearl settlement block that is always
+   the heaviest thing on the screen. CSS only — the Enter-to-next-field
+   handler, focus refs and validation are untouched. */
+.sl-sheet {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 30px 70px rgba(8, 16, 24, 0.38);
+  animation: gb-fade-in 0.17s ease both;
+}
+
+/* header */
+.sl-sheet > div:first-child {
+  position: relative;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  padding-block: 0.55rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.sl-sheet > div:first-child::before {
+  content: "";
+  position: absolute;
+  inset-inline: 1.25rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.7),
+    transparent
+  );
+}
+
+.sl-sheet > div:first-child h2 {
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+/* the status chip in the header sits on dark */
+.sl-sheet > div:first-child .badge {
+  border-color: rgba(232, 197, 71, 0.4);
+  background: rgba(232, 197, 71, 0.16);
+  color: rgba(232, 197, 71, 0.95);
+}
+
+.sl-sheet [data-modal-close] {
+  display: inline-flex;
+  height: 1.85rem;
+  width: 1.85rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.24);
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.sl-sheet [data-modal-close]:hover {
+  border-color: rgba(179, 39, 28, 0.85);
+  background: rgba(179, 39, 28, 0.82);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* body */
+.sl-sheet > div:last-child {
+  background: var(--gb-workspace-top);
+}
+
+/* section captions become ruled ledger headings with a gold tick */
+.sl-sheet .band-label {
+  position: relative;
+  padding-left: 0.6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  color: var(--gb-ink-soft);
+}
+
+.sl-sheet .band-label::before {
+  content: "";
+  position: absolute;
+  top: 0.12rem;
+  bottom: 0.12rem;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--gold) 0%,
+    rgba(201, 162, 39, 0.25) 100%
+  );
+}
+
+.sl-sheet section {
+  border-color: var(--gb-grid-strong, #b6c8d8) !important;
+}
+
+/* fields */
+.sl-sheet label > span {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--gb-ink-soft);
+}
+
+.sl-sheet input,
+.sl-sheet select,
+.sl-sheet textarea {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  background: #fff;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.sl-sheet input:hover,
+.sl-sheet select:hover {
+  border-color: #92abc0;
+}
+
+.sl-sheet input:focus,
+.sl-sheet select:focus,
+.sl-sheet textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+  outline: none;
+}
+
+/* ---- line items: a real accounting grid ---- */
+.sl-sheet table.erp-table {
+  border: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+.sl-sheet table.erp-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.42rem 0.5rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.88);
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.sl-sheet table.erp-table thead th:last-child {
+  border-right: 0;
+}
+
+.sl-sheet table.erp-table tbody td {
+  height: 2.4rem;
+  padding: 0.25rem 0.5rem;
+  color: var(--gb-ink);
+  border-right: 1px solid color-mix(in srgb, var(--gb-grid-strong, #b6c8d8) 55%, white);
+  border-bottom: 1px solid var(--gb-grid-strong, #b6c8d8);
+}
+
+.sl-sheet table.erp-table tbody td:last-child {
+  border-right: 0;
+}
+
+.sl-sheet table.erp-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.sl-sheet table.erp-table tbody tr:hover td {
+  background: #eef6fb;
+}
+
+/* the amount column reads as money */
+.sl-sheet table.erp-table tbody td:last-child,
+.sl-sheet table.erp-table tfoot td:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #3f2f08;
+  background: rgba(201, 162, 39, 0.05);
+}
+
+/* the TOTAL line is a pinned pearl bar */
+.sl-sheet table.erp-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  height: 2.2rem;
+  font-weight: 700;
+  color: var(--gb-ink);
+  border-top: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-bottom: 0;
+  background: var(--gb-pearl);
+}
+
+.sl-sheet .erp-table tbody td input,
+.sl-sheet .erp-table tbody td select {
+  height: 1.9rem;
+  font-size: 12px;
+}
+
+/* ---- settlement block ---- */
+.sl-sheet section:last-of-type {
+  border-top: 1px solid var(--gb-grid-strong, #b6c8d8) !important;
+  background: linear-gradient(
+    180deg,
+    var(--gb-workspace-top) 0%,
+    var(--gb-pearl) 100%
+  );
+  border-radius: 12px 12px 0 0;
+  padding-inline: 0.75rem;
+}
+
+.sl-sheet section:last-of-type span {
+  font-size: 12px;
+}
+
+/* Net Amount is the loudest number in the sheet */
+.sl-sheet section:last-of-type span:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+/* footer */
+.sl-sheet [data-bill-footer] {
+  border-top: 1px solid var(--gb-grid-strong, #b6c8d8);
+  background: var(--gb-pearl);
+}
+
+.sl-sheet [data-bill-footer] button {
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    background-color 0.16s ease;
+}
+
+.sl-sheet [data-bill-footer] button:hover {
+  transform: translateY(-1px);
+}
+
+.sl-sheet [data-bill-footer] button:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-sheet {
+    animation: none;
+  }
+
+  .sl-sheet [data-modal-close],
+  .sl-sheet input,
+  .sl-sheet select,
+  .sl-sheet textarea,
+  .sl-sheet [data-bill-footer] button {
+    transition: none;
+  }
+
+  .sl-sheet [data-modal-close]:hover,
+  .sl-sheet [data-bill-footer] button:hover {
+    transform: none;
+  }
+}
+
+/* the line grid fills its section as a ruled ledger instead of dead white */
+/* the line grid stretches as a flex item — a percentage height does not
+   resolve inside the scroll container */
+.sl-sheet section > div:has(> table.erp-table) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sl-sheet table.erp-table {
+  flex: 1 1 auto;
+}
+
+.sl-sheet table.erp-table tbody tr.sl-line-filler {
+  height: 100%;
+}
+
+.sl-sheet table.erp-table tbody tr.sl-line-filler td {
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--gb-row);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2.3rem,
+    var(--gb-grid-strong, #b6c8d8) 2.3rem,
+    var(--gb-grid-strong, #b6c8d8) 2.4rem
+  );
+}
+
+.sl-sheet table.erp-table tbody tr.sl-line-filler:hover td {
+  background-color: var(--gb-row);
+}
+
+.sl-sheet table.erp-table tbody tr.sl-line-filler td:last-child {
+  background-color: rgba(201, 162, 39, 0.04);
+}
+
+/* ---------- Sales · bar controls + list-style register (revision) ---------- */
+
+/* 1. one bar row: icon search, date-range chip, status, primary action */
+.sl-page .sl-icon-btn,
+.sl-page .sl-chip-btn,
+.sl-page .sl-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.95rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(232, 241, 248, 0.2);
+  border-radius: 9px;
+  padding: 0 0.6rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(232, 241, 248, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.sl-page .sl-icon-btn {
+  width: 1.95rem;
+  justify-content: center;
+  padding: 0;
+}
+
+.sl-page .sl-icon-btn:hover,
+.sl-page .sl-chip-btn:hover,
+.sl-page .sl-status:hover {
+  border-color: rgba(232, 197, 71, 0.5);
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--gb-midnight-ink);
+}
+
+.sl-page .sl-icon-btn.is-on,
+.sl-page .sl-chip-btn.is-on {
+  border-color: rgba(232, 197, 71, 0.6);
+  background: rgba(232, 197, 71, 0.16);
+  color: rgba(232, 197, 71, 0.98);
+}
+
+.sl-page .sl-status option {
+  color: var(--gb-ink);
+  background: #fff;
+}
+
+/* 2. the floating popovers */
+.sl-page .sl-pop-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.sl-page .sl-pop {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  width: max-content;
+  flex-direction: column;
+  gap: 0.45rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 11px;
+  padding: 0.6rem;
+  background: var(--gb-row);
+  box-shadow: 0 16px 38px rgba(8, 16, 24, 0.28);
+  animation: sl-pop-in 0.14s ease both;
+}
+
+@keyframes sl-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sl-page .sl-pop-search {
+  flex-direction: row;
+  align-items: center;
+}
+
+.sl-page .sl-pop input {
+  height: 1.9rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 8px;
+  padding: 0 0.5rem;
+  font-size: 12px;
+  color: var(--gb-ink);
+  background: #fff;
+  outline: none;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.sl-page .sl-pop-search input {
+  width: 17rem;
+}
+
+.sl-page .sl-pop input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+}
+
+.sl-page .sl-pop label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sl-page .sl-pop label > span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gb-ink-soft);
+}
+
+.sl-page .sl-pop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  border-top: 1px solid var(--gb-grid-strong);
+  padding-top: 0.45rem;
+}
+
+.sl-page .sl-pop-clear,
+.sl-page .sl-pop-apply {
+  height: 1.7rem;
+  border-radius: 8px;
+  padding: 0 0.7rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.sl-page .sl-pop-clear {
+  border: 1px solid var(--gb-grid-strong);
+  color: var(--gb-ink-soft);
+  background: var(--gb-row);
+}
+
+.sl-page .sl-pop-clear:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.sl-page .sl-pop-apply {
+  border: 1px solid transparent;
+  color: #fff;
+  background: var(--accent);
+}
+
+.sl-page .sl-pop-apply:hover {
+  background: var(--accent-strong);
+}
+
+/* 3. register reads as a list: no vertical rules, one hairline per row */
+.sl-page .sl-reg.erp-register td {
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+}
+
+.sl-page .sl-reg.erp-register thead th {
+  border-right: 0;
+}
+
+.sl-page .sl-reg.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* money column keeps a tint, but no hard edges */
+.sl-page .sl-reg tbody td:nth-child(8) {
+  background: rgba(201, 162, 39, 0.045);
+}
+
+.sl-page .sl-reg tbody tr:nth-child(even) td:nth-child(8) {
+  background: rgba(201, 162, 39, 0.07);
+}
+
+/* the filler no longer draws a grid — just the money tint and clean space */
+.sl-page .sl-reg tbody tr.sl-filler td {
+  background-image: none;
+}
+
+.sl-page .sl-reg tbody tr.sl-filler td:nth-child(8) {
+  background-color: rgba(201, 162, 39, 0.03);
+}
+
+/* 4. the bill sheet's line grid: empty space stays clean, no ruled rows */
+.sl-sheet table.erp-table tbody tr.sl-line-filler td {
+  background-image: none;
+  border-right: 0;
+}
+
+.sl-sheet table.erp-table tbody tr.sl-line-filler td:last-child {
+  background-color: rgba(201, 162, 39, 0.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-page .sl-pop {
+    animation: none;
+  }
+
+  .sl-page .sl-icon-btn,
+  .sl-page .sl-chip-btn,
+  .sl-page .sl-status,
+  .sl-page .sl-pop input,
+  .sl-page .sl-pop-clear,
+  .sl-page .sl-pop-apply {
+    transition: none;
+  }
+}
+
+/* ---------- Sales · metric cards, experiment ----------
+   The pastel cards sat on a pale workspace, so they read as weak and the
+   numbers had nothing to push against. These invert: midnight satin, the
+   same surface as the register bar and the sidebar, with a coloured rail per
+   card and the value in light ink. The page then reads dark → dark → light
+   ledger, and the figures carry. Scoped to .sl-page only — every other desk
+   keeps the shared .aw-metrics cards untouched. */
+.sl-page .sl-metrics > div {
+  --sl-rail: rgba(132, 183, 214, 0.9);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding-left: 1rem;
+  background-color: var(--gb-midnight);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(
+      150deg,
+      var(--gb-midnight-lift) 0%,
+      var(--gb-midnight) 55%,
+      var(--gb-midnight-deep) 100%
+    );
+  box-shadow:
+    0 10px 24px rgba(8, 16, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* the coloured rail: grows from the centre on mount */
+.sl-page .sl-metrics > div::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--sl-rail);
+  transform: scaleY(0);
+  animation: sl-rail-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  animation-delay: inherit;
+}
+
+@keyframes sl-rail-in {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* a soft glow bleeding in from the rail side */
+.sl-page .sl-metrics > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 120% at 0% 50%,
+    var(--sl-rail),
+    transparent 70%
+  );
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.sl-page .sl-metrics > div:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 32px rgba(8, 16, 24, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.sl-page .sl-metrics > div p:first-child {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(232, 241, 248, 0.5);
+}
+
+.sl-page .sl-metrics > div p:nth-child(2) {
+  margin-top: 0.15rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--gb-midnight-ink);
+}
+
+/* per-card accent */
+.sl-page .sl-metrics > div:nth-child(1) {
+  --sl-rail: rgba(132, 183, 214, 0.95);
+}
+
+.sl-page .sl-metrics > div:nth-child(2) {
+  --sl-rail: rgba(120, 206, 178, 0.95);
+  background-color: var(--gb-midnight);
+}
+
+.sl-page .sl-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #8fe3c4;
+}
+
+/* money: gold rail, gold figure, slightly larger */
+.sl-page .sl-metrics > div:nth-child(3) {
+  --sl-rail: rgba(232, 197, 71, 0.95);
+  background-color: var(--gb-midnight);
+  border-color: rgba(201, 162, 39, 0.26);
+}
+
+.sl-page .sl-metrics > div:nth-child(3) p:nth-child(2) {
+  font-size: 1.45rem;
+  color: #f0cf62;
+}
+
+.sl-page .sl-metrics > div:nth-child(3)::after {
+  opacity: 0.16;
+}
+
+.sl-page .sl-metrics > div:nth-child(4) {
+  --sl-rail: rgba(226, 150, 72, 0.95);
+  background-color: var(--gb-midnight);
+}
+
+.sl-page .sl-metrics > div:nth-child(4) p:nth-child(2) {
+  color: #f0b277;
+}
+
+/* the gold hairline under the money card is redundant now */
+.sl-page .sl-metrics > div:nth-child(3)::marker {
+  content: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-page .sl-metrics > div {
+    transition: none;
+  }
+
+  .sl-page .sl-metrics > div::before {
+    animation: none;
+    transform: scaleY(1);
+  }
+
+  .sl-page .sl-metrics > div:hover {
+    transform: none;
+  }
+}
+
+/* 12 rows must fit the box exactly, so the tallest cell content (the action
+   buttons) has to stay under the declared row height: 1.5rem + 0.5rem
+   padding = 2rem < 2.25rem. */
+.sl-page .sl-reg.erp-register td {
+  height: var(--sl-row-h);
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.sl-page .sl-reg td button {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.sl-page .sl-reg td .badge {
+  padding-block: 0.05rem;
+}
+
+/* ---------- Sales · revision 3 ----------
+   1. a hairline of workspace between the register bar and the column header
+      so the two dark bands read as separate bars, not one block. */
+.sl-page .sl-panel > div:first-child {
+  border-bottom: 2px solid var(--gb-workspace);
+}
+
+/* 2. the four cards keep the dark treatment but no longer share the table
+      header's midnight — each gets its own tinted dark ground so the strip
+      reads as four distinct figures, not a continuation of the chrome. */
+.sl-page .sl-metrics > div:nth-child(1) {
+  --sl-rail: rgba(125, 186, 228, 0.95);
+  background-color: #152a42;
+  background-image: linear-gradient(150deg, #1b3550 0%, #152a42 55%, #101f32 100%);
+  border-color: rgba(125, 186, 228, 0.16);
+}
+
+.sl-page .sl-metrics > div:nth-child(1) p:nth-child(2) {
+  color: #d8ecff;
+}
+
+.sl-page .sl-metrics > div:nth-child(2) {
+  --sl-rail: rgba(104, 212, 176, 0.95);
+  background-color: #0f2e29;
+  background-image: linear-gradient(150deg, #153c34 0%, #0f2e29 55%, #0a221e 100%);
+  border-color: rgba(104, 212, 176, 0.16);
+}
+
+.sl-page .sl-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #8fe9c6;
+}
+
+.sl-page .sl-metrics > div:nth-child(3) {
+  --sl-rail: rgba(235, 196, 86, 0.95);
+  background-color: #2e2412;
+  background-image: linear-gradient(150deg, #3b2e16 0%, #2e2412 55%, #221a0d 100%);
+  border-color: rgba(235, 196, 86, 0.22);
+}
+
+.sl-page .sl-metrics > div:nth-child(3) p:nth-child(2) {
+  color: #f6d777;
+}
+
+.sl-page .sl-metrics > div:nth-child(4) {
+  --sl-rail: rgba(226, 142, 92, 0.95);
+  background-color: #2f1e16;
+  background-image: linear-gradient(150deg, #3d271b 0%, #2f1e16 55%, #231610 100%);
+  border-color: rgba(226, 142, 92, 0.16);
+}
+
+.sl-page .sl-metrics > div:nth-child(4) p:nth-child(2) {
+  color: #f3b588;
+}
+
+.sl-page .sl-metrics > div p:first-child {
+  color: rgba(232, 241, 248, 0.58);
+}
+
+
+/* Twelve rows + full-height cards + a visible footer need 37px that a
+   150%-scaled laptop does not have. Taken from the chrome only: page
+   padding, the stage gaps, the register bar and the column-header row.
+   The cards keep their 3.75rem and the rows keep 2.25rem. */
+.sl-page {
+  padding-top: 0.35rem;
+  padding-bottom: 0.25rem;
+}
+
+.sl-page .sl-stage {
+  gap: 0.3rem;
+}
+
+.sl-page .sl-panel > div:first-child {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+.sl-page {
+  --sl-head-h: 1.6rem;
+}
+
+.sl-page .sl-reg.erp-register thead th {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+/* ---------- Grey Purchase · Sales-grade bar controls + metric cards --------
+   Ported from the approved .sl-page treatment. Grey Purchase already shared
+   the Sales skeleton (page → stage → aw-metrics → panel → register), so this
+   is skin and chrome only: nothing here changes a column, a button's action,
+   the upload flow or the entry sheet. Scoped to .gb-page — .sl-page and every
+   other desk are untouched, and the shared .aw-metrics box height (3.75rem)
+   is inherited, not overridden, so KPI cards stay identical in size on every
+   page. */
+
+/* ---- 1. bar controls: icon search + primary action --------------------- */
+.gb-page .gb-bar-tools {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.gb-page .gb-icon-btn {
+  display: inline-flex;
+  width: 1.95rem;
+  height: 1.95rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.2);
+  border-radius: 9px;
+  padding: 0;
+  color: rgba(232, 241, 248, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.gb-page .gb-icon-btn:hover {
+  border-color: rgba(232, 197, 71, 0.5);
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--gb-midnight-ink);
+}
+
+.gb-page .gb-icon-btn.is-on {
+  border-color: rgba(232, 197, 71, 0.6);
+  background: rgba(232, 197, 71, 0.16);
+  color: rgba(232, 197, 71, 0.98);
+}
+
+/* ---- 2. the floating search popover ------------------------------------ */
+.gb-page .gb-pop-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.gb-page .gb-pop {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  width: max-content;
+  flex-direction: column;
+  gap: 0.45rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 11px;
+  padding: 0.6rem;
+  background: var(--gb-row);
+  box-shadow: 0 16px 38px rgba(8, 16, 24, 0.28);
+  animation: sl-pop-in 0.14s ease both;
+}
+
+.gb-page .gb-pop-search {
+  flex-direction: row;
+  align-items: center;
+}
+
+.gb-page .gb-panel .gb-pop.gb-pop input {
+  height: 1.9rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 8px;
+  padding: 0 0.5rem;
+  font-size: 12px;
+  color: var(--gb-ink);
+  background: #fff;
+  outline: none;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.gb-page .gb-panel .gb-pop.gb-pop input::placeholder {
+  color: var(--gb-ink-soft);
+  opacity: 0.7;
+}
+
+.gb-page .gb-panel .gb-pop-search.gb-pop-search input {
+  width: 17rem;
+}
+
+.gb-page .gb-panel .gb-pop.gb-pop input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+}
+
+.gb-page .gb-pop-clear {
+  height: 1.7rem;
+  flex-shrink: 0;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 8px;
+  padding: 0 0.7rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gb-ink-soft);
+  background: var(--gb-row);
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.gb-page .gb-pop-clear:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ---- 3. metric cards: the approved Sales treatment ---------------------
+   Midnight satin, the same surface as the register bar, with a coloured rail
+   per card and the value in light ink. Box height, padding-block and the grid
+   come from the shared .aw-metrics rule; only the skin is restated here. */
+.gb-page .gb-metrics > div {
+  --gb-rail: rgba(132, 183, 214, 0.9);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding-left: 1rem;
+  background-color: var(--gb-midnight);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(
+      150deg,
+      var(--gb-midnight-lift) 0%,
+      var(--gb-midnight) 55%,
+      var(--gb-midnight-deep) 100%
+    );
+  box-shadow:
+    0 10px 24px rgba(8, 16, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* the coloured rail grows from the centre on mount */
+.gb-page .gb-metrics > div::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--gb-rail);
+  transform: scaleY(0);
+  animation: sl-rail-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  animation-delay: inherit;
+}
+
+/* a soft glow bleeding in from the rail side */
+.gb-page .gb-metrics > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 120% at 0% 50%,
+    var(--gb-rail),
+    transparent 70%
+  );
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.gb-page .gb-metrics > div:hover {
+  transform: translateY(-2px);
+}
+
+.gb-page .gb-metrics > div p:first-child {
+  color: rgba(232, 241, 248, 0.58);
+}
+
+.gb-page .gb-metrics > div p:nth-child(2) {
+  color: #e8f1f8;
+}
+
+/* four grounds, one per metric, matching the Sales set */
+.gb-page .gb-metrics > div:nth-child(1) {
+  --gb-rail: rgba(125, 186, 228, 0.95);
+  border-color: rgba(125, 186, 228, 0.16);
+  background-color: #152a42;
+  background-image: linear-gradient(150deg, #1d3a56 0%, #152a42 55%, #101f33 100%);
+}
+
+.gb-page .gb-metrics > div:nth-child(1) p:nth-child(2) {
+  color: #a9d2f0;
+}
+
+.gb-page .gb-metrics > div:nth-child(2) {
+  --gb-rail: rgba(104, 212, 176, 0.95);
+  border-color: rgba(104, 212, 176, 0.16);
+  background-color: #0f2e29;
+  background-image: linear-gradient(150deg, #154039 0%, #0f2e29 55%, #0b221e 100%);
+}
+
+.gb-page .gb-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #7fe3c0;
+}
+
+.gb-page .gb-metrics > div:nth-child(3) {
+  --gb-rail: rgba(235, 196, 86, 0.95);
+  border-color: rgba(235, 196, 86, 0.16);
+  background-color: #2e2412;
+  background-image: linear-gradient(150deg, #3f3118 0%, #2e2412 55%, #231b0d 100%);
+}
+
+.gb-page .gb-metrics > div:nth-child(3) p:nth-child(2) {
+  color: #f2d27e;
+}
+
+.gb-page .gb-metrics > div:nth-child(4) {
+  --gb-rail: rgba(226, 142, 92, 0.95);
+  border-color: rgba(226, 142, 92, 0.16);
+  background-color: #2f1e16;
+  background-image: linear-gradient(150deg, #3d271b 0%, #2f1e16 55%, #231610 100%);
+}
+
+.gb-page .gb-metrics > div:nth-child(4) p:nth-child(2) {
+  color: #f3b588;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-page .gb-metrics > div {
+    animation: none;
+    transition: none;
+  }
+
+  .gb-page .gb-metrics > div::before {
+    animation: none;
+    transform: scaleY(1);
+  }
+
+  .gb-page .gb-metrics > div:hover {
+    transform: none;
+  }
+
+  .gb-page .gb-pop,
+  .gb-page .gb-icon-btn,
+  .gb-page .gb-panel .gb-pop input,
+  .gb-page .gb-pop-clear {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ---------- Grey Purchase · full parity with the approved Sales desk -------
+   Everything below restates, for .gb-page / .gb-sheet, the treatment that was
+   signed off on .sl-page: borderless rows, the fainter rule, the gold hover
+   rail, the staggered row fade, the money column, the filler, 1.5rem action
+   buttons, the tightened page frame, and the sheet polish. Appended last, so
+   it wins over the earlier .gb-* rules at equal specificity without deleting
+   them. Scoped to .gb-page / .gb-sheet — no other desk is touched, and no
+   column, button action, upload step or business rule changes. */
+
+/* ---- 1. register: list, not a grid ------------------------------------- */
+.gb-page .gb-register.erp-register {
+  height: 100%;
+  border-color: var(--gb-grid-strong);
+}
+
+.gb-page .gb-register.erp-register thead th {
+  height: var(--gb-register-head-h);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.88);
+  /* no inner column lines, in the header either */
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+}
+
+.gb-page .gb-register.erp-register td {
+  position: relative;
+  height: var(--gb-register-row-h);
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--gb-ink);
+  /* the inner column grid is what made this read as a spreadsheet */
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+  background: var(--gb-row);
+  transition: background-color 0.14s ease;
+}
+
+.gb-page .gb-register.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.gb-page .gb-register.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.gb-page .gb-register.erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+/* a gold marker slides in on hover — the row you are reading is obvious */
+.gb-page .gb-register tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.gb-page .gb-register tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+/* money reads as money (NET AMOUNT is column 8) */
+.gb-page .gb-register tbody td:nth-child(8) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #3f2f08;
+  background: rgba(201, 162, 39, 0.045);
+}
+
+.gb-page .gb-register tbody tr:nth-child(even) td:nth-child(8) {
+  background: rgba(201, 162, 39, 0.07);
+}
+
+/* rows settle in on first paint, capped so a long list never feels slow */
+.gb-page .gb-register tbody tr {
+  animation: sl-row-in 0.22s ease both;
+}
+
+.gb-page .gb-register tbody tr:nth-child(1) { animation-delay: 0.01s; }
+.gb-page .gb-register tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.gb-page .gb-register tbody tr:nth-child(3) { animation-delay: 0.05s; }
+.gb-page .gb-register tbody tr:nth-child(4) { animation-delay: 0.07s; }
+.gb-page .gb-register tbody tr:nth-child(5) { animation-delay: 0.09s; }
+.gb-page .gb-register tbody tr:nth-child(n + 6) { animation-delay: 0.11s; }
+
+/* action buttons stay shorter than the row, or the row height is not real */
+.gb-page .gb-register td button {
+  height: 1.5rem;
+  width: 1.5rem;
+  transition:
+    transform 0.14s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.gb-page .gb-register td button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.gb-page .gb-register td button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.gb-page .gb-register .badge {
+  padding-block: 0.05rem;
+}
+
+/* filler: empty space below the last row stays clean, keeps the money tint */
+.gb-page .gb-register tbody tr.gb-filler {
+  height: 100%;
+  animation: none;
+}
+
+.gb-page .gb-register tbody tr.gb-filler td {
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--gb-row);
+  background-image: none;
+}
+
+.gb-page .gb-register tbody tr.gb-filler td:first-child::before {
+  display: none;
+}
+
+.gb-page .gb-register tbody tr.gb-filler td:nth-child(8) {
+  background-color: rgba(201, 162, 39, 0.03);
+}
+
+/* ---- 2. page frame + register bar -------------------------------------- */
+@media (min-width: 768px) {
+  .gb-page {
+    padding-top: 0.35rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .gb-page {
+    padding-right: 0.6rem;
+    padding-left: 0.6rem;
+  }
+}
+
+.gb-page .gb-stage {
+  width: min(99%, 120rem);
+  gap: 0.3rem;
+}
+
+/* a hairline of workspace separates the bar from the column header */
+.gb-page .gb-panel > div:first-child {
+  border-bottom: 2px solid var(--gb-workspace);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* ---- 3. entry sheet polish --------------------------------------------- */
+.gb-sheet-head {
+  position: relative;
+}
+
+/* gold hairline along the top edge of the sheet header */
+.gb-sheet-head::before {
+  content: "";
+  position: absolute;
+  inset-inline: 1.25rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.7),
+    transparent
+  );
+}
+
+.gb-sheet-close {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.16s ease;
+}
+
+.gb-sheet-close:hover {
+  transform: rotate(90deg);
+}
+
+/* fields answer to hover and focus */
+.gb-sheet input,
+.gb-sheet select,
+.gb-sheet textarea {
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.gb-sheet input:hover:not(:disabled),
+.gb-sheet select:hover:not(:disabled) {
+  border-color: #92abc0;
+}
+
+.gb-sheet input:focus,
+.gb-sheet select:focus,
+.gb-sheet textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+  outline: none;
+}
+
+/* section captions become ruled ledger headings with a gold tick */
+.gb-sheet .band-label {
+  position: relative;
+  padding-left: 0.6rem;
+}
+
+.gb-sheet .band-label::before {
+  content: "";
+  position: absolute;
+  top: 0.12rem;
+  bottom: 0.12rem;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--gold) 0%,
+    rgba(201, 162, 39, 0.25) 100%
+  );
+}
+
+/* the amount column of the line grid reads as money */
+.gb-entry-table tbody td:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #3f2f08;
+  background: rgba(201, 162, 39, 0.05);
+}
+
+/* entry rows settle in, same curve as the register */
+.gb-entry-table tbody tr {
+  animation: sl-row-in 0.2s ease both;
+}
+
+/* the totals card is the heaviest block in the sheet */
+.gb-entry .gb-total {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* footer buttons lift, like the Sales sheet */
+.gb-entry-foot button {
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    background-color 0.16s ease;
+}
+
+.gb-entry-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.gb-entry-foot button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-page .gb-register tbody tr,
+  .gb-entry-table tbody tr {
+    animation: none;
+  }
+
+  .gb-page .gb-register tbody tr td:first-child::before {
+    transition: none;
+  }
+
+  .gb-page .gb-register td button,
+  .gb-entry-foot button,
+  .gb-sheet input,
+  .gb-sheet select,
+  .gb-sheet textarea {
+    transition: none;
+  }
+
+  .gb-page .gb-register td button:hover:not(:disabled),
+  .gb-entry-foot button:hover:not(:disabled),
+  .gb-sheet-close:hover {
+    transform: none;
+  }
+}
+
+/* ---------- GP Entry · fixed regions -------------------------------------
+   Three complaints, one cause: every region sized itself from its content, so
+   adding a line re-laid out the whole sheet. Each region is now a declared
+   box. The item grid is exactly header + 4 rows + the pinned TOTAL; past four
+   lines the grid scrolls inside itself, the new line parks just above TOTAL,
+   and the Remarks / calculation block below never moves. Heights are declared
+   on the header and footer cells too, or their content would win and the
+   4-row arithmetic would not hold. */
+.gb-entry {
+  --gb-ent-head: 1.85rem;
+  /* measured, not assumed: the Item Name cell holds a SearchableSelect at
+     1.8rem plus 0.5rem of cell padding, so a row renders at 37.6px. 2.5rem
+     clears that with a little air, and keeps the 4-row box arithmetic true. */
+  --gb-ent-row: 2.5rem;
+  --gb-ent-foot: 2rem;
+  --gb-ent-rows: 4;
+}
+
+.gb-entry .gb-entry-grid {
+  height: calc(
+    var(--gb-ent-head) + var(--gb-ent-rows) * var(--gb-ent-row) +
+      var(--gb-ent-foot)
+  );
+  min-height: 0;
+  max-height: none;
+  flex: 0 0 auto;
+}
+
+/* the table fills the scroll area, so TOTAL is pushed to the floor of the box
+   rather than sitting straight under the last line; past four lines the filler
+   collapses, the content overflows, and the sticky pin takes over instead */
+.gb-entry .gb-entry-scroll {
+  display: flex;
+  flex-direction: column;
+}
+
+.gb-entry .gb-entry-table {
+  /* grow into the spare height, never be squashed once the lines overflow */
+  flex: 1 0 auto;
+}
+
+.gb-entry .gb-entry-table tbody tr.gb-entry-filler {
+  height: 100%;
+}
+
+.gb-entry .gb-entry-table tbody tr.gb-entry-filler td {
+  height: auto;
+  padding: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: var(--gb-row);
+}
+
+.gb-entry .gb-entry-table tbody tr.gb-entry-filler:hover td {
+  background: var(--gb-row);
+}
+
+.gb-entry .gb-entry-table thead th {
+  height: var(--gb-ent-head);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* the TOTAL line is pinned to the bottom of the grid, inside the scroll */
+.gb-entry .gb-entry-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  height: var(--gb-ent-foot);
+  padding: 0.25rem 0.5rem;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--gb-ink);
+  border-top: 1px solid var(--gb-grid-strong);
+  border-bottom: 0;
+  background: var(--gb-pearl);
+}
+
+.gb-entry .gb-entry-table tfoot td:first-child {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--gb-ink-soft);
+}
+
+.gb-entry .gb-entry-table tfoot td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Remarks + calculation: a declared box, so it cannot move when lines change */
+.gb-entry .gb-entry-main > .gb-entry-tail {
+  height: 12.5rem;
+  min-height: 12.5rem;
+  flex: 0 0 auto;
+}
+
+.gb-entry .gb-entry-tail > label > textarea {
+  height: 100%;
+  min-height: 0;
+}
+
+.gb-entry .gb-total {
+  min-height: 0;
+  max-height: 100%;
+}
+
+/* ---------- Finished Work + QC · parity with the Sales / Grey Purchase desks
+   Same treatment, restated for .fw-page / .qc-page / .fw-sheet: borderless
+   rows, the fainter rule, the gold hover rail, the staggered row fade, a
+   clean filler, 1.5rem action buttons, the tightened frame, and a fixed item
+   grid in the sheet with TOTAL pinned to its floor. Appended last so it wins
+   over the earlier .fw-* / .qc-* rules at equal specificity without deleting
+   them. The two pages share these selectors deliberately — they are a pair.
+   No column, button action or business rule changes. */
+
+/* ---- 1. registers: list, not a grid ------------------------------------ */
+.fw-page .erp-register thead th,
+.qc-page .erp-register thead th {
+  height: var(--fq-head-h);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  /* no inner column lines, in the header either */
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+}
+
+.fw-page .erp-register td,
+.qc-page .erp-register td {
+  position: relative;
+  height: var(--fq-row-h);
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.2;
+  /* the inner column grid is what made these read as spreadsheets */
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+  transition: background-color 0.14s ease;
+}
+
+.fw-page .erp-register tbody tr:last-child td,
+.qc-page .erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fw-page .erp-register tbody tr:hover td,
+.qc-page .erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+/* a gold marker slides in on hover — the row you are reading is obvious */
+.fw-page .erp-register tbody tr td:first-child::before,
+.qc-page .erp-register tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.fw-page .erp-register tbody tr:hover td:first-child::before,
+.qc-page .erp-register tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+/* rows settle in on first paint, capped so a long list never feels slow */
+.fw-page .erp-register tbody tr,
+.qc-page .erp-register tbody tr {
+  animation: sl-row-in 0.22s ease both;
+}
+
+.fw-page .erp-register tbody tr:nth-child(1),
+.qc-page .erp-register tbody tr:nth-child(1) { animation-delay: 0.01s; }
+.fw-page .erp-register tbody tr:nth-child(2),
+.qc-page .erp-register tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.fw-page .erp-register tbody tr:nth-child(3),
+.qc-page .erp-register tbody tr:nth-child(3) { animation-delay: 0.05s; }
+.fw-page .erp-register tbody tr:nth-child(4),
+.qc-page .erp-register tbody tr:nth-child(4) { animation-delay: 0.07s; }
+.fw-page .erp-register tbody tr:nth-child(5),
+.qc-page .erp-register tbody tr:nth-child(5) { animation-delay: 0.09s; }
+.fw-page .erp-register tbody tr:nth-child(n + 6),
+.qc-page .erp-register tbody tr:nth-child(n + 6) { animation-delay: 0.11s; }
+
+/* action buttons stay shorter than the row, or the row height is not real */
+.fw-page .erp-register td button,
+.qc-page .erp-register td button {
+  height: 1.5rem;
+  width: 1.5rem;
+  transition:
+    transform 0.14s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.fw-page .erp-register td button:hover:not(:disabled),
+.qc-page .erp-register td button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.fw-page .erp-register td button:active:not(:disabled),
+.qc-page .erp-register td button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.fw-page .erp-register .badge,
+.qc-page .erp-register .badge {
+  padding-block: 0.05rem;
+}
+
+/* the filler stops drawing a ruled grid: empty space stays clean */
+.qc-page .qc-reg tbody tr.qc-filler,
+.fw-page .fw-reg tbody tr.fw-filler {
+  animation: none;
+}
+
+.qc-page .qc-reg tbody tr.qc-filler td,
+.fw-page .fw-reg tbody tr.fw-filler td {
+  background-image: none;
+}
+
+.qc-page .qc-reg tbody tr.qc-filler td:first-child::before,
+.fw-page .fw-reg tbody tr.fw-filler td:first-child::before {
+  display: none;
+}
+
+/* ---- 2. page frame + panel bar ----------------------------------------- */
+@media (min-width: 768px) {
+  .fw-page,
+  .qc-page {
+    padding-top: 0.35rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+.fw-page .fw-stage,
+.qc-page .qc-stage {
+  gap: 0.3rem;
+}
+
+/* a hairline of workspace separates the bar from the column header */
+.fw-page .fw-panel > div:first-child,
+.qc-page .qc-panel > div:first-child {
+  border-bottom: 2px solid var(--gb-workspace);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* ---- 3. metric cards: the approved Sales treatment, five of them --------
+   Box height, padding-block and the grid stay as they are; only the skin is
+   restated, so the cards are still the same size as every other desk's. */
+.fw-page .fw-metrics > div {
+  --fw-rail: rgba(132, 183, 214, 0.9);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding-left: 1rem;
+  background-color: var(--gb-midnight);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(
+      150deg,
+      var(--gb-midnight-lift) 0%,
+      var(--gb-midnight) 55%,
+      var(--gb-midnight-deep) 100%
+    );
+  box-shadow:
+    0 10px 24px rgba(8, 16, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.fw-page .fw-metrics > div::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--fw-rail);
+  transform: scaleY(0);
+  animation: sl-rail-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  animation-delay: inherit;
+}
+
+.fw-page .fw-metrics > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 120% at 0% 50%,
+    var(--fw-rail),
+    transparent 70%
+  );
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.fw-page .fw-metrics > div:hover {
+  transform: translateY(-2px);
+}
+
+.fw-page .fw-metrics > div p:first-child {
+  color: rgba(232, 241, 248, 0.58);
+}
+
+.fw-page .fw-metrics > div p:nth-child(2) {
+  color: #e8f1f8;
+}
+
+/* five grounds: the Sales four, plus a slate for the fifth card */
+.fw-page .fw-metrics > div:nth-child(1) {
+  --fw-rail: rgba(125, 186, 228, 0.95);
+  border-color: rgba(125, 186, 228, 0.16);
+  background-color: #152a42;
+  background-image: linear-gradient(150deg, #1d3a56 0%, #152a42 55%, #101f33 100%);
+}
+
+.fw-page .fw-metrics > div:nth-child(1) p:nth-child(2) {
+  color: #a9d2f0;
+}
+
+.fw-page .fw-metrics > div:nth-child(2) {
+  --fw-rail: rgba(104, 212, 176, 0.95);
+  border-color: rgba(104, 212, 176, 0.16);
+  background-color: #0f2e29;
+  background-image: linear-gradient(150deg, #154039 0%, #0f2e29 55%, #0b221e 100%);
+}
+
+.fw-page .fw-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #7fe3c0;
+}
+
+.fw-page .fw-metrics > div:nth-child(3) {
+  --fw-rail: rgba(235, 196, 86, 0.95);
+  border-color: rgba(235, 196, 86, 0.16);
+  background-color: #2e2412;
+  background-image: linear-gradient(150deg, #3f3118 0%, #2e2412 55%, #231b0d 100%);
+}
+
+.fw-page .fw-metrics > div:nth-child(3) p:nth-child(2) {
+  color: #f2d27e;
+}
+
+.fw-page .fw-metrics > div:nth-child(4) {
+  --fw-rail: rgba(226, 142, 92, 0.95);
+  border-color: rgba(226, 142, 92, 0.16);
+  background-color: #2f1e16;
+  background-image: linear-gradient(150deg, #3d271b 0%, #2f1e16 55%, #231610 100%);
+}
+
+.fw-page .fw-metrics > div:nth-child(4) p:nth-child(2) {
+  color: #f3b588;
+}
+
+.fw-page .fw-metrics > div:nth-child(5) {
+  --fw-rail: rgba(168, 158, 216, 0.95);
+  border-color: rgba(168, 158, 216, 0.16);
+  background-color: #231f33;
+  background-image: linear-gradient(150deg, #302a44 0%, #231f33 55%, #1a1727 100%);
+}
+
+.fw-page .fw-metrics > div:nth-child(5) p:nth-child(2) {
+  color: #c6bdf0;
+}
+
+/* ---- 4. the Finished Work sheet ---------------------------------------- */
+.fw-sheet-head,
+.fw-sheet > div:first-child {
+  position: relative;
+}
+
+.fw-sheet > div:first-child::before {
+  content: "";
+  position: absolute;
+  inset-inline: 1.25rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.7),
+    transparent
+  );
+}
+
+.fw-sheet [data-modal-close] {
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.fw-sheet [data-modal-close]:hover {
+  transform: rotate(90deg);
+}
+
+.fw-sheet input,
+.fw-sheet select,
+.fw-sheet textarea {
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.fw-sheet input:hover:not(:disabled),
+.fw-sheet select:hover:not(:disabled) {
+  border-color: #92abc0;
+}
+
+.fw-sheet input:focus,
+.fw-sheet select:focus,
+.fw-sheet textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+  outline: none;
+}
+
+.fw-sheet .band-label {
+  position: relative;
+  padding-left: 0.6rem;
+}
+
+.fw-sheet .band-label::before {
+  content: "";
+  position: absolute;
+  top: 0.12rem;
+  bottom: 0.12rem;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--gold) 0%,
+    rgba(201, 162, 39, 0.25) 100%
+  );
+}
+
+/* the item grid is a declared box, not a max-height that still breathes:
+   header + 5 rows + the pinned TOTAL, and it scrolls inside itself after
+   that, so adding a line never re-lays out the sheet */
+.fw-sheet .fw-items {
+  /* measured, not assumed: the header renders at 29.2px and the grid carries
+     a horizontal scrollbar (min-w-58rem), which eats ~10px of the box. Both
+     are in the sum, or five rows do not actually fit. */
+  --fw-item-head: 1.85rem;
+  --fw-item-foot: 2.3rem;
+  --fw-item-rows: 5;
+  --fw-item-xbar: 0.75rem;
+  display: flex;
+  height: calc(
+    var(--fw-item-head) + var(--fw-item-rows) * var(--fw-item-row) +
+      var(--fw-item-foot) + var(--fw-item-xbar)
+  );
+  max-height: none;
+  flex-direction: column;
+}
+
+.fw-sheet .fw-items > table {
+  /* grow into the spare height, never be squashed once the lines overflow */
+  flex: 1 0 auto;
+  /* the wrapper resolves to a fractional width (the sheet is sized from vw),
+     so a 100%-wide table rounds up to 1px over it and that alone raised a
+     horizontal scrollbar across the whole grid. One pixel of slack absorbs the
+     rounding; min-width still wins on a genuinely narrow sheet, which is when
+     scrolling is actually wanted. */
+  width: calc(100% - 1px);
+}
+
+/* the validation line keeps its slot whether or not there is a message, so it
+   cannot grow the sheet into a scroll when it appears */
+.fw-sheet .fw-weight-issue {
+  min-height: 1.05rem;
+  margin: 0;
+  line-height: 1.05rem;
+}
+
+.fw-sheet .fw-items tbody tr.fw-item-filler {
+  height: 100%;
+  animation: none;
+}
+
+.fw-sheet .fw-items tbody tr.fw-item-filler td {
+  height: auto;
+  padding: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: var(--gb-row);
+}
+
+.fw-sheet .fw-items tbody tr.fw-item-filler:hover td {
+  background: var(--gb-row);
+}
+
+.fw-sheet .fw-foot button {
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    background-color 0.16s ease;
+}
+
+.fw-sheet .fw-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.fw-sheet .fw-foot button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-page .erp-register tbody tr,
+  .qc-page .erp-register tbody tr {
+    animation: none;
+  }
+
+  .fw-page .fw-metrics > div::before {
+    animation: none;
+    transform: scaleY(1);
+  }
+
+  .fw-page .erp-register tbody tr td:first-child::before,
+  .qc-page .erp-register tbody tr td:first-child::before,
+  .fw-page .erp-register td button,
+  .qc-page .erp-register td button,
+  .fw-sheet .fw-foot button,
+  .fw-sheet input,
+  .fw-sheet select,
+  .fw-sheet textarea,
+  .fw-sheet [data-modal-close] {
+    transition: none;
+  }
+
+  .fw-page .fw-metrics > div:hover,
+  .fw-page .erp-register td button:hover:not(:disabled),
+  .qc-page .erp-register td button:hover:not(:disabled),
+  .fw-sheet .fw-foot button:hover:not(:disabled),
+  .fw-sheet [data-modal-close]:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Converted desks · scrollbars + buttons -----------------------
+   Scoped to the four converted pages only. src/components/ui.tsx is NOT
+   touched, so the six pages that have not been reviewed keep exactly the
+   buttons they have today. */
+
+/* ---- 1. the register scrollbar stops resizing the table ------------------
+   A classic scrollbar takes layout width, so the box lost 9px the moment it
+   had enough rows to scroll — and with table-fixed + px colgroups the last
+   column is what gets squeezed. Reserving the gutter makes the table width
+   constant whether the scrollbar is there or not, and the thumb is slimmed
+   and tinted so it reads as sitting over the frame. */
+.sl-page .table-scroll,
+.gb-page .table-scroll,
+.fw-page .table-scroll,
+.qc-page .table-scroll,
+.gb-entry .gb-entry-scroll,
+.fw-sheet .fw-items {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 58, 84, 0.3) transparent;
+}
+
+.sl-page .table-scroll::-webkit-scrollbar,
+.gb-page .table-scroll::-webkit-scrollbar,
+.fw-page .table-scroll::-webkit-scrollbar,
+.qc-page .table-scroll::-webkit-scrollbar,
+.gb-entry .gb-entry-scroll::-webkit-scrollbar,
+.fw-sheet .fw-items::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sl-page .table-scroll::-webkit-scrollbar-thumb,
+.gb-page .table-scroll::-webkit-scrollbar-thumb,
+.fw-page .table-scroll::-webkit-scrollbar-thumb,
+.qc-page .table-scroll::-webkit-scrollbar-thumb,
+.gb-entry .gb-entry-scroll::-webkit-scrollbar-thumb,
+.fw-sheet .fw-items::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(31, 58, 84, 0.26);
+  background-clip: content-box;
+  transition: background-color 0.16s ease;
+}
+
+.sl-page .table-scroll:hover::-webkit-scrollbar-thumb,
+.gb-page .table-scroll:hover::-webkit-scrollbar-thumb,
+.fw-page .table-scroll:hover::-webkit-scrollbar-thumb,
+.qc-page .table-scroll:hover::-webkit-scrollbar-thumb,
+.gb-entry .gb-entry-scroll:hover::-webkit-scrollbar-thumb,
+.fw-sheet .fw-items:hover::-webkit-scrollbar-thumb {
+  background: rgba(31, 58, 84, 0.45);
+  background-clip: content-box;
+}
+
+/* ---- 2. square sizing belongs to ICON buttons only -----------------------
+   The earlier rule sized every button in a row cell to 1.5rem square, which
+   clipped Finished Work's text action ("Open"). Only a button whose sole
+   child is an svg is an icon button. If :has() is unsupported the rule drops
+   and buttons keep their natural size — the safe failure. */
+.fw-page .erp-register td button,
+.qc-page .erp-register td button {
+  height: auto;
+  width: auto;
+}
+
+.sl-page .sl-reg td button:has(> svg):not(:has(> :not(svg))),
+.gb-page .gb-register td button:has(> svg):not(:has(> :not(svg))),
+.fw-page .erp-register td button:has(> svg):not(:has(> :not(svg))),
+.qc-page .erp-register td button:has(> svg):not(:has(> :not(svg))) {
+  height: 1.5rem;
+  width: 1.5rem;
+  padding: 0;
+}
+
+/* text actions size to their label and stay inside the row */
+.fw-page .erp-register td button:not(:has(> svg)),
+.qc-page .erp-register td button:not(:has(> svg)) {
+  height: 1.55rem;
+  min-height: 0;
+  padding-inline: 0.55rem;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---- 3. row actions carry the colour of what they do ---------------------
+   Neutral at rest so the data stays loudest; the meaning arrives on hover. */
+.sl-page .sl-reg td button,
+.gb-page .gb-register td button,
+.fw-page .erp-register td button,
+.qc-page .erp-register td button {
+  --act: var(--gb-ink-soft);
+  --act-bg: rgba(31, 58, 84, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 7px;
+  color: var(--gb-ink-soft);
+  background: var(--gb-row);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.16s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.sl-page .sl-reg td button:hover:not(:disabled),
+.gb-page .gb-register td button:hover:not(:disabled),
+.fw-page .erp-register td button:hover:not(:disabled),
+.qc-page .erp-register td button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--act);
+  color: var(--act);
+  background: var(--act-bg);
+  box-shadow: 0 4px 10px rgba(8, 16, 24, 0.14);
+}
+
+.sl-page .sl-reg td button:active:not(:disabled),
+.gb-page .gb-register td button:active:not(:disabled),
+.fw-page .erp-register td button:active:not(:disabled),
+.qc-page .erp-register td button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.sl-page .sl-reg td button:disabled,
+.gb-page .gb-register td button:disabled,
+.fw-page .erp-register td button:disabled,
+.qc-page .erp-register td button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* view / open — lagoon */
+.sl-page .sl-reg td button[aria-label^="View"],
+.gb-page .gb-register td button[aria-label^="View"],
+.fw-page .erp-register td button[aria-label^="View"],
+.qc-page .erp-register td button[aria-label^="View"] {
+  --act: #0b6558;
+  --act-bg: rgba(11, 101, 88, 0.1);
+}
+
+/* edit / open draft — ice blue */
+.sl-page .sl-reg td button[aria-label^="Edit"],
+.sl-page .sl-reg td button[aria-label^="Open"],
+.gb-page .gb-register td button[aria-label^="Edit"],
+.fw-page .erp-register td button[aria-label^="Edit"],
+.qc-page .erp-register td button[aria-label^="Edit"] {
+  --act: #1f5e8c;
+  --act-bg: rgba(31, 94, 140, 0.1);
+}
+
+/* download / documents — gold */
+.gb-page .gb-register td button[aria-label^="Download"],
+.sl-page .sl-reg td button[aria-label^="Download"] {
+  --act: #8a6b12;
+  --act-bg: rgba(201, 162, 39, 0.14);
+}
+
+/* delete — danger, the only destructive action */
+.sl-page .sl-reg td button[aria-label^="Delete"],
+.gb-page .gb-register td button[aria-label^="Delete"],
+.fw-page .erp-register td button[aria-label^="Delete"],
+.qc-page .erp-register td button[aria-label^="Delete"] {
+  --act: var(--danger);
+  --act-bg: rgba(179, 39, 28, 0.1);
+}
+
+/* the text action reads as the primary thing to do in its row */
+.fw-page .erp-register td button:not(:has(> svg)) {
+  --act: #0b6558;
+  --act-bg: rgba(11, 101, 88, 0.1);
+  color: #0b6558;
+  border-color: rgba(11, 101, 88, 0.35);
+  background: rgba(11, 101, 88, 0.06);
+}
+
+.fw-page .erp-register td button:not(:has(> svg)):hover:not(:disabled) {
+  color: #fff;
+  border-color: #0b6558;
+  background: #0b6558;
+}
+
+/* ---- 4. the primary action buttons get depth ---------------------------- */
+.sl-page .sl-new,
+.gb-page .gb-new,
+.fw-page .fw-new,
+.qc-page .qc-new {
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 2px 6px rgba(8, 16, 24, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    filter 0.16s ease;
+}
+
+.sl-page .sl-new:hover:not(:disabled),
+.gb-page .gb-new:hover:not(:disabled),
+.fw-page .fw-new:hover:not(:disabled),
+.qc-page .qc-new:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow:
+    0 8px 18px rgba(8, 16, 24, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.sl-page .sl-new:active:not(:disabled),
+.gb-page .gb-new:active:not(:disabled),
+.fw-page .fw-new:active:not(:disabled),
+.qc-page .qc-new:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(8, 16, 24, 0.22);
+}
+
+/* a sheen that crosses the button once on hover */
+.sl-page .sl-new::after,
+.gb-page .gb-new::after,
+.fw-page .fw-new::after,
+.qc-page .qc-new::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.28),
+    transparent
+  );
+  transform: skewX(-18deg);
+  pointer-events: none;
+}
+
+.sl-page .sl-new:hover::after,
+.gb-page .gb-new:hover::after,
+.fw-page .fw-new:hover::after,
+.qc-page .qc-new:hover::after {
+  animation: aw-sheen 0.55s ease both;
+}
+
+@keyframes aw-sheen {
+  to {
+    left: 120%;
+  }
+}
+
+/* ---- 5. sheet footer + ghost buttons ------------------------------------ */
+.gb-entry-foot button:focus-visible,
+.fw-sheet .fw-foot button:focus-visible,
+.sl-page .sl-new:focus-visible,
+.gb-page .gb-new:focus-visible,
+.fw-page .fw-new:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-page .sl-reg td button,
+  .gb-page .gb-register td button,
+  .fw-page .erp-register td button,
+  .qc-page .erp-register td button,
+  .sl-page .sl-new,
+  .gb-page .gb-new,
+  .fw-page .fw-new,
+  .qc-page .qc-new {
+    transition: none;
+  }
+
+  .sl-page .sl-reg td button:hover:not(:disabled),
+  .gb-page .gb-register td button:hover:not(:disabled),
+  .fw-page .erp-register td button:hover:not(:disabled),
+  .qc-page .erp-register td button:hover:not(:disabled),
+  .sl-page .sl-new:hover:not(:disabled),
+  .gb-page .gb-new:hover:not(:disabled),
+  .fw-page .fw-new:hover:not(:disabled),
+  .qc-page .qc-new:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .sl-page .sl-new:hover::after,
+  .gb-page .gb-new:hover::after,
+  .fw-page .fw-new:hover::after,
+  .qc-page .qc-new:hover::after {
+    animation: none;
+  }
+}
+
+/* ---------- Live Stock · the roll board ----------------------------------
+   This page is read, not filled in. The register table answered "list every
+   lot"; the client's question is "how many rolls do I have, of what, and how
+   much is still waiting on QC". So the board groups by quality — the same
+   hierarchy the Color Code master already uses — leads with the ROLL count,
+   and draws one square per roll so the quantity is seen rather than read.
+   The table is still one click away for ranking all lots at once. */
+
+.ls-page .ls-bar-tools {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ls-page .ls-search {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 18rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ls-page .ls-sort,
+.ls-page .ls-view-switch button {
+  height: 1.95rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(232, 241, 248, 0.2);
+  border-radius: 9px;
+  padding: 0 0.6rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(232, 241, 248, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.ls-page .ls-sort option {
+  color: var(--gb-ink);
+  background: #fff;
+}
+
+.ls-page .ls-sort:hover,
+.ls-page .ls-view-switch button:hover {
+  border-color: rgba(232, 197, 71, 0.5);
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--gb-midnight-ink);
+}
+
+.ls-page .ls-view-switch {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.ls-page .ls-view-switch button.is-on {
+  border-color: rgba(232, 197, 71, 0.6);
+  background: rgba(232, 197, 71, 0.16);
+  color: rgba(232, 197, 71, 0.98);
+}
+
+/* ---- the board --------------------------------------------------------- */
+.ls-page .ls-board {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  padding: 0.6rem;
+  background: transparent;
+}
+
+.ls-page .ls-board-empty {
+  grid-column: 1 / -1;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--gb-ink-soft);
+}
+
+.ls-page .ls-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--gb-ice-line);
+  border-radius: 13px;
+  padding: 0.7rem 0.8rem 0.55rem;
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+  animation: gb-card-in 0.26s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.ls-page .ls-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gb-grid-strong);
+  box-shadow: 0 12px 26px rgba(8, 16, 24, 0.16);
+}
+
+/* a rail says, without reading, whether this quality is fully QC cleared */
+.ls-page .ls-card::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--accent);
+}
+
+.ls-page .ls-card[data-flag="hold"]::before {
+  background: #c9a227;
+}
+
+.ls-page .ls-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ls-page .ls-card-id {
+  min-width: 0;
+}
+
+.ls-page .ls-card-id h3 {
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gb-ink);
+}
+
+.ls-page .ls-card-id p {
+  margin-top: 0.1rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gb-ink-soft);
+}
+
+/* rolls are the headline; kilos ride along underneath */
+.ls-page .ls-card-figure {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1;
+}
+
+.ls-page .ls-card-rolls {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--gb-ink);
+}
+
+.ls-page .ls-card-unit {
+  margin-top: 0.1rem;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gb-ink-soft);
+}
+
+.ls-page .ls-card-kg {
+  margin-top: 0.25rem;
+  font-size: 11px;
+  font-weight: 650;
+  color: #6b5312;
+}
+
+/* ---- QC proportion ----------------------------------------------------- */
+.ls-page .ls-qcbar {
+  margin-top: 0.55rem;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(201, 162, 39, 0.3);
+}
+
+.ls-page .ls-qcbar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: ls-bar-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes ls-bar-in {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+}
+
+.ls-page .ls-card-note {
+  margin-top: 0.3rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--gb-ink-soft);
+}
+
+.ls-page .ls-card[data-flag="hold"] .ls-card-note {
+  color: #8a6b12;
+}
+
+/* ---- colour lots ------------------------------------------------------- */
+.ls-page .ls-lots {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--gb-ice-line);
+}
+
+.ls-page .ls-lot {
+  border-bottom: 1px solid var(--gb-ice-line);
+  padding: 0.35rem 0 0.4rem;
+}
+
+.ls-page .ls-lot:last-child {
+  border-bottom: 0;
+}
+
+.ls-page .ls-lot-btn {
+  display: grid;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  grid-template-columns: 1.15rem minmax(0, 1fr) auto auto auto 0.9rem;
+  border: 0;
+  border-radius: 7px;
+  padding: 0.15rem 0.2rem;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+
+.ls-page .ls-lot-btn:hover {
+  background: #eaf3fa;
+}
+
+.ls-page .ls-lot-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* a real colour when the name IS a colour; the code on a neutral chip when
+   it is a trade name, which is honest rather than a confident wrong guess */
+.ls-page .ls-swatch {
+  display: inline-flex;
+  height: 1.15rem;
+  width: 1.15rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(31, 58, 84, 0.22);
+  border-radius: 6px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--gb-ink-soft);
+}
+
+.ls-page .ls-swatch[data-known="no"] {
+  background: repeating-linear-gradient(
+    135deg,
+    #eef3f8 0,
+    #eef3f8 3px,
+    #e3ebf3 3px,
+    #e3ebf3 6px
+  );
+}
+
+.ls-page .ls-lot-name {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gb-ink);
+}
+
+.ls-page .ls-lot-code {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--gb-ink-soft);
+}
+
+.ls-page .ls-lot-rolls {
+  min-width: 1.75rem;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--gb-ink);
+}
+
+.ls-page .ls-lot-kg {
+  min-width: 4.75rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--gb-ink-soft);
+}
+
+.ls-page .ls-lot-go {
+  color: var(--gb-ink-soft);
+  transition: transform 0.14s ease;
+}
+
+.ls-page .ls-lot-btn:hover .ls-lot-go {
+  transform: translateX(2px);
+  color: var(--accent);
+}
+
+/* ---- the roll tally: one square per physical roll ----------------------- */
+.ls-page .ls-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0.3rem 0 0 1.65rem;
+}
+
+.ls-page .ls-tally > i {
+  height: 7px;
+  width: 7px;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: ls-tally-in 0.3s ease both;
+}
+
+.ls-page .ls-tally > i[data-state="WITHOUT_QC"] {
+  background: #d8b43a;
+}
+
+@keyframes ls-tally-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+.ls-page .ls-tally-bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  margin: 0.35rem 0 0.1rem 1.65rem;
+  background: #d8b43a;
+}
+
+.ls-page .ls-tally-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .ls-page .ls-board {
+    grid-template-columns: 1fr;
+  }
+
+  .ls-page .ls-search {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-page .ls-card,
+  .ls-page .ls-qcbar > span,
+  .ls-page .ls-tally > i {
+    animation: none;
+  }
+
+  .ls-page .ls-card,
+  .ls-page .ls-lot-btn,
+  .ls-page .ls-lot-go {
+    transition: none;
+  }
+
+  .ls-page .ls-card:hover {
+    transform: none;
+  }
+
+  .ls-page .ls-lot-btn:hover .ls-lot-go {
+    transform: none;
+  }
+}
+
+/* ---- Live Stock · metric cards, same treatment as the other desks ------- */
+.ls-page .ls-metrics > div {
+  --ls-rail: rgba(132, 183, 214, 0.9);
+  position: relative;
+  overflow: hidden;
+  height: 3.75rem;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 0.4rem 0.8rem 0.4rem 1rem;
+  background-color: var(--gb-midnight);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(
+      150deg,
+      var(--gb-midnight-lift) 0%,
+      var(--gb-midnight) 55%,
+      var(--gb-midnight-deep) 100%
+    );
+  box-shadow:
+    0 10px 24px rgba(8, 16, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.ls-page .ls-metrics > div::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--ls-rail);
+  transform: scaleY(0);
+  animation: sl-rail-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.ls-page .ls-metrics > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 120% at 0% 50%,
+    var(--ls-rail),
+    transparent 70%
+  );
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.ls-page .ls-metrics > div:hover {
+  transform: translateY(-2px);
+}
+
+.ls-page .ls-metrics > div p:first-child {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 241, 248, 0.58);
+}
+
+.ls-page .ls-metrics > div p:nth-child(2) {
+  margin-top: 0.1rem;
+  font-size: 1.3rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #e8f1f8;
+}
+
+/* Total Rolls leads, so it gets the brightest ground */
+.ls-page .ls-metrics > div:nth-child(1) {
+  --ls-rail: rgba(125, 186, 228, 0.95);
+  border-color: rgba(125, 186, 228, 0.16);
+  background-color: #152a42;
+  background-image: linear-gradient(150deg, #1d3a56 0%, #152a42 55%, #101f33 100%);
+}
+
+.ls-page .ls-metrics > div:nth-child(1) p:nth-child(2) {
+  color: #a9d2f0;
+}
+
+.ls-page .ls-metrics > div:nth-child(2) {
+  --ls-rail: rgba(235, 196, 86, 0.95);
+  border-color: rgba(235, 196, 86, 0.16);
+  background-color: #2e2412;
+  background-image: linear-gradient(150deg, #3f3118 0%, #2e2412 55%, #231b0d 100%);
+}
+
+.ls-page .ls-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #f2d27e;
+}
+
+.ls-page .ls-metrics > div:nth-child(3) {
+  --ls-rail: rgba(104, 212, 176, 0.95);
+  border-color: rgba(104, 212, 176, 0.16);
+  background-color: #0f2e29;
+  background-image: linear-gradient(150deg, #154039 0%, #0f2e29 55%, #0b221e 100%);
+}
+
+.ls-page .ls-metrics > div:nth-child(3) p:nth-child(2) {
+  color: #7fe3c0;
+}
+
+/* Without QC is the one number that should nag */
+.ls-page .ls-metrics > div:nth-child(4) {
+  --ls-rail: rgba(226, 142, 92, 0.95);
+  border-color: rgba(226, 142, 92, 0.16);
+  background-color: #2f1e16;
+  background-image: linear-gradient(150deg, #3d271b 0%, #2f1e16 55%, #231610 100%);
+}
+
+.ls-page .ls-metrics > div:nth-child(4) p:nth-child(2) {
+  color: #f3b588;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-page .ls-metrics > div,
+  .ls-page .ls-metrics > div::before {
+    animation: none;
+    transition: none;
+  }
+
+  .ls-page .ls-metrics > div::before {
+    transform: scaleY(1);
+  }
+
+  .ls-page .ls-metrics > div:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Live Stock · revision ---------------------------------------
+   Six fixes: the table joins the register family, the roll tally becomes one
+   bar that works at any volume, the cards get a two-tone header and their own
+   accent, the roll drawer becomes a centred sheet, the panel bar collapses to
+   one row, and the Demo chrome stops taking layout space. Appended last, so
+   it wins over the earlier .ls-* rules without deleting them. */
+
+/* ---- 1. the register joins the family ---------------------------------- */
+.ls-page .ls-reg.erp-register thead th {
+  height: var(--ls-head-h, 1.6rem);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+}
+
+.ls-page .ls-reg.erp-register td {
+  position: relative;
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.2;
+  /* the inner column grid is what made this read as a spreadsheet */
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+  transition: background-color 0.14s ease;
+}
+
+.ls-page .ls-reg.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ls-page .ls-reg.erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+.ls-page .ls-reg tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.ls-page .ls-reg tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+.ls-page .ls-reg tbody tr {
+  animation: sl-row-in 0.22s ease both;
+}
+
+.ls-page .ls-reg tbody tr:nth-child(1) { animation-delay: 0.01s; }
+.ls-page .ls-reg tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.ls-page .ls-reg tbody tr:nth-child(3) { animation-delay: 0.05s; }
+.ls-page .ls-reg tbody tr:nth-child(4) { animation-delay: 0.07s; }
+.ls-page .ls-reg tbody tr:nth-child(5) { animation-delay: 0.09s; }
+.ls-page .ls-reg tbody tr:nth-child(n + 6) { animation-delay: 0.11s; }
+
+/* the KG column reads as a quantity, like money does elsewhere */
+.ls-page .ls-reg tbody td:nth-child(6) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #3f2f08;
+  background: rgba(201, 162, 39, 0.045);
+}
+
+.ls-page .ls-reg tbody tr:nth-child(even) td:nth-child(6) {
+  background: rgba(201, 162, 39, 0.07);
+}
+
+/* the filler stops drawing a ruled grid */
+.ls-page .ls-reg tbody tr.ls-filler {
+  animation: none;
+}
+
+.ls-page .ls-reg tbody tr.ls-filler td {
+  background-image: none;
+}
+
+.ls-page .ls-reg tbody tr.ls-filler td:first-child::before {
+  display: none;
+}
+
+.ls-page .ls-view {
+  height: 1.55rem;
+  min-height: 0;
+  padding-inline: 0.55rem;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 7px;
+  color: #0b6558;
+  border: 1px solid rgba(11, 101, 88, 0.35);
+  background: rgba(11, 101, 88, 0.06);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.16s ease,
+    background-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.ls-page .ls-view:hover {
+  transform: translateY(-1px);
+  color: #fff;
+  border-color: #0b6558;
+  background: #0b6558;
+  box-shadow: 0 4px 10px rgba(8, 16, 24, 0.14);
+}
+
+/* ---- 2. one bar per colour, at any volume ------------------------------ */
+.ls-page .ls-lot-bar {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  margin: 0.3rem 0 0.1rem 1.65rem;
+  /* the track IS the waiting-on-QC portion */
+  background: #d8b43a;
+}
+
+.ls-page .ls-lot-bar[data-held="no"] {
+  background: rgba(11, 101, 88, 0.18);
+}
+
+.ls-page .ls-lot-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ls-accent, var(--accent));
+  animation: ls-bar-in 0.45s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+/* ---- 3. two-tone cards, one accent each -------------------------------- */
+.ls-page .ls-card {
+  --ls-accent: #1f5e8c;
+  --ls-accent-soft: rgba(31, 94, 140, 0.08);
+  padding: 0;
+}
+
+.ls-page .ls-card[data-accent="1"] {
+  --ls-accent: #0b6558;
+  --ls-accent-soft: rgba(11, 101, 88, 0.08);
+}
+
+.ls-page .ls-card[data-accent="2"] {
+  --ls-accent: #8a5a12;
+  --ls-accent-soft: rgba(138, 90, 18, 0.08);
+}
+
+.ls-page .ls-card[data-accent="3"] {
+  --ls-accent: #5c4196;
+  --ls-accent-soft: rgba(92, 65, 150, 0.08);
+}
+
+.ls-page .ls-card[data-accent="4"] {
+  --ls-accent: #a6453c;
+  --ls-accent-soft: rgba(166, 69, 60, 0.08);
+}
+
+.ls-page .ls-card::before {
+  background: var(--ls-accent);
+}
+
+.ls-page .ls-card[data-flag="hold"]::before {
+  background: linear-gradient(180deg, var(--ls-accent) 0%, #c9a227 100%);
+}
+
+/* the header is its own band, tinted by the card's accent */
+.ls-page .ls-card-head {
+  border-bottom: 1px solid var(--gb-ice-line);
+  padding: 0.6rem 0.8rem 0.55rem;
+  background:
+    linear-gradient(
+      180deg,
+      var(--ls-accent-soft) 0%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    var(--gb-workspace-top);
+}
+
+.ls-page .ls-card-id h3 {
+  color: var(--ls-accent);
+}
+
+.ls-page .ls-card-rolls {
+  color: var(--ls-accent);
+}
+
+.ls-page .ls-qcbar {
+  margin: 0;
+  height: 3px;
+  border-radius: 0;
+}
+
+.ls-page .ls-qcbar > span {
+  border-radius: 0;
+  background: var(--ls-accent);
+}
+
+.ls-page .ls-card-note {
+  margin: 0;
+  padding: 0.3rem 0.8rem 0;
+}
+
+.ls-page .ls-lots {
+  margin: 0.35rem 0 0;
+  border-top: 0;
+  padding: 0 0.8rem 0.5rem;
+}
+
+/* ---- 4. the roll sheet: centred, not a side drawer --------------------- */
+.ls-sheet-overlay {
+  background: rgba(8, 16, 24, 0.42);
+  backdrop-filter: blur(2px);
+  animation: gb-fade-in 0.16s ease both;
+}
+
+.ls-sheet {
+  width: min(94vw, 46rem);
+  height: min(calc(100vh - 3.5rem), 38rem);
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-workspace-top);
+  box-shadow: 0 30px 70px rgba(8, 16, 24, 0.38);
+  animation: gb-fade-in 0.17s ease both;
+}
+
+/* satin header with the gold hairline, like every other sheet */
+.ls-sheet > div:first-child {
+  position: relative;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.ls-sheet > div:first-child::before {
+  content: "";
+  position: absolute;
+  inset-inline: 1.25rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.7),
+    transparent
+  );
+}
+
+.ls-sheet > div:first-child h2 {
+  font-size: 14px;
+  color: var(--gb-midnight-ink);
+}
+
+.ls-sheet > div:first-child p {
+  color: var(--gb-midnight-muted);
+}
+
+.ls-sheet .ls-drawer-close {
+  display: inline-flex;
+  height: 1.85rem;
+  width: 1.85rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(232, 241, 248, 0.24);
+  border-radius: 999px;
+  padding: 0;
+  font-size: 0;
+  color: var(--gb-midnight-ink);
+  background: rgba(255, 255, 255, 0.07);
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.ls-sheet .ls-drawer-close::after {
+  content: "\00d7";
+  font-size: 16px;
+  line-height: 1;
+}
+
+.ls-sheet .ls-drawer-close:hover {
+  border-color: rgba(179, 39, 28, 0.85);
+  background: rgba(179, 39, 28, 0.82);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* the three tiles pick up the desk's card colours */
+.ls-sheet .ls-drawer-tiles {
+  flex-shrink: 0;
+}
+
+.ls-sheet .ls-drawer-tiles > div {
+  height: 3.25rem;
+  justify-content: center;
+  border: 1px solid var(--gb-ice-line);
+  border-radius: 11px;
+  background: var(--gb-ice);
+}
+
+.ls-sheet .ls-drawer-tiles > div:nth-child(2) {
+  border-color: var(--gb-lagoon-line);
+  background: var(--gb-lagoon);
+}
+
+.ls-sheet .ls-drawer-tiles > div:nth-child(3) {
+  border-color: var(--gb-pearl-line);
+  background: var(--gb-pearl);
+}
+
+/* the roll table is a register like any other */
+.ls-sheet .ls-roll-table {
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+.ls-sheet .ls-roll-table thead th {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.88);
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.ls-sheet .ls-roll-table td {
+  height: 2.25rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+}
+
+.ls-sheet .ls-roll-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ls-sheet .ls-roll-table tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+/* ---- 5. the panel bar on one row --------------------------------------- */
+.ls-page .ls-panel-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-bottom: 2px solid var(--gb-workspace);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+.ls-page .ls-search {
+  flex: 0 1 15rem;
+}
+
+.ls-page .ls-search input {
+  height: 1.95rem;
+  border-color: rgba(232, 241, 248, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--gb-midnight-ink);
+  font-size: 11.5px;
+}
+
+.ls-page .ls-search input::placeholder {
+  color: rgba(232, 241, 248, 0.45);
+}
+
+.ls-page .ls-search input:hover,
+.ls-page .ls-search input:focus {
+  border-color: rgba(232, 197, 71, 0.5);
+}
+
+.ls-page .ls-bar-tools {
+  flex-wrap: nowrap;
+}
+
+/* ---- 6. the Demo chrome floats instead of taking height ----------------- */
+.ls-page .ls-topbar {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.6rem;
+  z-index: 5;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.ls-page .ls-demo-banner {
+  position: absolute;
+  top: 0.35rem;
+  left: 50%;
+  z-index: 5;
+  margin: 0;
+  transform: translateX(-50%);
+  box-shadow: 0 10px 24px rgba(8, 16, 24, 0.18);
+}
+
+@media (max-width: 767px) {
+  .ls-page .ls-topbar,
+  .ls-page .ls-demo-banner {
+    position: static;
+    transform: none;
+  }
+
+  .ls-page .ls-panel-bar {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-page .ls-reg tbody tr,
+  .ls-page .ls-lot-bar > span,
+  .ls-sheet,
+  .ls-sheet-overlay {
+    animation: none;
+  }
+
+  .ls-page .ls-reg tbody tr td:first-child::before,
+  .ls-page .ls-view,
+  .ls-sheet .ls-drawer-close {
+    transition: none;
+  }
+
+  .ls-page .ls-view:hover,
+  .ls-sheet .ls-drawer-close:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Live Stock · card revision -----------------------------------
+   Five fixes: the board sinks so cards lift off it, the colour code gets its
+   own chip and stops sitting beside the roll count, the roll count becomes a
+   coloured pill that also carries the QC state, the per-row bar and chevron
+   go (four things per row instead of seven), and a card shows at most four
+   colours so a quality with 12 codes is the same size as one with 2. */
+
+/* ---- the board sinks, the cards sit on it ------------------------------ */
+.ls-page .ls-board {
+  gap: 0.7rem;
+  padding: 0.7rem;
+  background-color: var(--gb-workspace);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.03) 0,
+      rgba(31, 58, 84, 0.03) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.026) 0,
+      rgba(31, 58, 84, 0.026) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  box-shadow: inset 0 1px 0 rgba(31, 58, 84, 0.07);
+}
+
+.ls-page .ls-card {
+  border-color: var(--gb-grid-strong);
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(8, 16, 24, 0.06),
+    0 8px 18px rgba(8, 16, 24, 0.09);
+}
+
+.ls-page .ls-card:hover {
+  box-shadow:
+    0 2px 4px rgba(8, 16, 24, 0.08),
+    0 16px 30px rgba(8, 16, 24, 0.16);
+}
+
+/* ---- the lot row: four things, not seven ------------------------------- */
+.ls-page .ls-lots {
+  padding: 0 0.7rem 0.55rem;
+}
+
+.ls-page .ls-lot {
+  padding: 0;
+}
+
+.ls-page .ls-lot-btn {
+  gap: 0.55rem;
+  /* swatch | name + code | kg | rolls pill */
+  grid-template-columns: 1.3rem minmax(0, 1fr) auto auto;
+  padding: 0.3rem 0.25rem;
+}
+
+.ls-page .ls-swatch {
+  height: 1.3rem;
+  width: 1.3rem;
+  border-radius: 7px;
+  font-size: 0;
+}
+
+/* a trade name has no colour, and guessing one would be a lie: the square
+   stays blank and the Code chip beside it does the identifying */
+.ls-page .ls-swatch[data-known="no"] {
+  border-style: dashed;
+  border-color: rgba(31, 58, 84, 0.3);
+  background: #eef3f8;
+}
+
+.ls-page .ls-lot-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.ls-page .ls-lot-name {
+  font-size: 12.5px;
+}
+
+/* the code is a chip under the name — never a bare number beside another */
+.ls-page .ls-lot-code {
+  align-self: flex-start;
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--gb-ink-soft);
+  background: rgba(31, 58, 84, 0.07);
+}
+
+.ls-page .ls-lot-kg {
+  min-width: 4.5rem;
+  font-size: 10.5px;
+}
+
+/* the roll count: always this pill, always this colour, so a number in a
+   pill is unmistakably rolls and never a code */
+.ls-page .ls-lot-rolls {
+  display: inline-flex;
+  min-width: 3.1rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border: 1px solid rgba(11, 101, 88, 0.28);
+  border-radius: 8px;
+  padding: 0.12rem 0.4rem;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #0b6558;
+  background: rgba(11, 101, 88, 0.09);
+}
+
+.ls-page .ls-lot-rolls small {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* rolls still waiting on QC turn the pill amber — the per-row bar is gone */
+.ls-page .ls-lot-rolls[data-held="yes"] {
+  border-color: rgba(201, 162, 39, 0.5);
+  color: #8a6b12;
+  background: rgba(201, 162, 39, 0.14);
+}
+
+.ls-page .ls-lot-btn:hover .ls-lot-rolls {
+  border-color: currentColor;
+}
+
+/* ---- the overflow link ------------------------------------------------- */
+.ls-page .ls-more {
+  display: flex;
+  width: calc(100% - 1.4rem);
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin: 0 0.7rem 0.6rem;
+  border: 1px dashed var(--gb-grid-strong);
+  border-radius: 8px;
+  padding: 0.3rem;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ls-accent);
+  background: transparent;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.ls-page .ls-more:hover {
+  border-style: solid;
+  border-color: var(--ls-accent);
+  background: var(--ls-accent-soft);
+}
+
+/* every card is the same size whatever the colour count: header + four lot
+   slots + the overflow link. Measured, not guessed: 73 head + 3 bar + 21 note
+   + 4x44 lots + 9 pad + 34 link. */
+.ls-page .ls-card {
+  height: 19.75rem;
+  justify-content: flex-start;
+}
+
+.ls-page .ls-lots {
+  flex: 1 1 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-page .ls-more {
+    transition: none;
+  }
+}
+
+/* ---------- Live Stock · table parity + mobile ---------------------------
+   The register was still on its own numbers (2.3rem rows, 1.9rem header, 12
+   rows, a guessed cap) because the variables were never updated — the parity
+   rules wrote `var(--ls-head-h, 1.6rem)` and the declared 1.9rem won. Those
+   are fixed at the source now; what is left is the scrollbar gutter I forgot
+   to extend to this page, and the bar on a phone. */
+
+/* The page kept its original 0.7rem/2rem padding while every other converted
+   desk was trimmed, and the cap was Sales' 12.65rem even though this page's
+   chrome above the table measures 170px, not 162px. Together that pushed the
+   footer 37px below the fold at a 660px viewport. Both measured here. */
+@media (min-width: 768px) {
+  .ls-page {
+    padding-top: 0.35rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .ls-page .ls-scroll {
+    height: min(
+      calc(var(--ls-head-h) + var(--ls-rows) * var(--ls-row-h)),
+      calc(100vh - 13.1rem)
+    );
+  }
+}
+
+/* the gutter rule listed every converted desk except this one, so the table
+   still lost width the moment it had enough rows to scroll */
+.ls-page .table-scroll,
+.ls-page .ls-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 58, 84, 0.3) transparent;
+}
+
+.ls-page .table-scroll::-webkit-scrollbar,
+.ls-page .ls-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ls-page .table-scroll::-webkit-scrollbar-thumb,
+.ls-page .ls-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(31, 58, 84, 0.26);
+  background-clip: content-box;
+  transition: background-color 0.16s ease;
+}
+
+.ls-page .table-scroll:hover::-webkit-scrollbar-thumb,
+.ls-page .ls-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(31, 58, 84, 0.45);
+  background-clip: content-box;
+}
+
+/* ---- the bar stays one row on a phone ---------------------------------- */
+@media (max-width: 767px) {
+  .ls-page .ls-panel-bar {
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+
+  /* the title gives way first — the breadcrumb already names the page */
+  .ls-page .ls-panel-title {
+    display: none;
+  }
+
+  .ls-page .ls-bar-tools {
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 0.4rem;
+  }
+
+  .ls-page .ls-search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ls-page .ls-search input {
+    min-width: 0;
+  }
+
+  .ls-page .ls-sort {
+    flex: 0 0 auto;
+    max-width: 7.5rem;
+    padding-inline: 0.4rem;
+  }
+
+  /* the Cards/Table switch is not rendered below this width: a 7-column
+     register needs 672px and a phone offers 370, so the board is the only
+     view that works and the toggle would be a trap */
+  .ls-page .ls-view-switch {
+    display: none;
+  }
+
+  .ls-page .ls-board {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+}
+
+/* the demo chrome keeps its own row on a phone rather than covering cards */
+@media (max-width: 767px) {
+  .ls-page .ls-topbar {
+    display: flex;
+    justify-content: flex-end;
+    padding-bottom: 0.35rem;
+  }
+}
+
+/* ---------- Purchase Order · parity with the converted desks -------------
+   Same treatment as Sales / Grey Purchase / Finished Work / Live Stock:
+   borderless rows, the fainter rule, the gold hover rail, the staggered row
+   fade, a filler, coloured row actions, the midnight metric cards, a one-row
+   bar, sheet polish, and a card list on a phone because nine columns in
+   992px cannot be dragged sideways and stay readable. Appended last so it
+   wins over the earlier .po-* rules without deleting them. No column, button
+   action or business rule changes. */
+
+/* ---- 1. register: list, not a grid ------------------------------------- */
+.po-page .po-reg.erp-register thead th {
+  height: var(--po-register-head-h);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  color: rgba(232, 241, 248, 0.88);
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+}
+
+.po-page .po-reg.erp-register td {
+  position: relative;
+  height: var(--po-register-row-h);
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.2;
+  /* the inner column grid is what made this read as a spreadsheet */
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+  transition: background-color 0.14s ease;
+}
+
+.po-page .po-reg.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.po-page .po-reg.erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+/* a gold marker slides in on hover */
+.po-page .po-reg tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.po-page .po-reg tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+.po-page .po-reg tbody tr {
+  animation: sl-row-in 0.22s ease both;
+}
+
+.po-page .po-reg tbody tr:nth-child(1) { animation-delay: 0.01s; }
+.po-page .po-reg tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.po-page .po-reg tbody tr:nth-child(3) { animation-delay: 0.05s; }
+.po-page .po-reg tbody tr:nth-child(4) { animation-delay: 0.07s; }
+.po-page .po-reg tbody tr:nth-child(5) { animation-delay: 0.09s; }
+.po-page .po-reg tbody tr:nth-child(n + 6) { animation-delay: 0.11s; }
+
+/* Rate is the money column */
+.po-page .po-reg tbody td:nth-child(6) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #3f2f08;
+  background: rgba(201, 162, 39, 0.045);
+}
+
+.po-page .po-reg tbody tr:nth-child(even) td:nth-child(6) {
+  background: rgba(201, 162, 39, 0.07);
+}
+
+/* filler: empty space below the last row stays clean, keeps the money tint */
+.po-page .po-reg tbody tr.po-filler {
+  height: 100%;
+  animation: none;
+}
+
+.po-page .po-reg tbody tr.po-filler td {
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--gb-row);
+  background-image: none;
+}
+
+.po-page .po-reg tbody tr.po-filler td:first-child::before {
+  display: none;
+}
+
+.po-page .po-reg tbody tr.po-filler td:nth-child(6) {
+  background-color: rgba(201, 162, 39, 0.03);
+}
+
+.po-page .po-reg.erp-register {
+  height: 100%;
+}
+
+/* ---- 2. row actions carry the colour of what they do ------------------- */
+.po-page .po-reg td button,
+.po-page .po-card-actions button {
+  height: 1.55rem;
+  min-height: 0;
+  border-radius: 7px;
+  padding-inline: 0.55rem;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--gb-grid-strong);
+  color: var(--gb-ink-soft);
+  background: var(--gb-row);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.16s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.po-page [data-act="view"] {
+  color: #0b6558;
+  border-color: rgba(11, 101, 88, 0.35);
+  background: rgba(11, 101, 88, 0.06);
+}
+
+.po-page [data-act="view"]:hover:not(:disabled) {
+  color: #fff;
+  border-color: #0b6558;
+  background: #0b6558;
+}
+
+.po-page [data-act="edit"] {
+  color: #1f5e8c;
+  border-color: rgba(31, 94, 140, 0.35);
+  background: rgba(31, 94, 140, 0.06);
+}
+
+.po-page [data-act="edit"]:hover:not(:disabled) {
+  color: #fff;
+  border-color: #1f5e8c;
+  background: #1f5e8c;
+}
+
+.po-page .po-reg td button:hover:not(:disabled),
+.po-page .po-card-actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(8, 16, 24, 0.14);
+}
+
+.po-page .po-reg td button:active:not(:disabled),
+.po-page .po-card-actions button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ---- 3. page frame, bar, scrollbar ------------------------------------- */
+@media (min-width: 768px) {
+  .po-page {
+    padding-top: 0.35rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+.po-page .po-stage {
+  gap: 0.3rem;
+}
+
+.po-page .po-panel > div:first-child {
+  flex-wrap: nowrap;
+  border-bottom: 2px solid var(--gb-workspace);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+.po-page .po-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+/* the date chips shrink to the bar's scale */
+.po-page .po-actions button {
+  height: 1.95rem;
+  min-height: 0;
+  flex-shrink: 0;
+  padding-inline: 0.6rem;
+  font-size: 11.5px;
+}
+
+.po-page .table-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 58, 84, 0.3) transparent;
+}
+
+.po-page .table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.po-page .table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(31, 58, 84, 0.26);
+  background-clip: content-box;
+}
+
+/* ---- 4. the search popover --------------------------------------------- */
+.po-page .po-pop-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.po-page .po-icon-btn {
+  display: inline-flex;
+  height: 1.95rem;
+  width: 1.95rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.2);
+  border-radius: 9px;
+  padding: 0;
+  color: rgba(232, 241, 248, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.po-page .po-icon-btn:hover {
+  border-color: rgba(232, 197, 71, 0.5);
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--gb-midnight-ink);
+}
+
+.po-page .po-icon-btn.is-on {
+  border-color: rgba(232, 197, 71, 0.6);
+  background: rgba(232, 197, 71, 0.16);
+  color: rgba(232, 197, 71, 0.98);
+}
+
+.po-page .po-pop {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 11px;
+  padding: 0.6rem;
+  background: var(--gb-row);
+  box-shadow: 0 16px 38px rgba(8, 16, 24, 0.28);
+  animation: sl-pop-in 0.14s ease both;
+}
+
+.po-page .po-panel .po-pop.po-pop input {
+  height: 1.9rem;
+  width: 17rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 8px;
+  padding: 0 0.5rem;
+  font-size: 12px;
+  color: var(--gb-ink);
+  background: #fff;
+  outline: none;
+}
+
+.po-page .po-panel .po-pop.po-pop input::placeholder {
+  color: var(--gb-ink-soft);
+  opacity: 0.7;
+}
+
+.po-page .po-panel .po-pop.po-pop input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+}
+
+.po-page .po-pop-clear {
+  height: 1.7rem;
+  flex-shrink: 0;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 8px;
+  padding: 0 0.7rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gb-ink-soft);
+  background: var(--gb-row);
+}
+
+.po-page .po-pop-clear:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ---- 5. metric cards: the approved treatment --------------------------- */
+.po-page .po-metrics > div {
+  --po-rail: rgba(132, 183, 214, 0.9);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding-left: 1rem;
+  background-color: var(--gb-midnight);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(
+      150deg,
+      var(--gb-midnight-lift) 0%,
+      var(--gb-midnight) 55%,
+      var(--gb-midnight-deep) 100%
+    );
+  box-shadow:
+    0 10px 24px rgba(8, 16, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.po-page .po-metrics > div::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--po-rail);
+  transform: scaleY(0);
+  animation: sl-rail-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  animation-delay: inherit;
+}
+
+.po-page .po-metrics > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 120% at 0% 50%,
+    var(--po-rail),
+    transparent 70%
+  );
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.po-page .po-metrics > div:hover {
+  transform: translateY(-2px);
+}
+
+.po-page .po-metrics > div p:first-child {
+  color: rgba(232, 241, 248, 0.58);
+}
+
+.po-page .po-metrics > div p:nth-child(2) {
+  color: #e8f1f8;
+}
+
+.po-page .po-metrics > div:nth-child(1) {
+  --po-rail: rgba(125, 186, 228, 0.95);
+  border-color: rgba(125, 186, 228, 0.16);
+  background-color: #152a42;
+  background-image: linear-gradient(150deg, #1d3a56 0%, #152a42 55%, #101f33 100%);
+}
+
+.po-page .po-metrics > div:nth-child(1) p:nth-child(2) {
+  color: #a9d2f0;
+}
+
+.po-page .po-metrics > div:nth-child(2) {
+  --po-rail: rgba(104, 212, 176, 0.95);
+  border-color: rgba(104, 212, 176, 0.16);
+  background-color: #0f2e29;
+  background-image: linear-gradient(150deg, #154039 0%, #0f2e29 55%, #0b221e 100%);
+}
+
+.po-page .po-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #7fe3c0;
+}
+
+.po-page .po-metrics > div:nth-child(3) {
+  --po-rail: rgba(235, 196, 86, 0.95);
+  border-color: rgba(235, 196, 86, 0.16);
+  background-color: #2e2412;
+  background-image: linear-gradient(150deg, #3f3118 0%, #2e2412 55%, #231b0d 100%);
+}
+
+.po-page .po-metrics > div:nth-child(3) p:nth-child(2) {
+  color: #f2d27e;
+}
+
+.po-page .po-metrics > div:nth-child(4) {
+  --po-rail: rgba(226, 142, 92, 0.95);
+  border-color: rgba(226, 142, 92, 0.16);
+  background-color: #2f1e16;
+  background-image: linear-gradient(150deg, #3d271b 0%, #2f1e16 55%, #231610 100%);
+}
+
+.po-page .po-metrics > div:nth-child(4) p:nth-child(2) {
+  color: #f3b588;
+}
+
+/* ---- 6. sheet polish ---------------------------------------------------- */
+.po-sheet > div:first-child {
+  position: relative;
+}
+
+.po-sheet > div:first-child::before {
+  content: "";
+  position: absolute;
+  inset-inline: 1.25rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.7),
+    transparent
+  );
+}
+
+.po-sheet [data-modal-close] {
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.po-sheet [data-modal-close]:hover {
+  transform: rotate(90deg);
+}
+
+.po-sheet input,
+.po-sheet select,
+.po-sheet textarea {
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.po-sheet input:hover:not(:disabled),
+.po-sheet select:hover:not(:disabled) {
+  border-color: #92abc0;
+}
+
+.po-sheet input:focus,
+.po-sheet select:focus,
+.po-sheet textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+  outline: none;
+}
+
+.po-sheet .band-label {
+  position: relative;
+  padding-left: 0.6rem;
+}
+
+.po-sheet .band-label::before {
+  content: "";
+  position: absolute;
+  top: 0.12rem;
+  bottom: 0.12rem;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--gold) 0%,
+    rgba(201, 162, 39, 0.25) 100%
+  );
+}
+
+/* ---- 7. phones: a card list, not a 992px table ------------------------- */
+.po-page .po-cards {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.5rem;
+  list-style: none;
+  background-color: var(--gb-workspace);
+}
+
+.po-page .po-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 11px;
+  padding: 0.6rem 0.7rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(8, 16, 24, 0.06);
+  animation: sl-row-in 0.22s ease both;
+}
+
+.po-page .po-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.po-page .po-card-sr {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gb-ink);
+}
+
+.po-page .po-card-rate {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3f2f08;
+}
+
+.po-page .po-card-knitter {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gb-ink);
+}
+
+.po-page .po-card-quality {
+  overflow: hidden;
+  font-size: 11.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gb-ink-soft);
+}
+
+.po-page .po-card-figures {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0.25rem 0 0;
+  border-top: 1px solid var(--gb-ice-line);
+  padding-top: 0.35rem;
+}
+
+.po-page .po-card-figures dt {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gb-ink-soft);
+}
+
+.po-page .po-card-figures dd {
+  overflow: hidden;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gb-ink);
+}
+
+.po-page .po-card-remark {
+  overflow: hidden;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gb-ink-soft);
+}
+
+.po-page .po-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.po-page .po-card-actions button {
+  flex: 1 1 0;
+  height: 1.9rem;
+}
+
+/* A phone cannot hold three date chips, a search and a primary action on one
+   line. Two deliberate rows instead of four wrapped ones: the date chips
+   scroll sideways on their own line, then search and Create below. */
+@media (max-width: 767px) {
+  .po-page .po-panel > div:first-child {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .po-page .po-panel > div:first-child h3 {
+    display: none;
+  }
+
+  .po-page .po-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  /* the date chips keep one line and scroll if they must */
+  .po-page .po-actions > div:first-child {
+    grid-column: 1 / -1;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .po-page .po-actions > div:first-child::-webkit-scrollbar {
+    display: none;
+  }
+
+  .po-page .po-actions button {
+    height: 1.85rem;
+    flex-shrink: 0;
+    padding-inline: 0.5rem;
+    font-size: 11px;
+  }
+
+  /* the column alone is not enough: auto-placement then advances the row and
+     each control lands on a line of its own */
+  .po-page .po-actions > div:first-child {
+    grid-row: 1;
+  }
+
+  .po-page .po-pop-wrap {
+    grid-row: 2;
+    grid-column: 2;
+  }
+
+  .po-page .po-new {
+    grid-row: 2;
+    grid-column: 3;
+  }
+
+  /* the breadcrumb already names the page, so the title block goes too */
+  .po-page .po-panel > div:first-child > div:first-child {
+    display: none;
+  }
+
+  .po-page .po-pop {
+    right: auto;
+    left: 0;
+  }
+
+  .po-page .po-panel .po-pop.po-pop input {
+    width: min(68vw, 17rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-page .po-reg tbody tr,
+  .po-page .po-card,
+  .po-page .po-metrics > div::before,
+  .po-page .po-pop {
+    animation: none;
+  }
+
+  .po-page .po-metrics > div::before {
+    transform: scaleY(1);
+  }
+
+  .po-page .po-reg tbody tr td:first-child::before,
+  .po-page .po-reg td button,
+  .po-page .po-card-actions button,
+  .po-page .po-icon-btn,
+  .po-sheet input,
+  .po-sheet select,
+  .po-sheet textarea,
+  .po-sheet [data-modal-close] {
+    transition: none;
+  }
+
+  .po-page .po-metrics > div:hover,
+  .po-page .po-reg td button:hover:not(:disabled),
+  .po-page .po-card-actions button:hover:not(:disabled),
+  .po-sheet [data-modal-close]:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Purchase Order · revision -----------------------------------
+   Five fixes: the stage matches Sales' width, the rupee sign moves inside the
+   field, the search popover stops overflowing a 31px grid cell (which was
+   clipping the whole panel, because .po-panel is overflow:hidden), the bar
+   rows swap so the primary action comes first, and the sheet becomes a proper
+   phone sheet with a pinned header and footer. */
+
+/* ---- 1. the register is as wide as every other desk's ------------------ */
+.po-page .po-stage {
+  width: min(99%, 120rem);
+}
+
+@media (min-width: 640px) {
+  .po-page {
+    padding-right: 0.6rem;
+    padding-left: 0.6rem;
+  }
+}
+
+/* ---- 2. the rupee sign lives in the field ------------------------------ */
+.po-sheet .po-affix {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.po-sheet .po-affix-field {
+  width: 100%;
+  /* room for the sign, so a long number never runs under it */
+  padding-right: 2rem;
+}
+
+.po-sheet .po-affix-sign {
+  position: absolute;
+  top: 50%;
+  right: 0.7rem;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--gb-ink-soft);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.po-sheet .po-affix-field:focus ~ .po-affix-sign {
+  color: var(--accent);
+}
+
+/* ---- 3-5. phones -------------------------------------------------------- */
+@media (max-width: 767px) {
+  /* the popover was absolutely positioned inside a 31px grid cell: its 285px
+     body overflowed the cell, the overflow propagated to .po-panel, and that
+     panel is overflow:hidden — so the bar AND the card list were clipped.
+     On a phone it is simply a row of its own. */
+  .po-page .po-pop {
+    position: static;
+    width: 100%;
+    margin-top: 0.35rem;
+    animation: none;
+  }
+
+  .po-page .po-pop-wrap {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .po-page .po-panel .po-pop.po-pop input {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  /* the primary action comes first, the date filter under it */
+  .po-page .po-actions > div:first-child {
+    grid-row: 2;
+  }
+
+  .po-page .po-pop-wrap {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .po-page .po-new {
+    grid-row: 1;
+    grid-column: 3;
+  }
+
+  /* when the search is open it takes a full line of its own, below both */
+  .po-page .po-actions:has(.po-pop) {
+    grid-template-rows: auto auto;
+  }
+
+  .po-page .po-actions:has(.po-pop) .po-pop-wrap {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    order: -1;
+  }
+
+  /* ---- the sheet becomes a phone sheet --------------------------------- */
+  /* the overlay's own gutter left a 16px frame around a full-height sheet,
+     which reads as a mistake rather than a margin */
+  .po-sheet-overlay {
+    padding: 0;
+  }
+
+  .po-sheet {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    flex-direction: column;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .po-sheet > div:first-child {
+    flex-shrink: 0;
+    padding-block: 0.7rem;
+  }
+
+  /* one scroll region between a pinned header and a pinned footer */
+  .po-sheet > div:first-child ~ div {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+
+  .po-sheet .po-form-foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-shrink: 0;
+    border-top: 1px solid var(--gb-grid-strong);
+    padding: 0.6rem 0.9rem;
+    padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+    background: var(--gb-pearl);
+  }
+
+  .po-sheet .po-form-foot button {
+    flex: 1 1 0;
+    min-height: 2.4rem;
+  }
+
+  /* desktop field sizing made the form twice as long as it needed to be */
+  .po-sheet input:not([type="file"]),
+  .po-sheet select,
+  .po-sheet textarea,
+  .po-sheet .po-affix-field {
+    min-height: 0;
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+    font-size: 13px;
+  }
+
+  .po-sheet textarea {
+    min-height: 3.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-sheet .po-affix-sign {
+    transition: none;
+  }
+}
+
+/* ---------- Mill Inward · one register, switched ------------------------
+   Two stacked tables became one table and a row of three blocks: Pending
+   (amber, because it is work waiting), Completed (blue, settled), and the
+   action (green). The selected block carries its colour down into the panel
+   and bridges the gap with a notch, so the pairing is seen rather than
+   inferred. Table treatment is the Sales one: no inner column grid, fainter
+   rule, gold hover rail, staggered row fade, a filler, coloured actions. */
+
+/* ---- 1. the three blocks ----------------------------------------------- */
+.mi-page .mi-switch {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 35fr 35fr 30fr;
+}
+
+.mi-page .mi-tab {
+  --mi-ink: #8a6b12;
+  --mi-edge: rgba(201, 162, 39, 0.45);
+  --mi-wash: rgba(201, 162, 39, 0.1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  overflow: hidden;
+  border: 1px solid var(--mi-edge);
+  border-radius: 12px;
+  padding: 0.5rem 0.85rem;
+  text-align: left;
+  color: var(--mi-ink);
+  background: var(--mi-wash);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.mi-page .mi-tab[data-kind="done"] {
+  --mi-ink: #1f5e8c;
+  --mi-edge: rgba(31, 94, 140, 0.4);
+  --mi-wash: rgba(31, 94, 140, 0.09);
+}
+
+.mi-page .mi-tab[data-kind="new"] {
+  --mi-ink: #0b6558;
+  --mi-edge: rgba(11, 101, 88, 0.4);
+  --mi-wash: rgba(11, 101, 88, 0.09);
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.mi-page .mi-tab-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.mi-page .mi-tab-count {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* a quiet wash that sweeps in from the left edge on hover */
+.mi-page .mi-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 60% 140% at 0% 50%,
+    currentColor,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.mi-page .mi-tab:hover {
+  transform: translateY(-2px);
+  border-color: var(--mi-ink);
+  box-shadow: 0 10px 22px rgba(8, 16, 24, 0.14);
+}
+
+.mi-page .mi-tab:hover::before {
+  opacity: 0.07;
+}
+
+.mi-page .mi-tab:active {
+  transform: translateY(0);
+}
+
+.mi-page .mi-tab:focus-visible {
+  outline: 2px solid var(--mi-ink);
+  outline-offset: 2px;
+}
+
+/* ---- 2. the selected block owns the table below it --------------------- */
+.mi-page .mi-tab[aria-pressed="true"] {
+  color: #fff;
+  border-color: var(--mi-ink);
+  background: var(--mi-ink);
+  box-shadow: 0 8px 20px rgba(8, 16, 24, 0.2);
+}
+
+.mi-page .mi-tab[aria-pressed="true"] .mi-tab-count {
+  color: #fff;
+}
+
+/* the notch bridges the gap down to the panel */
+.mi-page .mi-tab[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  height: 0.6rem;
+  width: 0.6rem;
+  background: var(--mi-ink);
+  transform: translateX(-50%) rotate(45deg);
+  animation: mi-notch-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes mi-notch-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) rotate(45deg) scale(0.4);
+  }
+}
+
+/* the notch must escape the block's own clipping */
+.mi-page .mi-tab[aria-pressed="true"] {
+  overflow: visible;
+}
+
+/* the panel takes the selected block's colour along its top edge */
+.mi-page .mi-panel {
+  /* Panel renders no header without a title, so the table wrapper became
+     div:first-child and inherited the midnight header background — which also
+     showed through the translucent KG tint. The ground is stated here. */
+  background: var(--gb-row);
+  border-top: 3px solid var(--mi-ink, var(--gb-grid-strong));
+  animation: mi-panel-in 0.26s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.mi-page .mi-pending {
+  --mi-ink: #8a6b12;
+}
+
+.mi-page .mi-done {
+  --mi-ink: #1f5e8c;
+}
+
+@keyframes mi-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ---- 3. the register, Sales treatment ---------------------------------- */
+.mi-page .mi-reg.erp-register thead th {
+  height: var(--mi-head-h);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+}
+
+.mi-page .mi-reg.erp-register td {
+  position: relative;
+  height: var(--mi-row-h);
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.2;
+  /* the inner column grid is what made this read as a spreadsheet */
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+  transition: background-color 0.14s ease;
+}
+
+.mi-page .mi-reg.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mi-page .mi-reg.erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+.mi-page .mi-reg tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.mi-page .mi-reg tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+.mi-page .mi-reg tbody tr {
+  animation: sl-row-in 0.22s ease both;
+}
+
+.mi-page .mi-reg tbody tr:nth-child(1) { animation-delay: 0.01s; }
+.mi-page .mi-reg tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.mi-page .mi-reg tbody tr:nth-child(3) { animation-delay: 0.05s; }
+.mi-page .mi-reg tbody tr:nth-child(4) { animation-delay: 0.07s; }
+.mi-page .mi-reg tbody tr:nth-child(5) { animation-delay: 0.09s; }
+.mi-page .mi-reg tbody tr:nth-child(n + 6) { animation-delay: 0.11s; }
+
+/* KG is the weight column, the one number people scan for */
+.mi-page .mi-reg tbody td:nth-child(8) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #3f2f08;
+  background: rgba(201, 162, 39, 0.045);
+}
+
+.mi-page .mi-reg tbody tr:nth-child(even) td:nth-child(8) {
+  background: rgba(201, 162, 39, 0.07);
+}
+
+.mi-page .mi-reg td button:has(> svg):not(:has(> :not(svg))) {
+  height: 1.5rem;
+  width: 1.5rem;
+  padding: 0;
+}
+
+.mi-page .mi-reg td button {
+  border-radius: 7px;
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.16s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.mi-page .mi-reg td button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(8, 16, 24, 0.14);
+}
+
+.mi-page .mi-reg td button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ---- 4. page frame ------------------------------------------------------ */
+@media (min-width: 768px) {
+  .mi-page {
+    padding-top: 0.35rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+.mi-page .mi-stage {
+  gap: 0.3rem;
+}
+
+.mi-page .table-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 58, 84, 0.3) transparent;
+}
+
+.mi-page .table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mi-page .table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(31, 58, 84, 0.26);
+  background-clip: content-box;
+}
+
+/* ---- 5. phones ---------------------------------------------------------- */
+@media (max-width: 767px) {
+  .mi-page .mi-switch {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+
+  .mi-page .mi-tab[data-kind="new"] {
+    grid-column: 1 / -1;
+  }
+
+  .mi-page .mi-tab {
+    padding: 0.45rem 0.6rem;
+  }
+
+  .mi-page .mi-tab-label {
+    font-size: 11.5px;
+  }
+
+  .mi-page .mi-tab-count {
+    font-size: 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-page .mi-tab,
+  .mi-page .mi-tab::before,
+  .mi-page .mi-reg td button,
+  .mi-page .mi-reg tbody tr td:first-child::before {
+    transition: none;
+  }
+
+  .mi-page .mi-panel,
+  .mi-page .mi-reg tbody tr,
+  .mi-page .mi-tab[aria-pressed="true"]::after {
+    animation: none;
+  }
+
+  .mi-page .mi-tab:hover,
+  .mi-page .mi-reg td button:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ---------- Mill Inward · the tab fuses into the table -------------------
+   The selected tab now takes the table header's own midnight satin, loses its
+   bottom corners and border, and overlaps the stage gap — so tab, gap and
+   column header read as one continuous surface rather than three stacked
+   things. The diamond notch is gone: it pointed at the join instead of being
+   it. Easing is cubic-bezier(.4,0,.2,1), which does not overshoot, so nothing
+   springs. Amber and blue survive as a thin identity rail, not as the fill. */
+
+.mi-page .mi-switch {
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+/* ---- the resting tab: quiet, with its colour as a rail ------------------ */
+.mi-page .mi-tab {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--gb-ice-line);
+  border-radius: 11px 11px 0 0;
+  padding: 0.55rem 0.9rem;
+  color: var(--gb-ink);
+  background: var(--gb-row);
+  box-shadow: inset 0 -1px 0 var(--gb-ice-line);
+  transition:
+    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mi-page .mi-tab::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  right: auto;
+  width: 3px;
+  height: auto;
+  border-radius: 0;
+  background: var(--mi-ink);
+  opacity: 1;
+  transition: none;
+}
+
+.mi-page .mi-tab[data-kind="pending"] {
+  --mi-ink: #a8801a;
+}
+
+.mi-page .mi-tab[data-kind="done"] {
+  --mi-ink: #1f5e8c;
+}
+
+.mi-page .mi-tab-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gb-ink);
+}
+
+.mi-page .mi-tab-count {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--mi-ink);
+}
+
+.mi-page .mi-tab:hover {
+  transform: none;
+  border-color: var(--gb-grid-strong);
+  background: var(--gb-workspace-top);
+  box-shadow: inset 0 -1px 0 var(--gb-grid-strong);
+}
+
+.mi-page .mi-tab:hover::before {
+  opacity: 1;
+}
+
+/* ---- the selected tab IS the table's top edge --------------------------- */
+.mi-page .mi-tab[aria-pressed="true"] {
+  /* the same satin the column header uses, so the surface is continuous */
+  z-index: 2;
+  margin-bottom: -0.4rem;
+  padding-bottom: calc(0.55rem + 0.4rem);
+  border-color: rgba(201, 162, 39, 0.24);
+  border-bottom: 0;
+  border-radius: 11px 11px 0 0;
+  color: var(--gb-midnight-ink);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+  transform: none;
+}
+
+.mi-page .mi-tab[aria-pressed="true"] .mi-tab-label {
+  color: var(--gb-midnight-ink);
+}
+
+.mi-page .mi-tab[aria-pressed="true"] .mi-tab-count {
+  color: var(--mi-ink);
+  filter: brightness(1.7);
+}
+
+/* a gold hairline along the top, the same one the sheets carry */
+.mi-page .mi-tab[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.9rem;
+  top: 0;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  height: 1px;
+  width: auto;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.65),
+    transparent
+  );
+  transform: none;
+  animation: none;
+}
+
+/* the identity rail stays, brightened against the dark ground */
+.mi-page .mi-tab[aria-pressed="true"]::before {
+  filter: brightness(1.5);
+}
+
+/* ---- the panel carries no line that would break the join ---------------- */
+.mi-page .mi-panel {
+  border-top: 1px solid rgba(201, 162, 39, 0.24);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  animation: mi-fade-in 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes mi-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- the action button is the app's primary button, nothing bespoke ----- */
+.mi-page .mi-new {
+  align-self: stretch;
+  height: auto;
+  border-radius: 11px;
+}
+
+@media (max-width: 767px) {
+  .mi-page .mi-tab[aria-pressed="true"] {
+    margin-bottom: 0;
+    padding-bottom: 0.55rem;
+    border-radius: 11px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  }
+
+  .mi-page .mi-panel {
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+  }
+
+  .mi-page .mi-new {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-page .mi-tab,
+  .mi-page .mi-panel {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---------- Mill Inward · the switch stops moving -----------------------
+   Switching was replaying three animations at once (panel fade, row stagger,
+   column re-layout) while the two buttons swapped heights, because the active
+   tab bought its overlap with padding. The overlap is a drawn strip now, so
+   every tab is the same height, and the swap is instant. */
+
+/* ---- every tab is the same height, always ------------------------------ */
+.mi-page .mi-tab[aria-pressed="true"] {
+  margin-bottom: 0;
+  padding-bottom: 0.55rem;
+  /* the hairline is a border now, which frees ::after for the overlap strip
+     and removes the second gold line that was crossing the panel's own */
+  border-top: 1px solid rgba(201, 162, 39, 0.35);
+  border-inline-color: transparent;
+}
+
+/* the strip bridges the gap instead of the box growing into it */
+.mi-page .mi-tab[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: auto;
+  bottom: calc(-0.4rem - 1px);
+  height: calc(0.4rem + 1px);
+  width: auto;
+  background: var(--gb-midnight-deep);
+  animation: none;
+  transform: none;
+}
+
+/* ---- nothing animates on a switch -------------------------------------- */
+.mi-page .mi-panel {
+  /* the panel no longer fades: it is the same panel, showing another list */
+  animation: none;
+  /* the tab supplies the top edge, so the panel must not draw a second one */
+  border-top: 0;
+}
+
+.mi-page .mi-reg tbody tr,
+.mi-page .mi-reg tbody tr:nth-child(1),
+.mi-page .mi-reg tbody tr:nth-child(2),
+.mi-page .mi-reg tbody tr:nth-child(3),
+.mi-page .mi-reg tbody tr:nth-child(4),
+.mi-page .mi-reg tbody tr:nth-child(5),
+.mi-page .mi-reg tbody tr:nth-child(n + 6) {
+  animation: none;
+  animation-delay: 0s;
+}
+
+/* ---- phones: the action leads --------------------------------------- */
+@media (max-width: 767px) {
+  .mi-page .mi-switch {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mi-page .mi-new {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+
+  .mi-page .mi-tab {
+    grid-row: 2;
+  }
+
+  .mi-page .mi-tab[aria-pressed="true"]::after {
+    display: none;
+  }
+}
+
+/* ---------- Mill Inward · a real transition -----------------------------
+   Two faults, and they solved each other. The coloured rail was ::before on a
+   tab left overflow:visible, so its square corner escaped the 11px radius and
+   read as a stray bar. And the active state swapped background-image — a
+   gradient, which CSS cannot transition — so the fill snapped while every
+   other property eased. The rail is gone (identity lives in the count), which
+   frees ::before to carry the gradient as an opacity-faded layer. Opacity is
+   transitionable and composited, so the tab now crossfades, and the strip that
+   bridges the gap to the table header fades in with it. */
+
+/* the rail goes: it was reading as an artifact, not as identity */
+.mi-page .mi-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  bottom: calc(-0.4rem - 1px);
+  left: 0;
+  right: 0;
+  width: auto;
+  height: auto;
+  border-radius: 11px 11px 0 0;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 85%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(201, 162, 39, 0.35);
+  opacity: 0;
+  filter: none;
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mi-page .mi-tab[aria-pressed="true"]::before {
+  opacity: 1;
+  filter: none;
+}
+
+/* ::after is no longer needed: the fill layer reaches over the gap itself */
+.mi-page .mi-tab[aria-pressed="true"]::after {
+  content: none;
+}
+
+/* the label and count ride above the fill and ease with it */
+.mi-page .mi-tab-label,
+.mi-page .mi-tab-count {
+  position: relative;
+  z-index: 1;
+  transition: color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mi-page .mi-tab[aria-pressed="true"] .mi-tab-label {
+  color: var(--gb-midnight-ink);
+}
+
+/* identity now lives in the number, where it cannot escape the shape */
+.mi-page .mi-tab[data-kind="pending"] .mi-tab-count {
+  color: #a8801a;
+}
+
+.mi-page .mi-tab[data-kind="done"] .mi-tab-count {
+  color: #1f5e8c;
+}
+
+.mi-page .mi-tab[aria-pressed="true"][data-kind="pending"] .mi-tab-count {
+  color: #f0c24a;
+}
+
+.mi-page .mi-tab[aria-pressed="true"][data-kind="done"] .mi-tab-count {
+  color: #7db8e4;
+}
+
+/* the box itself keeps no border of its own once the fill takes over */
+.mi-page .mi-tab[aria-pressed="true"] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 767px) {
+  .mi-page .mi-tab::before {
+    bottom: 0;
+    border-radius: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-page .mi-tab::before,
+  .mi-page .mi-tab-label,
+  .mi-page .mi-tab-count {
     transition: none;
   }
 }
