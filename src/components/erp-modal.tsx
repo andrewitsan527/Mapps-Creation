@@ -81,9 +81,14 @@ export function ErpModal({
   useEffect(() => {
     if (!lockScroll) return;
     const previous = document.body.style.overflow;
+    const gutter = window.innerWidth - document.documentElement.clientWidth;
+    const previousPad = document.body.style.paddingRight;
     document.body.style.overflow = "hidden";
+    /* keep the page width stable so the dialog stays centred */
+    if (gutter > 0) document.body.style.paddingRight = `${gutter}px`;
     return () => {
       document.body.style.overflow = previous;
+      document.body.style.paddingRight = previousPad;
     };
   }, [lockScroll]);
 

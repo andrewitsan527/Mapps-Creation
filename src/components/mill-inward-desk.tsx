@@ -902,7 +902,7 @@ export function MillInwardDesk({
           onClose={unsaved.requestClose}
           closeClassName="gb-sheet-close"
           flushBody
-          portal={isQcReturn(draft)}
+          portal
           trackViewport={isQcReturn(draft)}
           overlayClassName={
             isQcReturn(draft)

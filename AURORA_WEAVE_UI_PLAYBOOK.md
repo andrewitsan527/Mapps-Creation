@@ -140,6 +140,20 @@ against the modal instead of the viewport.
 This is why `.gb-sheet` animates **opacity only** while `.gb-confirm` (no fixed descendants)
 keeps a translate. There is a comment in `globals.css` saying so — keep it.
 
+### 2.5b Every page dialog must be portaled and viewport-capped
+
+On Mill Program the create dialog rendered **inline inside the scrolled page**, so
+with a tall register the sheet hung below the fold and Cancel / Save Draft / Save /
+Send could not be clicked at all. Two rules, always, for any dialog on a page that
+can scroll:
+
+1. Pass **`portal`** so the overlay attaches to `document.body` and cannot inherit the
+   page's scroll position, stacking context or any containing block. Pair it with
+   `lockScroll`.
+2. Cap the frame against the viewport **minus the overlay padding** —
+   `height: min(calc(100vh - 3.5rem), <max>)`, not `min(92vh, <max>)`. `92vh` plus
+   2.5rem of overlay padding exceeds the viewport and silently clips the pinned footer.
+
 ### 2.6 Tables that weren't ruled
 
 `.erp-register` drops the last row's bottom border and the last column's right border, and
@@ -224,6 +238,34 @@ Agent was not read…"* — straight into the entry form, and the staged file wa
 filename. That is test output. Keep generating it if the logic needs it, but render **one
 client-safe sentence** instead ("Could not read this bill. Please enter the details
 manually.") and never print a filename.
+
+### 2.12 Three traps found while converting the later desks
+
+**A sticky row must be sticky in every cell.** Finished Work's TOTAL row lives in `<tfoot>`,
+but only four of its seven cells carried `sticky bottom-0` in the markup. The numbers pinned
+to the bottom while the "TOTAL" label scrolled away, and the pinned numbers sat on top of the
+next half-visible row. Pin the whole row from CSS (`tfoot td { position: sticky; bottom: 0 }`)
+rather than trusting per-cell classes.
+
+**A fixed-height table box needs a filler row.** A short table leaves the rest of its box
+blank, and CSS alone cannot draw the column rules there because the column positions come
+from the `<colgroup>`. Add one `aria-hidden` filler `<tr>` with the same cell count, give the
+table and the row `height: 100%`, and paint the horizontal rules with a repeating gradient at
+the row pitch. It stretches to fill and collapses to nothing once the rows overflow.
+
+**`<main>` is a containing block.** `erp-shell.tsx` puts `animate-fade-up` on `<main>`, whose
+keyframes animate `translateY`; with `fill-mode: both` the element keeps a transform value
+forever, so **`main` is permanently a stacking context and a containing block for
+`position: fixed`**. Consequences, both of which bit this project:
+
+- A portaled dialog (child of `body`, `z-50`) paints **above** anything inside `main`,
+  including a `z-[60]` nested dialog. Finished Work's Details popup was invisible until all
+  three nested dialogs were portaled too.
+- A non-portaled `fixed inset-0` overlay sizes itself to **main's box**, not the viewport, so
+  it sits off-centre next to the sidebar.
+
+**Rule: portal every dialog on a page, including nested ones — all or none.** Mixing the two
+puts them in different stacking contexts and the z-index you wrote stops meaning anything.
 
 ## 3. The brief for the next page — paste this
 
@@ -344,57 +386,46 @@ specificity**. So page-scoped plain CSS can restyle existing Tailwind-classed ma
 
 ---
 
-## 7. Status — Grey Purchase is complete
+## 7. Status — six desks converted
 
-Signed off by the user. Everything below is done and verified by `tsc` / ESLint / structural
-checks; none of it was confirmed in a browser by the author (see §8), but the user reviewed
-the result on screen at each step.
+| Route | Page | State |
+|---|---|---|
+| `/grey-purchase` | Grey Purchase | done |
+| `/purchase-orders` | Purchase Order | done |
+| `/mill-inward` | Mill Inward | done |
+| `/mill-program` | Mill Program | done |
+| `/finished-work` | Finished Work | done |
+| `/quality-check` | QC Desk | done |
+| `/live-stock` | Live Stock | done |
 
-| Delivered | Notes |
-|---|---|
-| Aurora Weave page scope, workspace texture, midnight app header | `.gb-page` / `.gb-app-header`, this route only |
-| Page-header card removed | app-header crumb is the title; primary action moved into the register bar |
-| One module name — **Grey Purchase** | nav, crumb, register, buttons, dialogs, notices |
-| Glass + pearl KPI cards, incl. Net Value | `1 → 2 → 4` responsive |
-| Ruled register, dark satin header, Date column, status chips corrected | `--gb-grid-strong` ruling |
-| **Fixed 12-row register box** | `--gb-register-rows`; scrolls internally, page never scrolls |
-| GP Entry rebuilt as a fixed-height workspace | locked regions, pinned action bar, `table-fixed` + colgroup |
-| Roll/Taka sheet rebuilt | single table, sticky head, labelled summary |
-| Delete confirm restyled with a danger action | "Cancel" / "Delete Grey Purchase" |
-| Background scroll lock | opt-in `lockScroll` on `ErpModal` |
-| Floating toast replaces the layout notice strip | tone-aware: ok / warn / error |
-| Developer extraction log removed from the UI | replaced by one client-safe popover, 5s auto-dismiss + close |
-| Filename no longer printed | name-free "Bill ready" chip in the sheet header |
-| **INTELIXA** restored as the upload button name | spinner beside it while reading |
-| Motion + `prefers-reduced-motion` throughout | |
+All seven use the shared `.aw-metrics` cards, page-scoped `.xx-page` workspaces, midnight
+satin register bars, `--gb-grid-strong` ruling, fixed row-count boxes and the `.gb-toast`
+pattern. Every data-entry dialog is portaled, scroll-locked and viewport-capped.
+
+**Not converted, deliberately:** `/qc`, `/inward`, `/programs` are separate legacy desks on
+the dark `.tx-page` textile theme, plus `mill-inward-form.tsx` and
+`mill-return-complete-form.tsx` which belong to them. Do not touch them from an Aurora task.
 
 ### Deliberately not done
 
 | Item | Why |
 |---|---|
 | Toast exit animation | entrance only; a safe exit needs timer state and this repo's `react-hooks/set-state-in-effect` rule makes that awkward |
-| Challan upload button still reads "Upload Challan" | only the bill button was renamed to INTELIXA; ask before changing |
-| ~10 "grey bill" strings in `server/actions/grey-bills.ts` | error paths only; server file intentionally untouched |
-| `aria-invalid` + inline message on invalid numeric cells | red styling only; a blocked Tab is still unexplained |
-| Escape-to-close on dialogs | `ErpModal` intercepts Tab only |
-| Empty state does not distinguish "none yet" from "no search match" | same text for both |
-| `"GP Entry"` dialog title | kept; GP abbreviates Grey Purchase |
+| `aria-invalid` + inline message on invalid numeric cells (Grey Purchase) | red styling only; a blocked Tab is still unexplained |
+| Escape-to-close on the Grey Purchase dialogs | only Live Stock's drawer and the shared trap handle Escape |
+| Split empty states ("none yet" vs "no search match") | same text for both on several desks |
+| Challan upload button still reads "Upload Challan" | only the bill button became INTELIXA |
+| ~10 "grey bill" strings in `server/actions/grey-bills.ts` | error paths only; server files intentionally untouched |
 
 ### Pre-existing, unrelated, still open
 
-`agent-master-desk.tsx` has 2 TypeScript errors (`ACCOUNT_TYPES` undefined);
-`erp-shell.tsx:113` has a `react-hooks/set-state-in-effect` lint error;
-`grey-purchase-desk.tsx` has an unused `_purchaseOrders` warning.
-None were introduced by this work and none were touched.
-
-### Final diff
-
-`globals.css` **+1118 / −0** · `grey-purchase-desk.tsx` +188 / −109 ·
-`erp-modal.tsx` **+14 / −0** · `grey-purchase-upload-test.tsx` +11 / −2 ·
-`erp-shell.tsx` +7 / −3 · `flow.ts` +1 / −1.
-
-Zero deletions in `globals.css` and `erp-modal.tsx` is the guarantee that no other desk
-changed. **Nothing is committed** — the work sits in the working tree.
+`agent-master-desk.tsx` — 2 TypeScript errors (`ACCOUNT_TYPES` undefined).
+`react-hooks/set-state-in-effect` errors in `erp-shell.tsx:113`,
+`purchase-order-desk.tsx`, `live-stock-cards.tsx` (the `setCanPortal` effect).
+5 `Compilation Skipped: Existing memoization could not be preserved` in `mill-program-desk.tsx`.
+An unused `_purchaseOrders` warning in `grey-purchase-desk.tsx`.
+None were introduced by this work; all were confirmed against `git show HEAD:` of the
+originals. **Nothing is committed** — the work sits in the working tree.
 
 ## 8. Honesty note
 

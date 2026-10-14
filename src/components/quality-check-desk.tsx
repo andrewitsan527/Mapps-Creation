@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { BadgeCheck, Plus, Search } from "lucide-react";
+import { BadgeCheck, Plus, Search, X } from "lucide-react";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { statusBadge } from "@/lib/format";
 import {
   EmptyState,
   Field,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -226,16 +225,21 @@ export function QualityCheckDesk({
   });
 
   return (
-    <div className="space-y-3">
-      <PageHeader title="Quality Check" eyebrow="Produce" icon={BadgeCheck} description="Check each finished roll. Passed rolls go to live stock." />
+    <div className="qc-page">
+      <div className="qc-stage">
       {notice ? (
-        <p className="text-[12px] text-(--accent-strong)" role="status" aria-live="polite">
-          {notice}
-        </p>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button type="button" className="gb-toast-close" onClick={() => setNotice(null)} aria-label="Dismiss notification">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       ) : null}
 
-      <Panel title="Search knitter challan">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <Panel title="Search knitter challan" className="qc-panel qc-search">
+        <div className="qc-search-row">
           <Field label="Knitter Challan No." className="min-w-0 flex-1">
             <input
               className={inputClass}
@@ -258,9 +262,9 @@ export function QualityCheckDesk({
         ) : null}
       </Panel>
 
-      <Panel title="Pending finished work" flush>
+      <Panel title="Pending finished work" flush className="qc-panel qc-pending">
         {works.length === 0 ? (
-          <div className="p-2.5"><EmptyState icon={BadgeCheck} text="No finished work waiting for QC." /></div>
+          <div className="qc-empty"><EmptyState icon={BadgeCheck} text="No finished work waiting for QC." /></div>
         ) : (
           <>
             <div className="divide-y divide-(--line) md:hidden">
@@ -281,7 +285,14 @@ export function QualityCheckDesk({
             </div>
             <div className="hidden md:block">
           <TableWrap>
-            <table className="erp-table erp-register">
+            <table className="erp-table erp-register qc-reg w-full min-w-[44rem] table-fixed">
+              <colgroup>
+                <col className="w-[10rem]" />
+                <col />
+                <col />
+                <col className="w-[6rem]" />
+                <col className="w-[6rem]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Knitter Challan No.</th>
@@ -305,6 +316,13 @@ export function QualityCheckDesk({
                     </td>
                   </tr>
                 ))}
+                <tr className="qc-filler" aria-hidden>
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                </tr>
               </tbody>
             </table>
           </TableWrap>
@@ -313,9 +331,74 @@ export function QualityCheckDesk({
         )}
       </Panel>
 
-      <Panel title="Without QC stock" flush>
+      <Panel title="QC records" flush className="qc-panel qc-records">
+        {rows.length === 0 ? (
+          <div className="qc-empty"><EmptyState text="No QC entries yet." /></div>
+        ) : (
+          <>
+            <div className="divide-y divide-(--line) md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="px-2.5 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold tabular-nums">{row.srNo}</p>
+                    <span className={statusBadge(row.status === "draft" ? "PENDING_QC" : "CLOSED")}>
+                      {row.status === "draft" ? "DRAFT" : "SUBMITTED"}
+                    </span>
+                  </div>
+                  <p className="truncate text-[12px] text-(--muted)">{row.knitterChallanNo || "—"}</p>
+                  <p className="text-[12px] tabular-nums">
+                    {row.qcRolls} rolls · {row.result === "draft" ? "Draft" : row.result.replace("_", " ").toUpperCase()}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="hidden md:block">
+          <TableWrap>
+            <table className="erp-table erp-register qc-reg w-full min-w-[44rem] table-fixed">
+              <colgroup>
+                <col className="w-[8rem]" />
+                <col className="w-[10rem]" />
+                <col className="w-[5rem]" />
+                <col />
+                <col className="w-[7rem]" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>QC Sr. No.</th>
+                  <th>Knitter Challan No.</th>
+                  <th className="num">Rolls</th>
+                  <th>Result</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="font-semibold tabular-nums">{row.srNo}</td>
+                    <td>{row.knitterChallanNo || "—"}</td>
+                    <td className="num tabular-nums">{row.qcRolls}</td>
+                    <td>{row.result === "draft" ? "Draft" : row.result.replace("_", " ").toUpperCase()}</td>
+                    <td><span className={statusBadge(row.status === "draft" ? "PENDING_QC" : "CLOSED")}>{row.status === "draft" ? "DRAFT" : "SUBMITTED"}</span></td>
+                  </tr>
+                ))}
+                <tr className="qc-filler" aria-hidden>
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          </TableWrap>
+            </div>
+          </>
+        )}
+      </Panel>
+
+      <Panel title="Without QC stock" flush className="qc-panel qc-without">
         {withoutQc.length === 0 ? (
-          <div className="p-2.5"><EmptyState text="No rolls are waiting without QC." /></div>
+          <div className="qc-empty"><EmptyState text="No rolls are waiting without QC." /></div>
         ) : (
           <>
             <div className="divide-y divide-(--line) md:hidden">
@@ -345,7 +428,15 @@ export function QualityCheckDesk({
             </div>
             <div className="hidden md:block">
           <TableWrap>
-            <table className="erp-table erp-register">
+            <table className="erp-table erp-register qc-reg w-full min-w-[50rem] table-fixed">
+              <colgroup>
+                <col className="w-[9rem]" />
+                <col />
+                <col className="w-[8rem]" />
+                <col className="w-[7.5rem]" />
+                <col className="w-[7.5rem]" />
+                <col className="w-[6rem]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Challan</th>
@@ -386,57 +477,6 @@ export function QualityCheckDesk({
         )}
       </Panel>
 
-      <Panel title="QC records" flush>
-        {rows.length === 0 ? (
-          <div className="p-2.5"><EmptyState text="No QC entries yet." /></div>
-        ) : (
-          <>
-            <div className="divide-y divide-(--line) md:hidden">
-              {rows.map((row) => (
-                <div key={row.id} className="px-2.5 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold tabular-nums">{row.srNo}</p>
-                    <span className={statusBadge(row.status === "draft" ? "PENDING_QC" : "CLOSED")}>
-                      {row.status === "draft" ? "DRAFT" : "SUBMITTED"}
-                    </span>
-                  </div>
-                  <p className="truncate text-[12px] text-(--muted)">{row.knitterChallanNo || "—"}</p>
-                  <p className="text-[12px] tabular-nums">
-                    {row.qcRolls} rolls · {row.result === "draft" ? "Draft" : row.result.replace("_", " ").toUpperCase()}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <div className="hidden md:block">
-          <TableWrap>
-            <table className="erp-table erp-register">
-              <thead>
-                <tr>
-                  <th>QC Sr. No.</th>
-                  <th>Knitter Challan No.</th>
-                  <th className="num">Rolls</th>
-                  <th>Result</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td className="font-semibold tabular-nums">{row.srNo}</td>
-                    <td>{row.knitterChallanNo || "—"}</td>
-                    <td className="num tabular-nums">{row.qcRolls}</td>
-                    <td>{row.result === "draft" ? "Draft" : row.result.replace("_", " ").toUpperCase()}</td>
-                    <td><span className={statusBadge(row.status === "draft" ? "PENDING_QC" : "CLOSED")}>{row.status === "draft" ? "DRAFT" : "SUBMITTED"}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-            </div>
-          </>
-        )}
-      </Panel>
-
       {unsaved.dialog}
       {session && work ? (
         <Overlay
@@ -445,11 +485,12 @@ export function QualityCheckDesk({
           flushBody
           trapFocus
           portal
+          lockScroll
           trackViewport
           closeClassName={`${buttonGhostClass} relative !h-8 !w-8 !min-h-8 !min-w-8 shrink-0 !rounded-md !border-transparent !bg-transparent !p-0 !shadow-none before:absolute before:-inset-1.5 before:content-[''] hover:!border-transparent hover:!bg-transparent md:!h-auto md:!w-auto md:!min-h-0 md:!min-w-11 md:!border-(--line) md:!bg-white md:!px-2 md:!py-1.5 md:!shadow-none md:before:hidden`}
           headerClassName="justify-between gap-2 px-2 py-0.5 md:px-5 md:py-2.5"
           overlayClassName="px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-[max(1.5rem,4vw)] md:py-8"
-          frameWidthClass="h-auto max-h-full w-full min-h-0 self-stretch md:h-[min(720px,100%)] md:max-h-[min(720px,100%)] md:w-full md:max-w-[960px] md:self-center"
+          frameWidthClass="qc-sheet h-auto max-h-full w-full min-h-0 self-stretch md:h-[min(720px,100%)] md:max-h-[min(720px,100%)] md:w-full md:max-w-[960px] md:self-center"
         >
           <div className="flex min-h-0 flex-1 flex-col">
             {error ? (
@@ -667,6 +708,7 @@ export function QualityCheckDesk({
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

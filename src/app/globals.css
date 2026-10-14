@@ -2249,12 +2249,12 @@ button {
 @media (min-width: 640px) {
   .gb-sheet-entry {
     width: min(96vw, 70rem);
-    height: min(92vh, 46rem);
+    height: min(calc(100vh - 3.5rem), 46rem);
   }
 
   .gb-sheet-roll {
     width: min(94vw, 30rem);
-    height: min(86vh, 36rem);
+    height: min(calc(100vh - 3.5rem), 36rem);
   }
 }
 
@@ -3038,7 +3038,7 @@ button {
 .po-sheet {
   width: 100%;
   max-width: 29rem;
-  max-height: min(88vh, 40rem);
+  max-height: min(calc(100vh - 3.5rem), 40rem);
   border-color: var(--gb-grid-strong, #b6c8d8);
   border-radius: var(--gb-radius);
   box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
@@ -3676,7 +3676,8 @@ button {
 @media (min-width: 640px) {
   .mi-sheet {
     width: min(96vw, 40rem);
-    height: min(92vh, 42rem);
+    /* viewport minus the overlay padding, so the pinned footer stays reachable */
+    height: min(calc(100vh - 3.5rem), 42rem);
   }
 }
 
@@ -3785,6 +3786,1624 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .mi-qc-sheet {
     animation: none;
+  }
+}
+
+/* ---------- Mill Program · Aurora Weave — Soft Ice ----------
+   Scoped to .mp-page / .mp-sheet. Reuses the --gb-* tokens and the shared
+   .aw-metrics cards; no new palette, nothing here edits .gb-*, .po-*, .mi-*
+   or .aw-metrics. No transform/filter on .mp-page or .mp-sheet — the
+   unsaved-changes dialog is position: fixed and renders inside them. */
+
+.mp-page {
+  position: relative;
+  min-height: calc(100vh - 3rem);
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 0.7rem 0.6rem 2rem;
+  color: var(--gb-ink);
+  background-color: var(--gb-workspace);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.035) 0,
+      rgba(31, 58, 84, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.028) 0,
+      rgba(31, 58, 84, 0.028) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    radial-gradient(
+      ellipse 72% 46% at 12% 0%,
+      rgba(132, 183, 214, 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 48% 38% at 92% 96%,
+      rgba(120, 186, 170, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(
+      170deg,
+      var(--gb-workspace-top) 0%,
+      var(--gb-workspace) 46%,
+      var(--gb-workspace-deep) 100%
+    );
+
+  --gb-grid-strong: #b6c8d8;
+  --mp-row-h: 2.3rem;
+  --mp-head-h: 1.9rem;
+  --mp-primary-rows: 12;
+  --mp-secondary-rows: 5;
+}
+
+@media (max-width: 767px) {
+  .mp-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .mp-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding-right: 0.7rem;
+    padding-left: 0.7rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .mp-page {
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 10% 0%,
+        rgba(132, 183, 214, 0.24),
+        transparent 62%
+      ),
+      linear-gradient(
+        170deg,
+        var(--gb-workspace-top) 0%,
+        var(--gb-workspace) 52%,
+        var(--gb-workspace-deep) 100%
+      );
+  }
+}
+
+.mp-page .mp-stage {
+  display: flex;
+  width: min(99%, 120rem);
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .mp-page .mp-stage {
+    width: 100%;
+  }
+}
+
+/* ---- Panels ------------------------------------------------------------ */
+.mp-page .mp-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+.mp-page .mp-panel > div:first-child {
+  flex-wrap: wrap;
+  row-gap: 0.4rem;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  padding: 0.55rem 0.85rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.mp-page .mp-panel > div:first-child h3 {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.mp-page .mp-secondary > div:first-child h3 {
+  font-size: 12.5px;
+}
+
+.mp-page .mp-panel > div:first-child svg {
+  color: rgba(232, 197, 71, 0.85);
+}
+
+.mp-page .mp-new {
+  flex-shrink: 0;
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Registers --------------------------------------------------------- */
+.mp-page .mp-reg.erp-register {
+  border-color: var(--gb-grid-strong);
+}
+
+.mp-page .mp-reg.erp-register thead th {
+  height: var(--mp-head-h);
+  padding: 0.4rem 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 241, 248, 0.86);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.mp-page .mp-reg.erp-register td {
+  height: var(--mp-row-h);
+  overflow: hidden;
+  padding: 0.3rem 0.55rem;
+  font-size: 11.5px;
+  color: var(--gb-ink);
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--gb-grid-strong);
+  border-bottom: 1px solid var(--gb-grid-strong);
+  background: var(--gb-row);
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.mp-page .mp-reg.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.mp-page .mp-reg.erp-register tbody tr:hover td,
+.mp-page .mp-reg.erp-register tbody tr:focus-visible td {
+  background: #e7f0f8;
+}
+
+.mp-page .mp-reg tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Status chips — page scoped, driven by data-status so format.ts is untouched */
+.mp-page .mp-reg .badge[data-status="draft"] {
+  border-color: var(--gb-pearl-line);
+  background: var(--gb-pearl);
+  color: #7a5a12;
+}
+
+.mp-page .mp-reg .badge[data-status="saved"] {
+  border-color: var(--gb-lagoon-line);
+  background: var(--gb-lagoon);
+  color: #0a5547;
+}
+
+.mp-page .mp-reg .badge[data-status="sent"] {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+/* the sent timestamp stays on the chip's line so rows keep one height */
+.mp-page .mp-sent-at {
+  display: inline;
+  margin-left: 0.35rem;
+  font-size: 9.5px;
+}
+
+.mp-page .mp-open {
+  min-height: 0;
+  border-color: var(--gb-grid-strong);
+  border-radius: 7px;
+  padding: 0.12rem 0.45rem;
+  font-size: 10.5px;
+}
+
+.mp-page .mp-open:hover {
+  border-color: var(--accent);
+  background: var(--gb-lagoon);
+  color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .mp-page .mp-open {
+    min-height: 2.25rem;
+    padding: 0.25rem 0.7rem;
+  }
+
+  .mp-page .mp-reg.erp-register {
+    min-width: 62rem;
+  }
+}
+
+/* Fixed row-count boxes — each register scrolls inside itself */
+@media (min-width: 768px) {
+  .mp-page .mp-primary .table-scroll {
+    height: min(
+      calc(var(--mp-head-h) + var(--mp-primary-rows) * var(--mp-row-h)),
+      calc(100vh - 24rem)
+    );
+    max-height: none;
+  }
+
+  .mp-page .mp-secondary .table-scroll {
+    height: min(
+      calc(var(--mp-head-h) + var(--mp-secondary-rows) * var(--mp-row-h)),
+      calc(100vh - 32rem)
+    );
+    max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .mp-page .mp-panel .table-scroll {
+    max-height: 48vh;
+  }
+}
+
+.mp-page .mp-empty {
+  display: flex;
+  min-height: 8rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.mp-page .mp-empty > div {
+  width: 100%;
+  max-width: 24rem;
+}
+
+/* ---- Create / edit sheet ----------------------------------------------- */
+.mp-sheet-overlay {
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .mp-sheet-overlay {
+    padding: 1.25rem 3vw;
+  }
+}
+
+.mp-sheet {
+  width: 100%;
+  height: calc(100dvh - 1rem);
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+  /* opacity only: the unsaved-changes dialog inside is position: fixed */
+  animation: gb-fade-in 0.16s ease both;
+}
+
+@media (min-width: 640px) {
+  .mp-sheet {
+    width: min(96vw, 58rem);
+    /* cap against the viewport minus the overlay padding so the pinned
+       footer can never fall below the fold */
+    height: min(calc(100vh - 3.5rem), 46rem);
+  }
+}
+
+.mp-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.mp-sheet > div:first-child h2 {
+  font-size: 13.5px;
+  color: var(--gb-midnight-ink);
+}
+
+.mp-entry {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gb-workspace-top);
+}
+
+/* one scroll region for the form; the footer lives outside it */
+.mp-entry-main {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.75rem 0.9rem 0.85rem;
+}
+
+.mp-entry-main > * {
+  flex: 0 0 auto;
+}
+
+/* inward picker: about four rows, scrolls in place */
+.mp-entry .mp-picker {
+  max-height: 11rem;
+  overflow: auto;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 10px;
+  background: var(--gb-row);
+}
+
+.mp-entry .mp-picker-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.6rem;
+  color: rgba(232, 241, 248, 0.86);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.mp-entry .mp-picker-table td {
+  height: 2.2rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--gb-grid-strong);
+}
+
+/* program line grid */
+.mp-line-table {
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mp-line-table thead th {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 241, 248, 0.86);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.mp-line-table td {
+  height: 2.5rem;
+  padding: 0.25rem 0.45rem;
+  border-bottom: 1px solid var(--gb-grid-strong);
+}
+
+.mp-line-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mp-foot {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--gb-grid-strong);
+  padding: 0.6rem 0.9rem;
+  background: var(--gb-pearl);
+}
+
+.mp-send {
+  border-color: rgba(201, 162, 39, 0.35);
+}
+
+@media (max-width: 639px) {
+  .mp-foot button {
+    flex: 1 1 auto;
+  }
+
+  .mp-entry-main input,
+  .mp-entry-main select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-sheet {
+    animation: none;
+  }
+
+  .mp-page .mp-reg.erp-register td {
+    transition: none;
+  }
+}
+
+/* ---------- Finished Work + QC Desk · Aurora Weave — Soft Ice ----------
+   Two page scopes sharing one workspace recipe. Reuses the --gb-* tokens;
+   nothing here touches .gb-*, .po-*, .mi-*, .mp-* or .aw-metrics.
+   No transform/filter on .fw-page / .qc-page or their sheets — the
+   unsaved-changes and nested dialogs are position: fixed inside them. */
+
+.fw-page,
+.qc-page {
+  position: relative;
+  min-height: calc(100vh - 3rem);
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 0.7rem 0.6rem 2rem;
+  color: var(--gb-ink);
+  background-color: var(--gb-workspace);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.035) 0,
+      rgba(31, 58, 84, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.028) 0,
+      rgba(31, 58, 84, 0.028) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    radial-gradient(
+      ellipse 72% 46% at 12% 0%,
+      rgba(132, 183, 214, 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 48% 38% at 92% 96%,
+      rgba(120, 186, 170, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(
+      170deg,
+      var(--gb-workspace-top) 0%,
+      var(--gb-workspace) 46%,
+      var(--gb-workspace-deep) 100%
+    );
+
+  --gb-grid-strong: #b6c8d8;
+  --fq-row-h: 2.3rem;
+  --fq-head-h: 1.9rem;
+  --qc-rows: 8;
+}
+
+@media (max-width: 767px) {
+  .fw-page,
+  .qc-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .fw-page,
+  .qc-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding-right: 0.7rem;
+    padding-left: 0.7rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .fw-page,
+  .qc-page {
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 10% 0%,
+        rgba(132, 183, 214, 0.24),
+        transparent 62%
+      ),
+      linear-gradient(
+        170deg,
+        var(--gb-workspace-top) 0%,
+        var(--gb-workspace) 52%,
+        var(--gb-workspace-deep) 100%
+      );
+  }
+}
+
+.fw-page .fw-stage,
+.qc-page .qc-stage {
+  display: flex;
+  width: min(99%, 120rem);
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .fw-page .fw-stage,
+  .qc-page .qc-stage {
+    width: 100%;
+  }
+}
+
+/* ---- Finished Work: five metric cards (page scoped, .aw-metrics untouched) */
+.fw-page .fw-metrics {
+  gap: 0.5rem;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fw-page .fw-metrics > div {
+  display: flex;
+  min-width: 0;
+  height: 3.75rem;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--gb-ice-line);
+  border-radius: 11px;
+  padding: 0.4rem 0.8rem;
+  background-color: var(--gb-ice);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(31, 58, 84, 0.022) 0,
+    rgba(31, 58, 84, 0.022) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+  box-shadow: var(--gb-shadow-card);
+  animation: gb-card-in 0.24s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.fw-page .fw-metrics > div:nth-child(2) { animation-delay: 0.04s; }
+
+.fw-page .fw-metrics > div:nth-child(3) {
+  border-color: var(--gb-lagoon-line);
+  background-color: var(--gb-lagoon);
+  animation-delay: 0.08s;
+}
+
+.fw-page .fw-metrics > div:nth-child(4) {
+  border-color: var(--gb-lagoon-line);
+  background-color: var(--gb-lagoon);
+  animation-delay: 0.12s;
+}
+
+.fw-page .fw-metrics > div:nth-child(5) {
+  border-color: var(--gb-pearl-line);
+  background-color: var(--gb-pearl);
+  animation-delay: 0.16s;
+}
+
+.fw-page .fw-metrics > div p:first-child {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  color: var(--gb-ink-soft);
+}
+
+.fw-page .fw-metrics > div p:nth-child(2) {
+  margin-top: 0.08rem;
+  font-size: 1.15rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--gb-ink);
+}
+
+/* ---- Panels (both pages) ----------------------------------------------- */
+.fw-page .fw-panel,
+.qc-page .qc-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+.fw-page .fw-panel > div:first-child,
+.qc-page .qc-panel > div:first-child {
+  flex-wrap: wrap;
+  row-gap: 0.4rem;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  padding: 0.55rem 0.85rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.fw-page .fw-panel > div:first-child h3,
+.qc-page .qc-panel > div:first-child h3 {
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.fw-page .fw-panel > div:first-child svg,
+.qc-page .qc-panel > div:first-child svg {
+  color: rgba(232, 197, 71, 0.85);
+}
+
+.fw-page .fw-new {
+  flex-shrink: 0;
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* the QC search panel keeps a light body — it is a form, not a register */
+.qc-page .qc-search > div:last-child {
+  padding: 0.65rem 0.85rem;
+  background: var(--gb-workspace-top);
+}
+
+/* ---- QC search: one row, and no panel heading on phones ---------------- */
+.qc-page .qc-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.qc-page .qc-search-row > label {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.qc-page .qc-search-row > label > span {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.qc-page .qc-search-row > button {
+  width: auto;
+  flex-shrink: 0;
+}
+
+/* ---- QC inspect dialog -------------------------------------------------
+   It is portaled to document.body, so .qc-page rules can never reach it —
+   it is styled from its own frame class instead. CSS only: structure,
+   focus trap, PASS/FAIL logic and submit behaviour are untouched. */
+.qc-sheet {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+  animation: gb-fade-in 0.16s ease both;
+}
+
+.qc-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.qc-sheet > div:first-child h2 {
+  font-size: 13.5px;
+  color: var(--gb-midnight-ink);
+}
+
+.qc-sheet > div:last-child {
+  background: var(--gb-workspace-top);
+}
+
+/* header facts read as label / value pairs */
+.qc-sheet p.uppercase,
+.qc-sheet dt {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--gb-ink-soft);
+}
+
+.qc-sheet .table-scroll {
+  color: var(--gb-ink);
+}
+
+/* roll table gets the ledger treatment */
+.qc-sheet table.erp-table {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-radius: 11px;
+}
+
+.qc-sheet table.erp-table thead th {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 241, 248, 0.86);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.qc-sheet table.erp-table td {
+  height: 2.3rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 11.5px;
+  color: var(--gb-ink);
+  border-bottom: 1px solid var(--gb-grid-strong, #b6c8d8);
+}
+
+.qc-sheet table.erp-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.qc-sheet table.erp-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+/* PASS / FAIL / WITHOUT QC summary tiles */
+.qc-sheet .grid > div {
+  border-color: var(--gb-ice-line);
+  background: var(--gb-ice);
+}
+
+.qc-sheet input,
+.qc-sheet select,
+.qc-sheet textarea {
+  border-color: var(--gb-grid-strong, #b6c8d8);
+  background: #fff;
+}
+
+/* footer bar */
+.qc-sheet > div:last-child > div:last-child {
+  border-top: 1px solid var(--gb-grid-strong, #b6c8d8);
+  background: var(--gb-pearl);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qc-sheet {
+    animation: none;
+  }
+}
+
+@media (max-width: 639px) {
+  /* the field label carries the meaning; the bar heading is redundant */
+  .qc-page .qc-search > div:first-child {
+    display: none;
+  }
+
+  .qc-page .qc-search > div:last-child {
+    padding: 0.5rem 0.6rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .qc-page .qc-search-row {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---- Registers (both pages) -------------------------------------------- */
+.fw-page .erp-register,
+.qc-page .erp-register {
+  border-color: var(--gb-grid-strong);
+}
+
+.fw-page .erp-register thead th,
+.qc-page .erp-register thead th {
+  height: var(--fq-head-h);
+  padding: 0.4rem 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 241, 248, 0.86);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.fw-page .erp-register td,
+.qc-page .erp-register td {
+  height: var(--fq-row-h);
+  overflow: hidden;
+  padding: 0.3rem 0.55rem;
+  font-size: 11.5px;
+  color: var(--gb-ink);
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--gb-grid-strong);
+  border-bottom: 1px solid var(--gb-grid-strong);
+  background: var(--gb-row);
+  transition: background-color 0.12s ease;
+}
+
+.fw-page .erp-register tbody tr:nth-child(even) td,
+.qc-page .erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.fw-page .erp-register tbody tr:hover td,
+.qc-page .erp-register tbody tr:hover td {
+  background: #e7f0f8;
+}
+
+.fw-page .erp-register tbody tr:focus-visible,
+.qc-page .erp-register tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* the Finished Work dialog's inner item table keeps its own look */
+.fw-sheet .erp-register,
+.fw-sheet .erp-register td,
+.fw-sheet .erp-register thead th {
+  background-image: none;
+}
+
+.fw-page .fw-empty,
+.qc-page .qc-empty {
+  display: flex;
+  min-height: 8rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.fw-page .fw-empty > div,
+.qc-page .qc-empty > div {
+  width: 100%;
+  max-width: 24rem;
+}
+
+/* ---- Ruled empty space -------------------------------------------------
+   A short table left the rest of its fixed-height box blank. One filler row
+   stretches to fill the remainder: its cells inherit the column borders, so
+   the vertical rules continue, and a repeating gradient draws the horizontal
+   rules at the same row pitch. It collapses to nothing once the rows
+   overflow the box. aria-hidden, so it is not announced. */
+.qc-page .qc-reg,
+.fw-page .fw-reg {
+  height: 100%;
+}
+
+.qc-page .qc-reg tbody tr.qc-filler,
+.fw-page .fw-reg tbody tr.fw-filler {
+  height: 100%;
+}
+
+.qc-page .qc-reg tbody tr.qc-filler td,
+.fw-page .fw-reg tbody tr.fw-filler td {
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--gb-row);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--fq-row-h) - 1px),
+    var(--gb-grid-strong) calc(var(--fq-row-h) - 1px),
+    var(--gb-grid-strong) var(--fq-row-h)
+  );
+}
+
+.qc-page .qc-reg tbody tr.qc-filler:hover td,
+.fw-page .fw-reg tbody tr.fw-filler:hover td {
+  background-color: var(--gb-row);
+}
+
+/* Fixed row-count boxes */
+@media (min-width: 768px) {
+  .fw-page .fw-panel .table-scroll {
+    height: min(calc(var(--fq-head-h) + 12 * var(--fq-row-h)), calc(100vh - 22rem));
+    max-height: none;
+  }
+
+  /* the two working registers are stable 8-row boxes; the guard is loose
+     enough that the row count, not the viewport, decides the height */
+  .qc-page .qc-pending .table-scroll,
+  .qc-page .qc-records .table-scroll {
+    height: min(calc(var(--fq-head-h) + var(--qc-rows) * var(--fq-row-h)), calc(100vh - 14rem));
+    max-height: none;
+  }
+
+  .qc-page .qc-without .table-scroll {
+    max-height: calc(var(--fq-head-h) + 4 * var(--fq-row-h));
+  }
+}
+
+@media (max-width: 767px) {
+  .fw-page .fw-panel .table-scroll,
+  .qc-page .qc-panel .table-scroll {
+    max-height: 52vh;
+  }
+}
+
+/* ---- Finished Work entry sheet ----------------------------------------- */
+.fw-sheet-overlay {
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .fw-sheet-overlay {
+    padding: 1.25rem 3vw;
+  }
+}
+
+.fw-sheet {
+  width: 100%;
+  height: calc(100dvh - 1rem);
+  border-color: var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
+  /* opacity only — nested roll-cut and unsaved dialogs are position: fixed */
+  animation: gb-fade-in 0.16s ease both;
+}
+
+@media (min-width: 640px) {
+  .fw-sheet {
+    width: min(96vw, 76rem);
+    /* viewport minus the overlay padding, per playbook 2.5b */
+    height: min(calc(100vh - 3.5rem), 50rem);
+  }
+}
+
+.fw-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.fw-sheet > div:first-child h2 {
+  font-size: 13.5px;
+  color: var(--gb-midnight-ink);
+}
+
+.fw-entry {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gb-workspace-top);
+}
+
+.fw-entry-main {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.75rem 0.9rem 0.85rem;
+}
+
+.fw-entry-main > * {
+  flex: 0 0 auto;
+}
+
+.fw-foot {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--gb-grid-strong);
+  padding: 0.6rem 0.9rem;
+  background: var(--gb-pearl);
+}
+
+@media (max-width: 639px) {
+  .fw-foot button {
+    flex: 1 1 auto;
+  }
+
+  .fw-entry-main input,
+  .fw-entry-main select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-sheet,
+  .fw-page .fw-metrics > div {
+    animation: none;
+  }
+
+  .fw-page .erp-register td,
+  .qc-page .erp-register td {
+    transition: none;
+  }
+}
+
+/* Finished Work item grid: six rows visible, then it scrolls inside itself
+   so the sheet body never grows. The sticky TOTAL row stays pinned. */
+.fw-sheet .fw-items {
+  /* header + 5 data rows + the sticky TOTAL row, so the total never
+     overlaps a half-visible sixth row */
+  --fw-item-row: 2.45rem;
+  max-height: calc(2.1rem + 5 * var(--fw-item-row) + 2.3rem);
+  overflow-y: auto;
+  border-color: var(--gb-grid-strong, #b6c8d8);
+}
+
+.fw-sheet .fw-items table td {
+  height: var(--fw-item-row);
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+/* keep the row height deterministic: tallest cell content stays under it */
+.fw-sheet .fw-items table input,
+.fw-sheet .fw-items table select,
+.fw-sheet .fw-items table button {
+  min-height: 0;
+  height: 2rem;
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+}
+
+/* The TOTAL row lives in <tfoot>, but only SOME of its cells carried
+   `sticky bottom-0` in the markup — the blank/TOTAL-label cells did not.
+   So the numbers pinned to the bottom while the label scrolled away, and the
+   pinned numbers sat on top of the next half-visible row. Pin the whole row. */
+.fw-sheet .fw-items tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  height: 2.3rem;
+  background: var(--gb-pearl);
+  border-top: 1px solid var(--gb-grid-strong, #b6c8d8);
+}
+
+/* A new row must land ABOVE the pinned TOTAL bar, not behind it. The grid
+   scrolls the focused input into view, so give it the footer's height as
+   scroll margin. */
+.fw-sheet .fw-items tbody tr,
+.fw-sheet .fw-items tbody input,
+.fw-sheet .fw-items tbody select,
+.fw-sheet .fw-items tbody button {
+  scroll-margin-bottom: 2.9rem;
+}
+
+/* ---------- Live Stock · Aurora Weave — Soft Ice ----------
+   Scoped to .ls-page and the portaled drawer's own classes. Reuses --gb-*;
+   nothing here edits .gb-*, .po-*, .mi-*, .mp-*, .fw-*, .qc-* or .aw-metrics.
+   No transform/filter on .ls-page — the drawer is position: fixed. */
+
+.ls-page {
+  position: relative;
+  min-height: calc(100vh - 3rem);
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 0.7rem 0.6rem 2rem;
+  color: var(--gb-ink);
+  background-color: var(--gb-workspace);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 58, 84, 0.035) 0,
+      rgba(31, 58, 84, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 58, 84, 0.028) 0,
+      rgba(31, 58, 84, 0.028) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    radial-gradient(
+      ellipse 72% 46% at 12% 0%,
+      rgba(132, 183, 214, 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 48% 38% at 92% 96%,
+      rgba(120, 186, 170, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(
+      170deg,
+      var(--gb-workspace-top) 0%,
+      var(--gb-workspace) 46%,
+      var(--gb-workspace-deep) 100%
+    );
+
+  --gb-grid-strong: #b6c8d8;
+  --ls-row-h: 2.3rem;
+  --ls-head-h: 1.9rem;
+  --ls-rows: 12;
+}
+
+@media (max-width: 767px) {
+  .ls-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .ls-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding-right: 0.7rem;
+    padding-left: 0.7rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .ls-page {
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 10% 0%,
+        rgba(132, 183, 214, 0.24),
+        transparent 62%
+      ),
+      linear-gradient(
+        170deg,
+        var(--gb-workspace-top) 0%,
+        var(--gb-workspace) 52%,
+        var(--gb-workspace-deep) 100%
+      );
+  }
+}
+
+.ls-page .ls-stage {
+  display: flex;
+  width: min(99%, 120rem);
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .ls-page .ls-stage {
+    width: 100%;
+  }
+}
+
+/* ---- Demo mode --------------------------------------------------------- */
+.ls-page .ls-topbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ls-page .ls-demo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px dashed var(--gb-pearl-line);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #7a5a12;
+  background: var(--gb-pearl);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.ls-page .ls-demo-toggle:hover {
+  border-color: var(--warn);
+}
+
+.ls-page .ls-demo-toggle.is-on {
+  border-style: solid;
+  border-color: var(--warn);
+  background: var(--warn);
+  color: #fff;
+}
+
+.ls-page .ls-demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--gb-pearl-line);
+  border-left: 3px solid var(--warn);
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  font-size: 12px;
+  color: #5a4412;
+  background: var(--gb-pearl);
+}
+
+.ls-page .ls-demo-tag {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.08rem 0.45rem;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: var(--warn);
+}
+
+/* ---- Metrics: shared cards, page-scoped colour order ------------------- */
+.ls-page .ls-metrics > div:nth-child(3) {
+  border-color: var(--gb-lagoon-line);
+  background-color: var(--gb-lagoon);
+}
+
+.ls-page .ls-metrics > div:nth-child(4) {
+  border-color: var(--gb-pearl-line);
+  background-color: var(--gb-pearl);
+}
+
+/* ---- Register panel ---------------------------------------------------- */
+.ls-page .ls-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+.ls-page .ls-panel-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  padding: 0.55rem 0.85rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.ls-page .ls-panel-title {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.ls-page .ls-search {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ls-page .ls-search > span {
+  flex-shrink: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  color: rgba(232, 241, 248, 0.68);
+}
+
+.ls-page .ls-search input {
+  width: min(16rem, 100%);
+  border-color: rgba(232, 241, 248, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+}
+
+.ls-page .ls-search input::placeholder {
+  color: rgba(232, 241, 248, 0.45);
+}
+
+.ls-page .ls-clear {
+  flex-shrink: 0;
+  border: 1px solid rgba(232, 241, 248, 0.22);
+  border-radius: 7px;
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  color: var(--gb-midnight-ink);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ls-page .ls-clear:hover {
+  border-color: rgba(232, 197, 71, 0.5);
+}
+
+@media (max-width: 767px) {
+  .ls-page .ls-search {
+    width: 100%;
+  }
+
+  .ls-page .ls-search input {
+    width: 100%;
+  }
+}
+
+/* ---- Register ---------------------------------------------------------- */
+.ls-page .ls-reg.erp-register {
+  height: 100%;
+  border-color: var(--gb-grid-strong);
+}
+
+.ls-page .ls-reg.erp-register thead th {
+  height: var(--ls-head-h);
+  padding: 0.4rem 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 241, 248, 0.86);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.ls-page .ls-reg.erp-register td {
+  height: var(--ls-row-h);
+  padding: 0.3rem 0.55rem;
+  font-size: 11.5px;
+  color: var(--gb-ink);
+  border-right: 1px solid var(--gb-grid-strong);
+  border-bottom: 1px solid var(--gb-grid-strong);
+  background: var(--gb-row);
+  transition: background-color 0.12s ease;
+}
+
+.ls-page .ls-reg.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.ls-page .ls-reg.erp-register tbody tr:hover td {
+  background: #e7f0f8;
+}
+
+.ls-page .ls-reg tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* filler keeps the empty part of the box ruled; collapses when rows overflow */
+.ls-page .ls-reg tbody tr.ls-filler {
+  height: 100%;
+}
+
+.ls-page .ls-reg tbody tr.ls-filler td {
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--gb-row);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--ls-row-h) - 1px),
+    var(--gb-grid-strong) calc(var(--ls-row-h) - 1px),
+    var(--gb-grid-strong) var(--ls-row-h)
+  );
+}
+
+.ls-page .ls-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 7px;
+  padding: 0.12rem 0.45rem;
+  font-size: 10.5px;
+  color: var(--gb-ink-soft);
+  background: var(--gb-row);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.ls-page .ls-view:hover {
+  border-color: var(--accent);
+  background: var(--gb-lagoon);
+  color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .ls-page .ls-view {
+    min-height: 2.1rem;
+    padding: 0.25rem 0.65rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .ls-page .ls-scroll {
+    height: min(
+      calc(var(--ls-head-h) + var(--ls-rows) * var(--ls-row-h)),
+      calc(100vh - 16rem)
+    );
+    max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .ls-page .ls-scroll {
+    max-height: 56vh;
+  }
+}
+
+/* ---- Drawer (portaled: styled from its own classes) -------------------- */
+.ls-drawer {
+  border-left: 1px solid var(--gb-grid-strong, #b6c8d8);
+  background: var(--gb-workspace-top);
+  box-shadow: -24px 0 60px rgba(8, 16, 24, 0.3);
+  animation: gb-fade-in 0.18s ease both;
+}
+
+.ls-drawer > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.ls-drawer > div:first-child h2 {
+  color: var(--gb-midnight-ink);
+}
+
+.ls-drawer > div:first-child p {
+  color: rgba(232, 241, 248, 0.68);
+}
+
+.ls-drawer-close {
+  display: inline-flex;
+  height: 1.9rem;
+  width: 1.9rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.24);
+  border-radius: 999px;
+  font-size: 0;
+  color: transparent;
+  background: rgba(255, 255, 255, 0.07);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.ls-drawer-close::after {
+  content: "\00d7";
+  font-size: 16px;
+  line-height: 1;
+  color: var(--gb-midnight-ink);
+}
+
+.ls-drawer-close:hover {
+  border-color: rgba(179, 39, 28, 0.85);
+  background: rgba(179, 39, 28, 0.8);
+}
+
+.ls-drawer-tiles > div {
+  border-color: var(--gb-pearl-line);
+  border-radius: 11px;
+  background: var(--gb-pearl);
+}
+
+.ls-roll-table {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-radius: 11px;
+}
+
+.ls-roll-table thead th {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 241, 248, 0.86);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.ls-roll-table td {
+  height: 2.3rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 11.5px;
+  color: var(--gb-ink);
+  border-bottom: 1px solid var(--gb-grid-strong, #b6c8d8);
+}
+
+.ls-roll-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ls-roll-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+/* ---- Quality / status chips (page + drawer) ---------------------------- */
+.ls-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--gb-grid-strong, #b6c8d8);
+  border-radius: 999px;
+  padding: 0.08rem 0.45rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: var(--gb-ink-soft);
+  background: var(--gb-row-alt);
+}
+
+.ls-chip[data-quality="PASSED"] {
+  border-color: var(--gb-lagoon-line);
+  color: #0a5547;
+  background: var(--gb-lagoon);
+}
+
+.ls-chip[data-quality="WITHOUT_QC"] {
+  border-color: var(--gb-pearl-line);
+  color: #7a5a12;
+  background: var(--gb-pearl);
+}
+
+.ls-chip[data-status="available"] {
+  border-color: var(--gb-ice-line);
+  color: #1b4a6b;
+  background: var(--gb-ice);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-drawer {
+    animation: none;
+  }
+
+  .ls-page .ls-reg.erp-register td,
+  .ls-page .ls-view,
+  .ls-page .ls-demo-toggle,
+  .ls-drawer-close {
+    transition: none;
   }
 }
 

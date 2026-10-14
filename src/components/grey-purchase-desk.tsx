@@ -1129,6 +1129,7 @@ export function GreyPurchaseDesk({
           headerClassName="gb-sheet-head justify-between px-4 py-2"
           closeClassName="gb-sheet-close"
           lockScroll
+          portal
           headerAccessory={
             <div className="gb-sheet-tools">
               <DocumentActions documents={draft.documents} />
@@ -1540,6 +1541,7 @@ export function GreyPurchaseDesk({
           overlayClassName="gb-sheet-overlay"
           headerClassName="gb-sheet-head justify-between px-4 py-2"
           closeClassName="gb-sheet-close"
+          portal
           frameWidthClass="gb-sheet gb-sheet-roll"
         >
           <div className="gb-roll">

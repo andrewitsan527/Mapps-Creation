@@ -126,7 +126,11 @@ export function ErpShell({
   const auroraHeader =
     pathname === "/grey-purchase" ||
     pathname === "/purchase-orders" ||
-    pathname === "/mill-inward";
+    pathname === "/mill-inward" ||
+    pathname === "/mill-program" ||
+    pathname === "/finished-work" ||
+    pathname === "/quality-check" ||
+    pathname === "/live-stock";
   const textileHeader =
     pathname === "/grey" ||
     pathname === "/programs" ||

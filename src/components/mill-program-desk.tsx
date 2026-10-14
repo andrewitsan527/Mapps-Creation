@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Factory, MessageCircle, Plus, Trash2 } from "lucide-react";
+import { Factory, Plus, Send, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
@@ -11,13 +11,11 @@ import {
   FieldGroup,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
   buttonGhostClass,
   buttonTinyClass,
-  buttonWaClass,
   inputClass,
 } from "@/components/ui";
 import { lookupColorCode } from "@/server/actions/color-codes";
@@ -575,34 +573,25 @@ export function MillProgramDesk({
   }
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Mill Program"
-        eyebrow="Produce"
-        icon={Factory}
-        description="Allocate available mill rolls to finish, code and colour."
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Create Mill Program
-          </button>
-        }
-      />
-
+    <div className="mp-page">
+      <div className="mp-stage">
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-4">
+      <MetricStrip className="aw-metrics grid-cols-2 lg:grid-cols-4">
         <Metric label="Available Rolls" value={totals.available} />
         <Metric
           label="Programmed Rolls"
@@ -617,14 +606,148 @@ export function MillProgramDesk({
         <Metric label="Total Programs" value={totals.programs} />
       </MetricStrip>
 
-      <Panel title="Available grey" flush>
+      <Panel
+        title="Mill programs"
+        flush
+        className="mp-panel mp-primary"
+        action={
+          <button
+            className={`${buttonClass} mp-new`}
+            type="button"
+            onClick={openCreate}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Create Mill Program
+          </button>
+        }
+      >
+        {rows.length === 0 ? (
+          <div className="mp-empty">
+            <EmptyState
+              icon={Factory}
+              text="No mill programs yet. Create a program against available grey."
+            />
+          </div>
+        ) : (
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register mp-reg w-full table-fixed">
+              <colgroup>
+                <col className="w-[6.5rem]" />
+                <col className="w-[5.5rem]" />
+                <col />
+                <col />
+                <col />
+                <col className="w-[5.5rem]" />
+                <col className="w-[6.5rem]" />
+                <col className="w-[7rem]" />
+                <col className="w-[9.5rem]" />
+                <col className="w-[4.5rem]" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Sr. No.</th>
+                  <th>Date</th>
+                  <th>Mill</th>
+                  <th>Item</th>
+                  <th>Knitter</th>
+                  <th className="num">Total Rolls</th>
+                  <th className="num">Programmed Rolls</th>
+                  <th>Type of Finish</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open mill program ${row.srNo}`}
+                    className="cursor-pointer hover:bg-(--panel-sunken)"
+                    onClick={() => openEdit(row)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openEdit(row);
+                      }
+                    }}
+                  >
+                    <td className="font-semibold tabular-nums">{row.srNo}</td>
+                    <td className="tabular-nums">
+                      {formatDisplayDate(row.date)}
+                    </td>
+                    <td>{row.mill}</td>
+                    <td>{row.item}</td>
+                    <td>{row.knitter || "—"}</td>
+                    <td className="num tabular-nums">{row.originalRolls}</td>
+                    <td className="num tabular-nums">{row.programmedRolls}</td>
+                    <td>{row.typeOfFinish}</td>
+                    <td>
+                      <span
+                        data-status={row.status}
+                        className={statusBadge(
+                          row.status === "sent"
+                            ? "SENT_TO_MILL"
+                            : row.status === "draft"
+                              ? "DRAFT"
+                              : "DRAFT",
+                        )}
+                      >
+                        {row.status === "sent"
+                          ? "SENT"
+                          : row.status === "draft"
+                            ? "DRAFT"
+                            : "SAVED"}
+                      </span>
+                      {row.status === "sent" && row.sentAt ? (
+                        <span className="mp-sent-at text-[10px] text-(--muted) tabular-nums">
+                          {new Date(row.sentAt).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`${buttonTinyClass} mp-open`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(row);
+                        }}
+                      >
+                        Open
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
+        )}
+      </Panel>
+
+      <Panel title="Available grey" flush className="mp-panel mp-secondary">
         {availableRows.length === 0 ? (
-          <div className="p-2.5">
+          <div className="mp-empty">
             <EmptyState text="No mill inward rolls available to program." />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register mp-reg w-full table-fixed">
+              <colgroup>
+                <col />
+                <col />
+                <col className="w-[7.5rem]" />
+                <col className="w-[7rem]" />
+                <col className="w-[8.5rem]" />
+                <col className="w-[8.5rem]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Mill</th>
@@ -654,99 +777,15 @@ export function MillProgramDesk({
         )}
       </Panel>
 
-      <Panel title="Mill programs" flush>
-        {rows.length === 0 ? (
-          <div className="p-2.5">
-            <EmptyState
-              icon={Factory}
-              text="No mill programs yet. Create a program against available grey."
-            />
-          </div>
-        ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
-              <thead>
-                <tr>
-                  <th>Sr. No.</th>
-                  <th>Date</th>
-                  <th>Mill</th>
-                  <th>Item</th>
-                  <th>Knitter</th>
-                  <th className="num">Total Rolls</th>
-                  <th className="num">Programmed Rolls</th>
-                  <th>Type of Finish</th>
-                  <th>Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="cursor-pointer hover:bg-(--panel-sunken)"
-                    onClick={() => openEdit(row)}
-                  >
-                    <td className="font-semibold tabular-nums">{row.srNo}</td>
-                    <td className="tabular-nums">
-                      {formatDisplayDate(row.date)}
-                    </td>
-                    <td>{row.mill}</td>
-                    <td>{row.item}</td>
-                    <td>{row.knitter || "—"}</td>
-                    <td className="num tabular-nums">{row.originalRolls}</td>
-                    <td className="num tabular-nums">{row.programmedRolls}</td>
-                    <td>{row.typeOfFinish}</td>
-                    <td>
-                      <span
-                        className={statusBadge(
-                          row.status === "sent"
-                            ? "SENT_TO_MILL"
-                            : row.status === "draft"
-                              ? "DRAFT"
-                              : "DRAFT",
-                        )}
-                      >
-                        {row.status === "sent"
-                          ? "SENT"
-                          : row.status === "draft"
-                            ? "DRAFT"
-                            : "SAVED"}
-                      </span>
-                      {row.status === "sent" && row.sentAt ? (
-                        <span className="mt-0.5 block text-[10px] text-(--muted) tabular-nums">
-                          {new Date(row.sentAt).toLocaleString("en-IN", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className={buttonTinyClass}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(row);
-                        }}
-                      >
-                        Open
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        )}
-      </Panel>
-
       {unsaved.dialog}
       {draft && mode ? (
         <Overlay
+          flushBody
+          portal
+          lockScroll
+          overlayClassName="mp-sheet-overlay"
+          frameWidthClass="mp-sheet"
+          closeClassName="gb-sheet-close"
           title={
             mode === "create"
               ? `New Mill Program ${draft.srNo}`
@@ -754,7 +793,8 @@ export function MillProgramDesk({
           }
           onClose={unsaved.requestClose}
         >
-          <div className="space-y-2 px-4 py-2.5">
+          <div className="mp-entry">
+            <div className="mp-entry-main">
             {error ? (
               <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                 {error}
@@ -762,7 +802,7 @@ export function MillProgramDesk({
             ) : null}
 
             <FieldGroup label="Source">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Field label="Mill Name">
                   <select
                     className={inputClass}
@@ -800,8 +840,8 @@ export function MillProgramDesk({
               {draft.millId && draft.item ? (
                 <div>
                   {inwardOptions.length > 0 && (
-                    <TableWrap>
-                      <table className="erp-table">
+                    <TableWrap maxHeight={false} className="mp-picker">
+                      <table className="erp-table mp-picker-table">
                         <thead>
                           <tr>
                             <th className="w-8" />
@@ -861,7 +901,7 @@ export function MillProgramDesk({
               ) : null}
 
               {draft.inwardId ? (
-                <div className="mt-2 grid grid-cols-4 gap-2">
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <Field label="No. of Rolls">
                     <p className="py-1.5 text-[12.5px] font-semibold tabular-nums">
                       {draft.originalRolls}
@@ -885,7 +925,7 @@ export function MillProgramDesk({
             </FieldGroup>
 
             <FieldGroup label="Program details">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <Field label="Type of Finish">
                   <input
                     className={inputClass}
@@ -915,7 +955,14 @@ export function MillProgramDesk({
               <p className="mb-1 text-[12px] font-medium text-(--muted)">
                 Program grid
               </p>
-              <table className="erp-table">
+              <table className="erp-table mp-line-table w-full table-fixed">
+                <colgroup>
+                  <col className="w-[3.25rem]" />
+                  <col className="w-[7rem]" />
+                  <col className="w-[9rem]" />
+                  <col />
+                  <col className="w-[2.9rem]" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th className="w-12">No.</th>
@@ -1009,8 +1056,9 @@ export function MillProgramDesk({
                 </p>
               ) : null}
             </div>
+            </div>
 
-            <div className="sticky bottom-0 flex justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5 -mx-4">
+            <div className="mp-foot">
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -1036,18 +1084,19 @@ export function MillProgramDesk({
               {draft.status === "draft" ? null : (
               <button
                 type="button"
-                className={buttonWaClass}
+                className={`${buttonClass} mp-send`}
                 disabled={overLimit || draft.status === "sent"}
                 onClick={sendProgram}
               >
-                <MessageCircle className="h-3 w-3" />
-                {draft.status === "sent" ? "Sent" : "Send M-Program"}
+                <Send className="h-3 w-3" />
+                {draft.status === "sent" ? "Sent" : "Send Mill Program"}
               </button>
               )}
             </div>
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Shirt, Trash2 } from "lucide-react";
+import { Plus, Shirt, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useUnsavedClose } from "@/components/unsaved-changes";
@@ -11,7 +12,6 @@ import {
   FieldGroup,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -506,6 +506,7 @@ export function FinishedWorkDesk({
       );
       if (el) {
         pendingLineFocus.current = null;
+        el.scrollIntoView({ block: "nearest", inline: "nearest" });
         el.focus();
       }
     }
@@ -918,34 +919,25 @@ export function FinishedWorkDesk({
     "—";
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Finished Work"
-        eyebrow="Produce"
-        icon={Shirt}
-        description="Record finished fabric received back from the mill."
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            New Finished Work
-          </button>
-        }
-      />
-
+    <div className="fw-page">
+      <div className="fw-stage">
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-5">
+      <MetricStrip className="fw-metrics grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
         <Metric
           label="Today's Entries"
           value={totals.todayCount}
@@ -965,14 +957,44 @@ export function FinishedWorkDesk({
         />
       </MetricStrip>
 
-      <Panel title="Finished work" flush>
+      <Panel
+        title="Finished work"
+        flush
+        className="fw-panel"
+        action={
+          <button
+            className={`${buttonClass} fw-new`}
+            type="button"
+            onClick={openCreate}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Finished Work
+          </button>
+        }
+      >
         {rows.length === 0 ? (
-          <div className="p-2.5">
+          <div className="fw-empty">
             <EmptyState icon={Shirt} text="No finished work recorded yet." />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register fw-reg w-full min-w-[78rem] table-fixed">
+              <colgroup>
+                <col className="w-[6.5rem]" />
+                <col className="w-[5.5rem]" />
+                <col className="w-[6rem]" />
+                <col />
+                <col className="w-[6rem]" />
+                <col />
+                <col className="w-[4rem]" />
+                <col className="w-[6.25rem]" />
+                <col className="w-[6.75rem]" />
+                <col className="w-[6.75rem]" />
+                <col className="w-[5.5rem]" />
+                <col className="w-[5.5rem]" />
+                <col className="w-[7rem]" />
+                <col className="w-[4.5rem]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Sr. No.</th>
@@ -1031,6 +1053,22 @@ export function FinishedWorkDesk({
                     </td>
                   </tr>
                 ))}
+                <tr className="fw-filler" aria-hidden>
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                </tr>
               </tbody>
             </table>
           </TableWrap>
@@ -1040,6 +1078,12 @@ export function FinishedWorkDesk({
       {unsaved.dialog}
       {draft && mode && draftTotals ? (
         <Overlay
+          portal
+          lockScroll
+          flushBody
+          overlayClassName="fw-sheet-overlay"
+          frameWidthClass="fw-sheet"
+          closeClassName="gb-sheet-close"
           title={
             mode === "create"
               ? `New Finished Work ${draft.srNo}`
@@ -1049,7 +1093,8 @@ export function FinishedWorkDesk({
           trapFocus={detailLineId == null && rollCut == null}
           onClose={unsaved.requestClose}
         >
-          <div className="space-y-2 px-4 py-2.5">
+          <div className="fw-entry">
+            <div className="fw-entry-main">
             {error ? (
               <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                 {error}
@@ -1118,7 +1163,7 @@ export function FinishedWorkDesk({
                   + Add Item
                 </button>
               </div>
-              <div className="overflow-x-auto rounded-md border border-(--line)">
+              <div className="fw-items overflow-x-auto rounded-md border border-(--line)">
                 <table className="erp-table table-fixed min-w-[58rem]">
                   <colgroup>
                     <col className="w-11" />
@@ -1304,8 +1349,9 @@ export function FinishedWorkDesk({
                 <p className="text-[11px] text-(--danger)">{weightIssue}</p>
               ) : null}
             </FieldGroup>
+            </div>
 
-            <div className="sticky bottom-0 -mx-4 flex justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
+            <div className="fw-foot">
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -1326,7 +1372,7 @@ export function FinishedWorkDesk({
         </Overlay>
       ) : null}
 
-      {detailLine && rollDraft && detailTotals ? (
+      {detailLine && rollDraft && detailTotals ? createPortal((
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-[4vw] py-8">
           <div
             ref={detailRootRef}
@@ -1426,9 +1472,9 @@ export function FinishedWorkDesk({
             </div>
           </div>
         </div>
-      ) : null}
+      ), document.body) : null}
 
-      {detailDiscard ? (
+      {detailDiscard ? createPortal((
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
           <div
             ref={confirmRootRef}
@@ -1452,9 +1498,9 @@ export function FinishedWorkDesk({
             </div>
           </div>
         </div>
-      ) : null}
+      ), document.body) : null}
 
-      {rollCut ? (
+      {rollCut ? createPortal((
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
           <div
             ref={confirmRootRef}
@@ -1477,7 +1523,8 @@ export function FinishedWorkDesk({
             </div>
           </div>
         </div>
-      ) : null}
+      ), document.body) : null}
+      </div>
     </div>
   );
 }

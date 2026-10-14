@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight } from "lucide-react";
 import type { LiveStockRollRow } from "@/server/actions/live-stock";
@@ -202,8 +202,45 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [canPortal, setCanPortal] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const realGroups = useMemo(() => groupStock(rolls), [rolls]);
   const groups = demo ? DEMO_GROUPS : realGroups;
+
+  useEffect(() => {
+    if (!openId) return;
+    const root = drawerRef.current;
+    function focusables() {
+      return root
+        ? [...root.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          )]
+        : [];
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpenId(null);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      event.preventDefault();
+      const current = document.activeElement as HTMLElement | null;
+      const index = current ? items.indexOf(current) : -1;
+      const next = event.shiftKey
+        ? items[(index - 1 + items.length) % items.length]
+        : items[(index + 1) % items.length];
+      next?.focus();
+    }
+    focusables()[0]?.focus();
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      returnFocusRef.current?.focus();
+    };
+  }, [openId]);
 
   useEffect(() => {
     setCanPortal(true);
@@ -246,11 +283,12 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
     open && canPortal
       ? createPortal(
           <div
-            className="fixed inset-0 z-50 flex justify-end bg-black/30"
+            className="ls-drawer-overlay fixed inset-0 z-50 flex justify-end bg-black/30"
             onMouseDown={() => setOpenId(null)}
           >
             <div
-              className="flex h-full w-full max-w-xl min-w-0 flex-col border-l border-(--line) bg-(--panel) shadow-sm"
+              ref={drawerRef}
+              className="ls-drawer flex h-full w-full max-w-xl min-w-0 flex-col"
               onMouseDown={(event) => event.stopPropagation()}
               role="dialog"
               aria-label={`${open.item} ${open.code} ${open.colour}`}
@@ -267,13 +305,13 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
                 </div>
                 <button
                   type="button"
-                  className="h-9 shrink-0 rounded-md border border-(--line) bg-(--panel) px-3 text-[13px] text-(--ink)"
+                  className="ls-drawer-close"
                   onClick={() => setOpenId(null)}
                 >
                   Close
                 </button>
               </div>
-              <div className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-3">
+              <div className="ls-drawer-tiles grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-3">
                 <Stat label="Total Rolls" value={String(open.rolls.length)} />
                 <Stat
                   label="Total KG"
@@ -285,7 +323,7 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
                 />
               </div>
               <div className="table-scroll min-h-0 flex-1 overflow-auto px-4 pb-4">
-                <table className="erp-table w-full min-w-[24rem] table-fixed">
+                <table className="erp-table erp-register ls-roll-table w-full min-w-[24rem] table-fixed">
                   <colgroup>
                     <col className="w-[6rem]" />
                     <col className="w-[9.5rem]" />
@@ -311,8 +349,16 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
                             ? "—"
                             : `${formatKg(roll.finishedKg, 3)} KG`}
                         </td>
-                        <td className="truncate">{qualityLabel(roll.qualityState)}</td>
-                        <td className="truncate">{statusLabel(roll.status)}</td>
+                        <td className="truncate">
+                          <span className="ls-chip" data-quality={roll.qualityState}>
+                            {qualityLabel(roll.qualityState)}
+                          </span>
+                        </td>
+                        <td className="truncate">
+                          <span className="ls-chip" data-status={roll.status}>
+                            {statusLabel(roll.status)}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -325,56 +371,49 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
       : null;
 
   return (
-    <div className="min-w-0 space-y-3">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-[18px] leading-tight font-semibold text-(--ink)">Live Stock</h1>
-          <p className="mt-0.5 text-[13px] text-(--muted)">
-            Fabric available to sell. Without QC rolls are included.
-          </p>
-        </div>
+    <div className="ls-page">
+      <div className="ls-stage">
+      <div className="ls-topbar">
         <button
           type="button"
-          className="mt-0.5 h-8 shrink-0 rounded-md border border-(--line) bg-(--panel) px-2.5 text-[12px] font-medium text-(--ink)"
+          className={`ls-demo-toggle${demo ? " is-on" : ""}`}
+          aria-pressed={demo}
           onClick={toggleDemo}
         >
-          {demo ? "Exit Demo" : "Demo"}
+          {demo ? "Exit Demo Mode" : "Demo Mode"}
         </button>
-      </header>
+      </div>
       {demo ? (
-        <p className="w-fit max-w-full rounded-md border border-(--line) bg-(--warn-soft) px-2.5 py-1 text-[12px] text-(--warn)">
-          <span className="font-semibold">DEMO MODE</span>
-          {" — sample inventory, not warehouse stock."}
+        <p className="ls-demo-banner" role="status">
+          <span className="ls-demo-tag">DEMO MODE</span>
+          Simulated inventory — this is not real warehouse stock.
         </p>
       ) : null}
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="aw-metrics ls-metrics grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Stat label="Total Rolls" value={String(summary.rolls)} />
         <Stat label="Total KG" value={summary.kg == null ? "—" : formatThousandths(summary.kg)} />
         <Stat label="QC Passed" value={String(summary.passed)} />
         <Stat label="Without QC" value={String(summary.withoutQc)} />
       </div>
-      <label className="block w-full max-w-[28rem] min-w-0 text-[12px] font-medium text-(--muted)">
-        Search item / code / colour
-        <span className="mt-1 flex min-w-0 items-center gap-2">
-          <input
-            className={fieldClass}
-            value={query}
-            placeholder="Search"
-            autoComplete="off"
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button
-            type="button"
-            className="h-9 shrink-0 rounded-md border border-(--line) bg-(--panel) px-3 text-[13px] font-medium text-(--ink)"
-            onClick={() => setQuery("")}
-          >
-            Clear
-          </button>
-        </span>
-      </label>
-
-      <div className="table-scroll max-h-[calc(100vh-16rem)] min-w-0 overflow-auto rounded-md border border-(--line-strong)">
-        <table className="erp-table w-full min-w-[42rem] table-fixed !border-collapse [&_th]:!border-(--line-strong) [&_td]:!border-(--line-strong) [&_th]:border-r [&_td]:border-r [&_th]:!border-b [&_td]:!border-b [&_th:last-child]:!border-r-0 [&_td:last-child]:!border-r-0 [&_tbody_tr:last-child_td]:!border-b-0">
+      <div className="ls-panel">
+        <div className="ls-panel-bar">
+          <h2 className="ls-panel-title">Live Stock Register</h2>
+          <label className="ls-search">
+            <span>Search item / code / colour</span>
+            <input
+              className={fieldClass}
+              value={query}
+              placeholder="Search"
+              autoComplete="off"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <button type="button" className="ls-clear" onClick={() => setQuery("")}>
+              Clear
+            </button>
+          </label>
+        </div>
+        <div className="table-scroll ls-scroll min-w-0 overflow-auto">
+        <table className="erp-table erp-register ls-reg w-full min-w-[42rem] table-fixed">
           <colgroup>
             <col className="w-[2.75rem]" />
             <col />
@@ -404,7 +443,24 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
               </tr>
             ) : (
               visible.map((group, index) => (
-                <tr key={group.id} className="cursor-pointer" onClick={() => setOpenId(group.id)}>
+                <tr
+                  key={group.id}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View rolls for ${group.item} ${group.code} ${group.colour}`}
+                  className="cursor-pointer"
+                  onClick={(event) => {
+                    returnFocusRef.current = event.currentTarget;
+                    setOpenId(group.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      returnFocusRef.current = event.currentTarget;
+                      setOpenId(group.id);
+                    }
+                  }}
+                >
                   <td className="!text-center tabular-nums">{index + 1}</td>
                   <td className="overflow-hidden">
                     <span className="block truncate" title={group.item}>
@@ -428,18 +484,40 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
                     {group.totalKg == null ? "—" : `${formatThousandths(group.totalKg)} KG`}
                   </td>
                   <td className="!text-right text-(--muted)">
-                    <span className="inline-flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      className="ls-view"
+                      aria-label={`View rolls for ${group.item}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        returnFocusRef.current = event.currentTarget;
+                        setOpenId(group.id);
+                      }}
+                    >
                       View
                       <ChevronRight className="h-3.5 w-3.5" />
-                    </span>
+                    </button>
                   </td>
                 </tr>
               ))
             )}
+            {visible.length > 0 ? (
+              <tr className="ls-filler" aria-hidden>
+                <td />
+                <td />
+                <td />
+                <td />
+                <td />
+                <td />
+                <td />
+              </tr>
+            ) : null}
           </tbody>
         </table>
+        </div>
       </div>
       {drawer}
+      </div>
     </div>
   );
 }

@@ -739,6 +739,8 @@ export function PurchaseOrderDesk({
           closeTabIndex={-1}
           closeClassName="gb-sheet-close"
           bodyClassName="po-form-body"
+          portal
+          lockScroll
           frameWidthClass="po-sheet"
           overlayClassName="po-sheet-overlay"
           title={
