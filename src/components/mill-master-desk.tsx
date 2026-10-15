@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Building2, ChevronRight, Plus, Search } from "lucide-react";
+import { Building2, ChevronRight, Plus, Search, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
@@ -10,7 +10,6 @@ import {
   Field,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -236,34 +235,31 @@ function FormSection({
 }) {
   const visible = !collapsible || open;
   return (
-    <section className="min-w-0">
+    <section className="ms-block">
       {collapsible ? (
         <button
           type="button"
-          className="mb-2 flex items-center gap-1.5"
+          className="ms-block-head ms-block-toggle"
           onClick={onToggle}
           aria-expanded={visible}
         >
           <ChevronRight
-            className={`h-3.5 w-3.5 shrink-0 text-(--muted) transition ${
+            className={`h-3.5 w-3.5 shrink-0 transition ${
               visible ? "rotate-90" : ""
             }`}
           />
-          <span className="text-[13px] font-semibold text-(--ink)">{title}</span>
+          <span>{title}</span>
         </button>
       ) : (
-        <h3 className="mb-2 border-b border-(--line) pb-1 text-[13px] font-semibold text-(--ink)">
-          {title}
-        </h3>
+        <p className="ms-block-head">{title}</p>
       )}
-      <div className={visible ? "min-w-0" : "hidden"}>{children}</div>
+      <div className={visible ? "ms-block-body" : "hidden"}>{children}</div>
     </section>
   );
 }
 
-const formGrid =
-  "grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 xl:grid-cols-4";
-const controlClass = `${inputClass} !h-9 !py-0`;
+const formGrid = "ms-grid";
+const controlClass = inputClass;
 const areaClass = `${inputClass} max-h-24 min-h-9 resize-y py-1.5`;
 
 export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
@@ -385,34 +381,26 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
   }
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Mill"
-        eyebrow="Masters"
-        icon={Building2}
-        description="Processing mills where grey is sent for finishing."
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Add Mill
-          </button>
-        }
-      />
+    <div className="ms-page">
+      <div className="ms-stage">
 
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3">
+      <MetricStrip className="aw-metrics ms-metrics grid-cols-2 sm:grid-cols-3">
         <Metric label="Total mills" value={rows.length} />
         <Metric
           label="Active"
@@ -429,15 +417,36 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
       <Panel
         title="Mills"
         flush
+        className="ms-panel"
         action={
-          <div className="flex items-center gap-1.5">
-            <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
-            <input
-              className={`${inputClass} w-56`}
-              placeholder="Search mill name"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+          <div className="ms-bar-tools">
+            <label className="aw-search">
+              <span className="sr-only">Search mill name</span>
+              <input
+                value={query}
+                placeholder="Search mill name"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setQuery("");
+                }}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="aw-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : (
+                <Search className="aw-search-icon h-3.5 w-3.5" aria-hidden />
+              )}
+            </label>
+            <button className={buttonClass} type="button" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            Add Mill
+          </button>
           </div>
         }
       >
@@ -446,8 +455,8 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
             <EmptyState icon={Building2} text="No mill records." />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register ms-reg w-full">
               <thead>
                 <tr>
                   <th>Mill Name</th>
@@ -494,6 +503,16 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                     </td>
                   </tr>
                 ))}
+                {filtered.length > 0 ? (
+                  <tr className="ms-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>
@@ -506,10 +525,10 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
           title={mode === "create" ? "New Mill" : "Edit Mill"}
           onClose={unsaved.requestClose}
           flushBody
-          frameWidthClass="max-h-[calc(100%-4rem)] min-h-0 w-[min(1360px,calc(100%-8vw))] max-w-[calc(100%-8vw)]"
+          frameWidthClass="ms-sheet ms-sheet-lg max-h-[calc(100%-4rem)] min-h-0"
         >
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-5 py-4">
+            <div className="ms-form ms-form-fill">
               {error ? (
                 <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                   {error}
@@ -518,9 +537,10 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
 
               <FormSection title="Basic">
                 <div className={formGrid}>
-                  <Field label="Mill Name" className="sm:col-span-2 xl:col-span-3">
+                  <Field label="Mill Name" className="ms-span-wide">
                     <input
                       className={controlClass}
+                      autoFocus
                       value={draft.millName}
                       required
                       onChange={(e) => patch({ millName: e.target.value })}
@@ -555,7 +575,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                       }
                     />
                   </Field>
-                  <Field label="Receiver Name" className="sm:col-span-2">
+                  <Field label="Receiver Name" className="ms-span-wide">
                     <input
                       className={controlClass}
                       value={draft.receiverName}
@@ -592,7 +612,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                       onChange={(e) => patch({ panNo: e.target.value })}
                     />
                   </Field>
-                  <Field label="Address" className="sm:col-span-2 xl:col-span-3">
+                  <Field label="Address" className="ms-span-wide">
                     <textarea
                       className={areaClass}
                       rows={2}
@@ -613,14 +633,14 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
 
               <FormSection title="Bank Details">
                 <div className={formGrid}>
-                  <Field label="Bank Detail" className="sm:col-span-2">
+                  <Field label="Bank Detail" className="ms-span-wide">
                     <input
                       className={controlClass}
                       value={draft.bankDetail}
                       onChange={(e) => patch({ bankDetail: e.target.value })}
                     />
                   </Field>
-                  <Field label="Bank Name" className="sm:col-span-2">
+                  <Field label="Bank Name" className="ms-span-wide">
                     <input
                       className={controlClass}
                       value={draft.bankName}
@@ -641,7 +661,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                       onChange={(e) => patch({ ifscCode: e.target.value })}
                     />
                   </Field>
-                  <Field label="Branch" className="sm:col-span-2">
+                  <Field label="Branch" className="ms-span-wide">
                     <input
                       className={controlClass}
                       value={draft.branch}
@@ -655,7 +675,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                 <div className={formGrid}>
                   <Field
                     label="Udyam Registration Number"
-                    className="sm:col-span-2"
+                    className="ms-span-wide"
                   >
                     <input
                       className={controlClass}
@@ -809,7 +829,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                       onChange={(e) => patch({ dob: e.target.value })}
                     />
                   </Field>
-                  <Field label="Address 2" className="sm:col-span-2">
+                  <Field label="Address 2" className="ms-span-wide">
                     <textarea
                       className={areaClass}
                       rows={2}
@@ -951,7 +971,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
                       MILL
                     </p>
                   </Field>
-                  <Field label="References" className="sm:col-span-2">
+                  <Field label="References" className="ms-span-wide">
                     <textarea
                       className={areaClass}
                       rows={2}
@@ -987,7 +1007,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
               </FormSection>
             </div>
 
-            <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
+            <div className="ms-foot">
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -1007,6 +1027,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

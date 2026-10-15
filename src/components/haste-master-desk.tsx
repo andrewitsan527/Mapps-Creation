@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, MapPin, Plus, Search } from "lucide-react";
+import { ChevronRight, MapPin, Plus, Search, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import {
@@ -9,7 +9,6 @@ import {
   Field,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -104,34 +103,31 @@ function FormSection({
 }) {
   const visible = !collapsible || open;
   return (
-    <section className="min-w-0">
+    <section className="ms-block">
       {collapsible ? (
         <button
           type="button"
-          className="mb-2 flex items-center gap-1.5"
+          className="ms-block-head ms-block-toggle"
           onClick={onToggle}
           aria-expanded={visible}
         >
           <ChevronRight
-            className={`h-3.5 w-3.5 shrink-0 text-(--muted) transition ${
+            className={`h-3.5 w-3.5 shrink-0 transition ${
               visible ? "rotate-90" : ""
             }`}
           />
-          <span className="text-[13px] font-semibold text-(--ink)">{title}</span>
+          <span>{title}</span>
         </button>
       ) : (
-        <h3 className="mb-2 border-b border-(--line) pb-1 text-[13px] font-semibold text-(--ink)">
-          {title}
-        </h3>
+        <p className="ms-block-head">{title}</p>
       )}
-      <div className={visible ? "min-w-0" : "hidden"}>{children}</div>
+      <div className={visible ? "ms-block-body" : "hidden"}>{children}</div>
     </section>
   );
 }
 
-const formGrid =
-  "grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 xl:grid-cols-4";
-const controlClass = `${inputClass} !h-9 !py-0`;
+const formGrid = "ms-grid";
+const controlClass = inputClass;
 const areaClass = `${inputClass} max-h-24 min-h-9 resize-y py-1.5`;
 
 export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
@@ -229,34 +225,26 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
   }
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Haste"
-        eyebrow="Masters"
-        icon={MapPin}
-        description="Consignee / shipping destinations. Sales Bill link comes later."
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Add Haste
-          </button>
-        }
-      />
+    <div className="ms-page">
+      <div className="ms-stage">
 
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3">
+      <MetricStrip className="aw-metrics ms-metrics grid-cols-2 sm:grid-cols-3">
         <Metric label="Total hastes" value={rows.length} />
         <Metric
           label="With GSTIN"
@@ -272,15 +260,36 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
       <Panel
         title="Haste"
         flush
+        className="ms-panel"
         action={
-          <div className="flex items-center gap-1.5">
-            <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
-            <input
-              className={`${inputClass} w-56`}
-              placeholder="Search haste name"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+          <div className="ms-bar-tools">
+            <label className="aw-search">
+              <span className="sr-only">Search haste name</span>
+              <input
+                value={query}
+                placeholder="Search haste name"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setQuery("");
+                }}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="aw-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : (
+                <Search className="aw-search-icon h-3.5 w-3.5" aria-hidden />
+              )}
+            </label>
+            <button className={buttonClass} type="button" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            Add Haste
+          </button>
           </div>
         }
       >
@@ -289,8 +298,8 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
             <EmptyState icon={MapPin} text="No haste records." />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register ms-reg w-full">
               <thead>
                 <tr>
                   <th>Haste Name</th>
@@ -327,6 +336,16 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
                     </td>
                   </tr>
                 ))}
+                {filtered.length > 0 ? (
+                  <tr className="ms-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>
@@ -339,10 +358,10 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
           title={mode === "create" ? "New Haste" : "Edit Haste"}
           onClose={unsaved.requestClose}
           flushBody
-          frameWidthClass="max-h-[calc(100%-4rem)] min-h-0 w-[min(1360px,calc(100%-8vw))] max-w-[calc(100%-8vw)]"
+          frameWidthClass="ms-sheet ms-sheet-md max-h-[calc(100%-4rem)] min-h-0"
         >
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-5 py-4">
+            <div className="ms-form ms-form-fill">
               {error ? (
                 <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                   {error}
@@ -353,10 +372,11 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
                 <div className={formGrid}>
                   <Field
                     label="Haste Name"
-                    className="sm:col-span-2 xl:col-span-3"
+                    className="ms-span-2"
                   >
                     <input
                       className={controlClass}
+                      autoFocus
                       value={draft.hasteName}
                       required
                       onChange={(e) => patch({ hasteName: e.target.value })}
@@ -367,7 +387,7 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
 
               <FormSection title="Contact / Address">
                 <div className={formGrid}>
-                  <Field label="Receiver Name" className="sm:col-span-2">
+                  <Field label="Receiver Name" className="ms-span-2">
                     <input
                       className={controlClass}
                       value={draft.receiverName}
@@ -391,7 +411,7 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
                   </Field>
                   <Field
                     label="Address"
-                    className="sm:col-span-2 xl:col-span-4"
+                    className="ms-span-2"
                   >
                     <textarea
                       className={areaClass}
@@ -422,7 +442,7 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
 
               <FormSection title="Transport">
                 <div className={formGrid}>
-                  <Field label="Transport" className="sm:col-span-2">
+                  <Field label="Transport" className="ms-span-2">
                     <input
                       className={controlClass}
                       value={draft.transport}
@@ -551,7 +571,7 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
               </FormSection>
             </div>
 
-            <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
+            <div className="ms-foot">
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -571,6 +591,7 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

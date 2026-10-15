@@ -132,6 +132,19 @@ export function ErpShell({
     pathname === "/quality-check" ||
     pathname === "/live-stock" ||
     pathname === "/sales";
+  /* the nine transformed masters sit on the indigo ground and take the
+     matching chrome; the masters still on the old layout keep the default */
+  const mastersHeader =
+    pathname === "/masters/transport" ||
+    pathname === "/masters/hastes" ||
+    pathname === "/masters/items" ||
+    pathname === "/masters/purchase-agents" ||
+    pathname === "/masters/sales-agents" ||
+    pathname === "/masters/color-codes" ||
+    pathname === "/masters/jobs" ||
+    pathname === "/masters/sales" ||
+    pathname === "/masters/knitters" ||
+    pathname === "/masters/process-mills";
   const textileHeader =
     pathname === "/grey" ||
     pathname === "/programs" ||
@@ -150,7 +163,7 @@ export function ErpShell({
         <aside
           className={cn(
             "no-print sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-white/6 bg-(--sidebar) text-(--sidebar-ink) transition-[width] duration-200 ease-out md:flex",
-            collapsed ? "w-[3.25rem]" : "w-[9.75rem]",
+            collapsed ? "w-[3.25rem]" : "w-[11.25rem]",
           )}
         >
           <div
@@ -271,7 +284,9 @@ export function ErpShell({
                   ? "gb-app-header"
                   : textileHeader
                     ? "tx-app-header"
-                    : "border-b border-(--line) bg-(--panel)/90 backdrop-blur-md",
+                    : mastersHeader
+                      ? "ms-app-header"
+                      : "border-b border-(--line) bg-(--panel)/90 backdrop-blur-md",
             )}
           >
             <div className="flex min-w-0 items-center gap-2">
@@ -350,7 +365,12 @@ export function ErpShell({
           >
             {children}
           </main>
-          <SiteFooter className="pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-2.5" />
+          <SiteFooter
+            className={cn(
+              "pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-2.5",
+              mastersHeader && "ms-app-footer",
+            )}
+          />
         </div>
       </div>
 

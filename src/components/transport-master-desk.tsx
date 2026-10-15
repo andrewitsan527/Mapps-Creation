@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Truck } from "lucide-react";
+import { Plus, Search, Truck, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import {
   EmptyState,
   Field,
-  FieldGroup,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -155,49 +153,62 @@ export function TransportMasterDesk({
   }
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title="Transport"
-        eyebrow="Masters"
-        icon={Truck}
-        description="Carriers used later on delivery / dispatch."
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Add Transport
-          </button>
-        }
-      />
+    <div className="ms-page">
+      <div className="ms-stage">
 
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3">
+      <MetricStrip className="aw-metrics ms-metrics grid-cols-2 sm:grid-cols-3">
         <Metric label="Total transports" value={rows.length} />
       </MetricStrip>
 
       <Panel
         title="Transport"
         flush
+        className="ms-panel"
         action={
-          <div className="flex items-center gap-1.5">
-            <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
-            <input
-              className={`${inputClass} w-56`}
-              placeholder="Search transport name"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+          <div className="ms-bar-tools">
+            <label className="aw-search">
+              <span className="sr-only">Search transport name</span>
+              <input
+                value={query}
+                placeholder="Search transport name"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setQuery("");
+                }}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="aw-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : (
+                <Search className="aw-search-icon h-3.5 w-3.5" aria-hidden />
+              )}
+            </label>
+            <button className={buttonClass} type="button" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            Add Transport
+          </button>
           </div>
         }
       >
@@ -206,8 +217,8 @@ export function TransportMasterDesk({
             <EmptyState icon={Truck} text="No transport records." />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register ms-reg w-full">
               <thead>
                 <tr>
                   <th>Transport Name</th>
@@ -242,6 +253,15 @@ export function TransportMasterDesk({
                     </td>
                   </tr>
                 ))}
+                {filtered.length > 0 ? (
+                  <tr className="ms-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>
@@ -251,85 +271,87 @@ export function TransportMasterDesk({
       {unsaved.dialog}
       {draft && mode ? (
         <Overlay
+          frameWidthClass="ms-sheet ms-sheet-sm"
           title={mode === "create" ? "New Transport" : "Edit Transport"}
           onClose={unsaved.requestClose}
         >
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-2 px-4 py-2.5">
-              {error ? (
-                <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
-                  {error}
-                </p>
-              ) : null}
+          <div className="ms-form">
+            {error ? (
+              <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
+                {error}
+              </p>
+            ) : null}
 
-              <FieldGroup label="Transport details" className="space-y-1">
-                <div className="grid grid-cols-4 gap-x-2 gap-y-1.5">
-                  <Field label="Transport Name" className="col-span-2">
-                    <input
-                      className={inputClass}
-                      value={draft.transportName}
-                      onChange={(e) =>
-                        patch({ transportName: e.target.value })
-                      }
-                    />
-                  </Field>
-                  <Field label="Phone No." className="col-span-2">
-                    <input
-                      className={inputClass}
-                      value={draft.phone}
-                      inputMode="tel"
-                      onChange={(e) => patch({ phone: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Email ID" className="col-span-2">
-                    <input
-                      className={inputClass}
-                      type="email"
-                      value={draft.email}
-                      onChange={(e) => patch({ email: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Trans ID / GSTIN" className="col-span-2">
-                    <input
-                      className={inputClass}
-                      value={draft.transIdGstin}
-                      onChange={(e) =>
-                        patch({ transIdGstin: e.target.value })
-                      }
-                    />
-                  </Field>
-                  <Field label="Address" className="col-span-4">
-                    <textarea
-                      className={inputClass}
-                      rows={2}
-                      value={draft.address}
-                      onChange={(e) => patch({ address: e.target.value })}
-                    />
-                  </Field>
-                </div>
-              </FieldGroup>
-            </div>
-
-            <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
-              <button
-                type="button"
-                className={buttonGhostClass}
-                onClick={unsaved.requestClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={buttonClass}
-                disabled={saving}
-                onClick={() => void saveTransport()}
-              >
-                {mode === "create" ? "Save Transport" : "Update Transport"}
-              </button>
+            <section className="ms-block">
+              <p className="ms-block-head">Transport details</p>
+              <div className="ms-block-body ms-grid">
+                <Field label="Transport Name">
+                  <input
+                    className={inputClass}
+                    autoFocus
+                    required
+                    value={draft.transportName}
+                    onChange={(e) =>
+                      patch({ transportName: e.target.value })
+                    }
+                  />
+                </Field>
+                <Field label="Phone No.">
+                  <input
+                    className={inputClass}
+                    value={draft.phone}
+                    inputMode="tel"
+                    onChange={(e) => patch({ phone: e.target.value })}
+                  />
+                </Field>
+                <Field label="Email ID">
+                  <input
+                    className={inputClass}
+                    type="email"
+                    value={draft.email}
+                    onChange={(e) => patch({ email: e.target.value })}
+                  />
+                </Field>
+                <Field label="Trans ID / GSTIN">
+                  <input
+                    className={inputClass}
+                    value={draft.transIdGstin}
+                    onChange={(e) =>
+                      patch({ transIdGstin: e.target.value })
+                    }
+                  />
+                </Field>
+                <Field label="Address">
+                  <textarea
+                    className={inputClass}
+                    rows={2}
+                    value={draft.address}
+                    onChange={(e) => patch({ address: e.target.value })}
+                  />
+                </Field>
+              </div>
+            </section>
+            <div className="ms-foot">
+            <button
+              type="button"
+              className={buttonGhostClass}
+              onClick={unsaved.requestClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={buttonClass}
+              disabled={saving}
+              onClick={() => void saveTransport()}
+            >
+              {mode === "create" ? "Save Transport" : "Update Transport"}
+            </button>
             </div>
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

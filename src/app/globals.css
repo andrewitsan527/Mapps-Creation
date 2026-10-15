@@ -11885,7 +11885,7 @@ button {
    It carries the same midnight satin as the tab and the header, so the dark
    surface now runs tab -> bar -> column header: the fusion is extended, not
    cut. Controls hug the right; the left of the bar stays empty dark. */
-.mi-page .aw-bar, .mp-page .aw-bar, .qc-page .aw-bar {
+.mi-page .aw-bar, .mp-page .aw-bar, .qc-page .aw-bar, .ms-page .aw-bar {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -11906,14 +11906,14 @@ button {
    gradient landed at a different point in each and the seams showed as
    three slightly different darks. A flat ground cannot drift. */
 .mi-page .mi-tab[aria-pressed="true"]::before,
-.mi-page .aw-bar, .mp-page .aw-bar, .qc-page .aw-bar,
+.mi-page .aw-bar, .mp-page .aw-bar, .qc-page .aw-bar, .ms-page .aw-bar,
 .mi-page .mi-reg.erp-register thead th {
   background-image: none;
   background-color: var(--gb-midnight);
 }
 
 /* ---- the search sits in the row, icon on the right --------------------- */
-.mi-page .aw-search, .mp-page .aw-search, .qc-page .aw-search {
+.mi-page .aw-search, .mp-page .aw-search, .qc-page .aw-search, .ms-page .aw-search {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -11921,7 +11921,7 @@ button {
   min-width: 0;
 }
 
-.mi-page .aw-search input, .mp-page .aw-search input, .qc-page .aw-search input {
+.mi-page .aw-search input, .mp-page .aw-search input, .qc-page .aw-search input, .ms-page .aw-search input {
   height: 1.75rem;
   width: 100%;
   min-width: 0;
@@ -11937,7 +11937,7 @@ button {
     background-color 0.16s ease;
 }
 
-.mi-page .aw-search input::placeholder, .mp-page .aw-search input::placeholder, .qc-page .aw-search input::placeholder {
+.mi-page .aw-search input::placeholder, .mp-page .aw-search input::placeholder, .qc-page .aw-search input::placeholder, .ms-page .aw-search input::placeholder {
   color: #a0b8d0;
 }
 
@@ -11945,20 +11945,20 @@ button {
 .mi-page .aw-search input:focus,
 .mp-page .aw-search input:hover,
 .mp-page .aw-search input:focus,
-.qc-page .aw-search input:hover,
-.qc-page .aw-search input:focus {
+.qc-page .aw-search input:hover, .ms-page .aw-search input:hover,
+.qc-page .aw-search input:focus, .ms-page .aw-search input:focus {
   border-color: rgba(232, 197, 71, 0.5);
   background: rgba(255, 255, 255, 0.1);
 }
 
-.mi-page .aw-search-icon, .mp-page .aw-search-icon, .qc-page .aw-search-icon {
+.mi-page .aw-search-icon, .mp-page .aw-search-icon, .qc-page .aw-search-icon, .ms-page .aw-search-icon {
   position: absolute;
   right: 0.55rem;
   color: #a9bfd5;
   pointer-events: none;
 }
 
-.mi-page .aw-search-clear, .mp-page .aw-search-clear, .qc-page .aw-search-clear {
+.mi-page .aw-search-clear, .mp-page .aw-search-clear, .qc-page .aw-search-clear, .ms-page .aw-search-clear {
   position: absolute;
   right: 0.4rem;
   display: inline-flex;
@@ -11971,7 +11971,7 @@ button {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.mi-page .aw-search-clear:hover, .mp-page .aw-search-clear:hover, .qc-page .aw-search-clear:hover {
+.mi-page .aw-search-clear:hover, .mp-page .aw-search-clear:hover, .qc-page .aw-search-clear:hover, .ms-page .aw-search-clear:hover {
   color: #fff;
   background: rgba(179, 39, 28, 0.8);
 }
@@ -11979,7 +11979,7 @@ button {
 /* ---- the controls: small, because the data is the point ---------------- */
 .mi-page .aw-chip,
 .mp-page .aw-chip,
-.qc-page .aw-chip {
+.qc-page .aw-chip, .ms-page .aw-chip {
   display: inline-flex;
   height: 1.75rem;
   flex-shrink: 0;
@@ -12005,7 +12005,7 @@ button {
 
 .mi-page .aw-chip:hover,
 .mp-page .aw-chip:hover,
-.qc-page .aw-chip:hover {
+.qc-page .aw-chip:hover, .ms-page .aw-chip:hover {
   border-color: rgba(232, 197, 71, 0.5);
   background: rgba(255, 255, 255, 0.11);
   color: var(--gb-midnight-ink);
@@ -12013,19 +12013,19 @@ button {
 
 .mi-page .aw-chip.is-on,
 .mp-page .aw-chip.is-on,
-.qc-page .aw-chip.is-on {
+.qc-page .aw-chip.is-on, .ms-page .aw-chip.is-on {
   border-color: rgba(232, 197, 71, 0.6);
   background: rgba(232, 197, 71, 0.16);
   color: #e8c547;
 }
 
 /* ---- popovers ---------------------------------------------------------- */
-.mi-page .aw-pop-wrap, .mp-page .aw-pop-wrap, .qc-page .aw-pop-wrap {
+.mi-page .aw-pop-wrap, .mp-page .aw-pop-wrap, .qc-page .aw-pop-wrap, .ms-page .aw-pop-wrap {
   position: relative;
   display: inline-flex;
 }
 
-.mi-page .aw-pop, .mp-page .aw-pop, .qc-page .aw-pop {
+.mi-page .aw-pop, .mp-page .aw-pop, .qc-page .aw-pop, .ms-page .aw-pop {
   position: absolute;
   top: calc(100% + 0.4rem);
   right: 0;
@@ -12042,13 +12042,13 @@ button {
   animation: sl-pop-in 0.14s ease both;
 }
 
-.mi-page .aw-pop-range, .mp-page .aw-pop-range, .qc-page .aw-pop-range {
+.mi-page .aw-pop-range, .mp-page .aw-pop-range, .qc-page .aw-pop-range, .ms-page .aw-pop-range {
   flex-direction: column;
   align-items: stretch;
   gap: 0.4rem;
 }
 
-.mi-page .aw-pop input, .mp-page .aw-pop input, .qc-page .aw-pop input {
+.mi-page .aw-pop input, .mp-page .aw-pop input, .qc-page .aw-pop input, .ms-page .aw-pop input {
   height: 1.9rem;
   border: 1px solid var(--gb-grid-strong);
   border-radius: 8px;
@@ -12059,16 +12059,16 @@ button {
   outline: none;
 }
 
-.mi-page .aw-pop > input, .mp-page .aw-pop > input, .qc-page .aw-pop > input {
+.mi-page .aw-pop > input, .mp-page .aw-pop > input, .qc-page .aw-pop > input, .ms-page .aw-pop > input {
   width: 19rem;
 }
 
-.mi-page .aw-pop input:focus, .mp-page .aw-pop input:focus, .qc-page .aw-pop input:focus {
+.mi-page .aw-pop input:focus, .mp-page .aw-pop input:focus, .qc-page .aw-pop input:focus, .ms-page .aw-pop input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
 }
 
-.mi-page .aw-pop label, .mp-page .aw-pop label, .qc-page .aw-pop label {
+.mi-page .aw-pop label, .mp-page .aw-pop label, .qc-page .aw-pop label, .ms-page .aw-pop label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -12078,7 +12078,7 @@ button {
   color: var(--gb-ink-soft);
 }
 
-.mi-page .aw-pop-actions, .mp-page .aw-pop-actions, .qc-page .aw-pop-actions {
+.mi-page .aw-pop-actions, .mp-page .aw-pop-actions, .qc-page .aw-pop-actions, .ms-page .aw-pop-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.4rem;
@@ -12090,8 +12090,8 @@ button {
 .mi-page .aw-pop-apply,
 .mp-page .aw-pop-clear,
 .mp-page .aw-pop-apply,
-.qc-page .aw-pop-clear,
-.qc-page .aw-pop-apply {
+.qc-page .aw-pop-clear, .ms-page .aw-pop-clear,
+.qc-page .aw-pop-apply, .ms-page .aw-pop-apply {
   height: 1.7rem;
   flex-shrink: 0;
   border-radius: 8px;
@@ -12100,18 +12100,18 @@ button {
   font-weight: 600;
 }
 
-.mi-page .aw-pop-clear, .mp-page .aw-pop-clear, .qc-page .aw-pop-clear {
+.mi-page .aw-pop-clear, .mp-page .aw-pop-clear, .qc-page .aw-pop-clear, .ms-page .aw-pop-clear {
   border: 1px solid var(--gb-grid-strong);
   color: var(--gb-ink-soft);
   background: var(--gb-row);
 }
 
-.mi-page .aw-pop-clear:hover, .mp-page .aw-pop-clear:hover, .qc-page .aw-pop-clear:hover {
+.mi-page .aw-pop-clear:hover, .mp-page .aw-pop-clear:hover, .qc-page .aw-pop-clear:hover, .ms-page .aw-pop-clear:hover {
   border-color: var(--danger);
   color: var(--danger);
 }
 
-.mi-page .aw-pop-apply, .mp-page .aw-pop-apply, .qc-page .aw-pop-apply {
+.mi-page .aw-pop-apply, .mp-page .aw-pop-apply, .qc-page .aw-pop-apply, .ms-page .aw-pop-apply {
   border: 1px solid var(--accent);
   color: #fff;
   background: var(--accent);
@@ -12129,16 +12129,16 @@ button {
 }
 
 @media (max-width: 767px) {
-  .mi-page .aw-bar, .mp-page .aw-bar, .qc-page .aw-bar {
+  .mi-page .aw-bar, .mp-page .aw-bar, .qc-page .aw-bar, .ms-page .aw-bar {
     padding-inline: 0.45rem;
   }
 
-  .mi-page .aw-pop, .mp-page .aw-pop, .qc-page .aw-pop {
+  .mi-page .aw-pop, .mp-page .aw-pop, .qc-page .aw-pop, .ms-page .aw-pop {
     right: auto;
     left: 0;
   }
 
-  .mi-page .aw-pop > input, .mp-page .aw-pop > input, .qc-page .aw-pop > input {
+  .mi-page .aw-pop > input, .mp-page .aw-pop > input, .qc-page .aw-pop > input, .ms-page .aw-pop > input {
     width: min(70vw, 19rem);
   }
 }
@@ -12149,7 +12149,7 @@ button {
     transition: none;
   }
 
-  .mi-page .aw-pop, .mp-page .aw-pop, .qc-page .aw-pop {
+  .mi-page .aw-pop, .mp-page .aw-pop, .qc-page .aw-pop, .ms-page .aw-pop {
     animation: none;
   }
 }
@@ -12323,6 +12323,1078 @@ button {
   .mp-page .mp-switch .mp-tab::after,
   .qc-page .qc-switch .qc-tab::after {
     transition: none;
+  }
+}
+
+/* ---------- Masters · app header ----------------------------------------
+   The flow desks carry the midnight chrome through .gb-app-header. Masters
+   were never added to that list, so their bar kept the default white panel
+   and the page looked like it began halfway down, with the weave starting
+   under a blank strip.
+
+   Same treatment, moved into the indigo family the masters already wear in
+   their panel header, so header -> ground -> panel bar reads as one piece.
+   Mirrors .gb-app-header rule for rule; only the ground changes. */
+.ms-app-header {
+  border-bottom: 1px solid rgba(123, 131, 214, 0.22);
+  background-color: #16203a;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(165deg, #1f2b4e 0%, #16203a 54%, #0f1729 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.ms-app-header .font-serif,
+.ms-app-header p {
+  color: var(--gb-midnight-muted);
+}
+
+.ms-app-header .uppercase {
+  color: #d8b951;
+}
+
+.ms-app-header [class*="text-(--ink)"] {
+  color: var(--gb-midnight-ink);
+}
+
+.ms-app-header [class*="text-(--muted)"] {
+  color: var(--gb-midnight-muted);
+}
+
+.ms-app-header [class*="text-(--faint)"] {
+  color: var(--gb-midnight-faint);
+}
+
+.ms-app-header button[aria-label="Open menu"] {
+  border-color: rgba(232, 241, 248, 0.22);
+  color: var(--gb-midnight-ink);
+}
+
+.ms-app-header button[aria-label="Open menu"]:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Masters · site footer ---------------------------------------
+   The credit line sits on the default light panel, which left a pale band
+   under the indigo ground. It takes the header's treatment so the page is
+   book-ended: indigo above, indigo below, the weave between them.
+
+   The footer's own Tailwind colour classes live in @layer utilities, so
+   these unlayered rules win without !important. */
+.ms-app-footer {
+  border-top: 1px solid rgba(123, 131, 214, 0.22);
+  background-color: #16203a;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(165deg, #1f2b4e 0%, #16203a 54%, #0f1729 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: var(--gb-midnight-muted);
+}
+
+.ms-app-footer [class*="text-(--ink-soft)"] {
+  color: var(--gb-midnight-ink);
+}
+
+.ms-app-footer [class*="text-(--accent)"] {
+  color: #d8b951;
+}
+
+/* ---------- Masters · shared desk treatment -----------------------------
+   One scope for every master page: Transport, Haste, Item, Agent, Color code,
+   Job, Sales, Knitter and Mill. They all have the same shape - a titled panel,
+   one register, an add sheet and an edit sheet - so this is written once and
+   each new master only needs the `ms-` classes applied in its JSX.
+
+   Unlike Mill Inward and friends these keep their Panel title, so the header
+   bar here is a real header and the `div:first-child` trap does not apply.
+   The `:has(h3)` guard is kept anyway, so dropping a title later cannot paint
+   the table wrapper dark. */
+
+.ms-page {
+  position: relative;
+  /* app header 3rem + site footer ~2.25rem, so the page never scrolls */
+  min-height: calc(100vh - 5.25rem);
+  /* bleed past <main>'s padding */
+  margin: -0.875rem -0.75rem -1.25rem;
+  padding: 0.35rem 0.6rem 0.25rem;
+  color: var(--gb-ink);
+  /* indigo ground, locked from the four trialled weaves. Paper and threads
+     are tinted to the same family as the master header, so the check belongs
+     to the page instead of sitting on top of it. */
+  background-color: #dcdfef;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(40, 46, 94, 0.145) 0,
+      rgba(40, 46, 94, 0.145) 1px,
+      transparent 1px,
+      transparent 9px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(40, 46, 94, 0.125) 0,
+      rgba(40, 46, 94, 0.125) 1px,
+      transparent 1px,
+      transparent 9px
+    ),
+    radial-gradient(
+      ellipse 70% 44% at 14% 0%,
+      rgba(123, 131, 214, 0.2),
+      transparent 62%
+    ),
+    linear-gradient(170deg, #e8eaf5 0%, #dcdfef 46%, #ccd0e6 100%);
+
+  --gb-grid-strong: #aeb6d4;
+  --ms-row-h: 2.25rem;
+  --ms-head-h: 1.6rem;
+  --ms-rows: 14;
+}
+
+
+@media (max-width: 767px) {
+  .ms-page {
+    margin-bottom: -5rem;
+    padding-bottom: 5.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .ms-page {
+    margin-right: -1rem;
+    margin-left: -1rem;
+  }
+}
+
+.ms-page .ms-stage {
+  display: flex;
+  /* narrower than the flow desks on purpose: these tables carry 4-9 columns,
+     not 10-12, and stretching them to full width left the data marooned */
+  width: min(94%, 86rem);
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-inline: auto;
+}
+
+@media (max-width: 767px) {
+  .ms-page .ms-stage {
+    width: 100%;
+  }
+}
+
+/* ---- metric cards: the shared midnight set ----------------------------- */
+.ms-page .ms-metrics > div {
+  --ms-rail: rgba(125, 186, 228, 0.95);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(125, 186, 228, 0.16);
+  border-radius: 12px;
+  padding-left: 1rem;
+  background-color: #152a42;
+  background-image: linear-gradient(150deg, #1d3a56 0%, #152a42 55%, #101f33 100%);
+  box-shadow:
+    0 10px 24px rgba(8, 16, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.ms-page .ms-metrics > div::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 3px;
+  background: var(--ms-rail);
+  transform: scaleY(0);
+  animation: sl-rail-in 0.5s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.ms-page .ms-metrics > div:hover {
+  transform: translateY(-2px);
+}
+
+.ms-page .ms-metrics > div p:first-child {
+  color: #b6cadd;
+}
+
+.ms-page .ms-metrics > div p:nth-child(2) {
+  color: #a9d2f0;
+}
+
+.ms-page .ms-metrics > div:nth-child(2) {
+  --ms-rail: rgba(104, 212, 176, 0.95);
+  border-color: rgba(104, 212, 176, 0.16);
+  background-color: #0f2e29;
+  background-image: linear-gradient(150deg, #154039 0%, #0f2e29 55%, #0b221e 100%);
+}
+
+.ms-page .ms-metrics > div:nth-child(2) p:nth-child(2) {
+  color: #7fe3c0;
+}
+
+.ms-page .ms-metrics > div:nth-child(3) {
+  --ms-rail: rgba(235, 196, 86, 0.95);
+  border-color: rgba(235, 196, 86, 0.16);
+  background-color: #2e2412;
+  background-image: linear-gradient(150deg, #3f3118 0%, #2e2412 55%, #231b0d 100%);
+}
+
+.ms-page .ms-metrics > div:nth-child(3) p:nth-child(2) {
+  color: #f2d27e;
+}
+
+/* ---- the masters wear their own header colour --------------------------
+   The flow desks are midnight blue-grey. Masters are reference data, not
+   work in progress, so they take a deeper indigo: same family, clearly a
+   different part of the app at a glance. */
+.ms-page {
+  --ms-head: #16203a;
+}
+
+.ms-page .ms-panel > div:first-child:has(h3) {
+  background-color: var(--ms-head);
+  background-image: linear-gradient(165deg, #1d2a4c 0%, #111931 100%);
+}
+
+.ms-page .ms-reg.erp-register thead th {
+  background-color: var(--ms-head);
+}
+
+/* a single metric belongs at the end of the row, not stranded at the left
+   with two empty cells after it */
+.ms-page .ms-metrics > div:only-child {
+  grid-column: -2 / -1;
+}
+
+/* ---- the panel and its bar --------------------------------------------- */
+.ms-page .ms-panel {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  background: var(--gb-row);
+  box-shadow: var(--gb-shadow-card);
+}
+
+.ms-page .ms-panel > div:first-child:has(h3) {
+  position: relative;
+  flex-wrap: nowrap;
+  gap: 0.6rem;
+  border-bottom: 2px solid var(--gb-workspace);
+  padding: 0.3rem 0.7rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.ms-page .ms-panel > div:first-child:has(h3) h3 {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.ms-page .ms-panel > div:first-child:has(h3) svg {
+  color: #dbbb4f;
+}
+
+.ms-page .ms-bar-tools {
+  display: flex;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ms-page .ms-bar-tools .pressable {
+  min-height: 0;
+  height: 1.95rem;
+  flex-shrink: 0;
+  border-radius: 9px;
+  padding-inline: 0.8rem;
+  font-size: 12px;
+}
+
+/* ---- the register ------------------------------------------------------ */
+.ms-page .ms-reg.erp-register {
+  height: 100%;
+  border-color: var(--gb-grid-strong);
+}
+
+.ms-page .ms-reg.erp-register thead th {
+  height: var(--ms-head-h);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  color: #dfe9f2;
+  /* no inner column lines */
+  border-right: 0;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.32);
+  background-color: var(--gb-midnight);
+}
+
+.ms-page .ms-reg.erp-register td {
+  position: relative;
+  height: var(--ms-row-h);
+  padding: 0.25rem 0.6rem;
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--gb-ink);
+  border-right: 0;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.3);
+  background: var(--gb-row);
+  transition: background-color 0.14s ease;
+}
+
+.ms-page .ms-reg.erp-register tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ms-page .ms-reg.erp-register tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.ms-page .ms-reg.erp-register tbody tr:hover td {
+  background: #eaf3fa;
+}
+
+/* a gold marker marks the row being read */
+.ms-page .ms-reg tbody tr td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 2px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.ms-page .ms-reg tbody tr:hover td:first-child::before {
+  transform: scaleY(1);
+}
+
+/* filler: empty space below the last row stays clean */
+.ms-page .ms-reg tbody tr.ms-filler {
+  height: 100%;
+}
+
+.ms-page .ms-reg tbody tr.ms-filler td {
+  height: auto;
+  padding: 0;
+  border-bottom: 0;
+  background-color: var(--gb-row);
+}
+
+.ms-page .ms-reg tbody tr.ms-filler:hover td {
+  background-color: var(--gb-row);
+}
+
+.ms-page .ms-reg tbody tr.ms-filler td:first-child::before {
+  display: none;
+}
+
+.ms-page .ms-reg td button {
+  height: 1.55rem;
+  min-height: 0;
+  border-radius: 7px;
+  padding-inline: 0.6rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1f5e8c;
+  border: 1px solid rgba(31, 94, 140, 0.35);
+  background: rgba(31, 94, 140, 0.06);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.16s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.ms-page .ms-reg td button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  color: #fff;
+  border-color: #1f5e8c;
+  background: #1f5e8c;
+  box-shadow: 0 4px 10px rgba(8, 16, 24, 0.14);
+}
+
+.ms-page .ms-reg td button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ---- the register box: a fixed row count, never a page scroll ---------- */
+@media (min-width: 768px) {
+  .ms-page .ms-panel .table-scroll {
+    height: min(
+      calc(var(--ms-head-h) + var(--ms-rows) * var(--ms-row-h)),
+      calc(100vh - 12.9rem)
+    );
+    max-height: none;
+  }
+}
+
+.ms-page .table-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 58, 84, 0.3) transparent;
+}
+
+.ms-page .table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ms-page .table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(31, 58, 84, 0.26);
+  background-clip: content-box;
+}
+
+/* ---- the add / edit sheet ---------------------------------------------- */
+.ms-sheet {
+  border-color: var(--gb-grid-strong);
+  border-radius: var(--gb-radius);
+  box-shadow: 0 30px 70px rgba(8, 16, 24, 0.38);
+  animation: gb-fade-in 0.17s ease both;
+}
+
+.ms-sheet > div:first-child {
+  position: relative;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.ms-sheet > div:first-child::before {
+  content: "";
+  position: absolute;
+  inset-inline: 1.25rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 162, 39, 0.7),
+    transparent
+  );
+}
+
+.ms-sheet > div:first-child h2 {
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.ms-sheet [data-modal-close] {
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.ms-sheet [data-modal-close]:hover {
+  transform: rotate(90deg);
+}
+
+.ms-sheet .band-label {
+  position: relative;
+  padding-left: 0.6rem;
+}
+
+.ms-sheet .band-label::before {
+  content: "";
+  position: absolute;
+  top: 0.12rem;
+  bottom: 0.12rem;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--gold) 0%,
+    rgba(201, 162, 39, 0.25) 100%
+  );
+}
+
+.ms-sheet input,
+.ms-sheet select,
+.ms-sheet textarea {
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.ms-sheet input:hover:not(:disabled),
+.ms-sheet select:hover:not(:disabled) {
+  border-color: #92abc0;
+}
+
+.ms-sheet input:focus,
+.ms-sheet select:focus,
+.ms-sheet textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+  outline: none;
+}
+
+@media (max-width: 767px) {
+  .ms-page .ms-panel > div:first-child:has(h3) {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .ms-page .ms-bar-tools {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-page .ms-metrics > div,
+  .ms-page .ms-reg td button,
+  .ms-page .ms-reg tbody tr td:first-child::before,
+  .ms-sheet input,
+  .ms-sheet select,
+  .ms-sheet textarea,
+  .ms-sheet [data-modal-close] {
+    transition: none;
+  }
+
+  .ms-page .ms-metrics > div::before,
+  .ms-sheet {
+    animation: none;
+    transform: scaleY(1);
+  }
+
+  .ms-page .ms-metrics > div:hover,
+  .ms-page .ms-reg td button:hover:not(:disabled),
+  .ms-sheet [data-modal-close]:hover {
+    transform: none;
+  }
+}
+
+
+/* ---------- Masters · the sheet ------------------------------------------
+   .ms-sheet started as a shim over .sl-sheet and was never finished: 47 rule
+   blocks on Sales against 16 here. What was missing is what made every master
+   dialog look unfinished - no close button box, no body ground, no field
+   borders, no section partition, no footer, and a single 0.17s fade for the
+   whole interaction.
+
+   This completes it in the indigo family the masters now wear. Nothing here
+   touches ErpModal's own defaults, so no flow page moves. */
+
+/* ---- width comes from the form, not from a magic number -----------------
+   ErpModal replaces its whole width class when frameWidthClass is passed, so
+   a sheet that passed "ms-sheet" alone had no width at all and shrink-wrapped
+   its grid. These three are the only widths a master sheet may take. */
+.ms-sheet.ms-sheet-sm {
+  width: min(28rem, calc(100vw - 8vw));
+}
+
+.ms-sheet.ms-sheet-md {
+  width: min(52rem, calc(100vw - 8vw));
+}
+
+.ms-sheet.ms-sheet-lg {
+  width: min(72rem, calc(100vw - 8vw));
+}
+
+.ms-sheet {
+  /* app header 3rem + site footer ~2.25rem: measuring against the raw
+     viewport let the sheet stretch to within 12px of the footer. The cap
+     keeps it floating rather than filling the screen. */
+  max-height: min(44rem, calc(100vh - 7.5rem));
+  border-radius: 14px;
+  border-color: var(--gb-grid-strong, #aeb6d4);
+  box-shadow:
+    0 32px 74px rgba(8, 16, 24, 0.42),
+    0 2px 8px rgba(8, 16, 24, 0.18);
+}
+
+/* ---- motion: rise and settle, never spring ------------------------------
+   Same curve as the register tabs, so the app has one idea of how things
+   move. The overlay is the sheet's own parent, so :has() reaches it without
+   ErpModal having to hand out another class. */
+@keyframes ms-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ms-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ms-block-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ms-sheet {
+  animation: ms-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+div:has(> .ms-sheet) {
+  padding-block: 3.75rem;
+  background-color: rgba(8, 12, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: ms-overlay-in 0.16s ease both;
+}
+
+/* ---- header ------------------------------------------------------------- */
+.ms-sheet > div:first-child {
+  padding-block: 0.55rem;
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+/* the close control was the raw default square on every master */
+.ms-sheet [data-modal-close] {
+  display: inline-flex;
+  height: 1.85rem;
+  width: 1.85rem;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.24);
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+}
+
+.ms-sheet [data-modal-close]:hover {
+  border-color: rgba(179, 39, 28, 0.85);
+  background: rgba(179, 39, 28, 0.82);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* ---- body --------------------------------------------------------------- */
+.ms-sheet > div:last-child {
+  background-color: #eef1f8;
+  background-image: linear-gradient(180deg, #f4f6fb 0%, #eaedf6 100%);
+}
+
+.ms-sheet .ms-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem 0.8rem 0;
+}
+
+/* A flex item shrinks by default. Inside .ms-form-fill the form has a
+   constrained height, so every card was squashed to fit it and .ms-block's
+   own overflow:hidden clipped the fields that no longer fitted - which also
+   meant nothing overflowed, so the body had nothing to scroll. The cards
+   keep their natural height and the body scrolls, as intended. */
+.ms-sheet .ms-form > * {
+  flex: none;
+}
+
+/* ---- section cards: the partition --------------------------------------- */
+.ms-sheet .ms-block {
+  overflow: hidden;
+  border: 1px solid #9ca5c8;
+  border-radius: 10px;
+  /* the card is tinted and the controls stay white, so the fields read as
+     objects on a surface instead of white on white */
+  background: #f7f8fc;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  animation: ms-block-in 0.26s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.ms-sheet .ms-block:nth-of-type(1) {
+  animation-delay: 0.04s;
+}
+
+.ms-sheet .ms-block:nth-of-type(2) {
+  animation-delay: 0.08s;
+}
+
+.ms-sheet .ms-block:nth-of-type(3) {
+  animation-delay: 0.12s;
+}
+
+.ms-sheet .ms-block:nth-of-type(n + 4) {
+  animation-delay: 0.16s;
+}
+
+.ms-sheet .ms-block-head {
+  position: relative;
+  border-bottom: 1px solid #c3cae2;
+  padding: 0.42rem 0.75rem 0.42rem 1.15rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gb-ink-soft);
+  background-color: #e8ebf6;
+  background-image: linear-gradient(90deg, #e4e8f5 0%, #eff1f9 72%);
+}
+
+.ms-sheet .ms-block-head::before {
+  content: "";
+  position: absolute;
+  top: 0.42rem;
+  bottom: 0.42rem;
+  left: 0.6rem;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--gold) 0%,
+    rgba(201, 162, 39, 0.25) 100%
+  );
+}
+
+.ms-sheet .ms-block-body {
+  padding: 0.6rem 0.75rem 0.65rem;
+}
+
+/* a collapsible section wears the same caption strip, but it is a button, so
+   it needs the row layout and a hover the caption never had */
+.ms-sheet .ms-block-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: left;
+  color: var(--gb-ink-soft);
+  cursor: pointer;
+  transition: background-color 0.16s ease;
+}
+
+.ms-sheet .ms-block-toggle:hover {
+  background-image: linear-gradient(90deg, #dde2f2 0%, #e9ecf7 72%);
+}
+
+.ms-sheet .ms-block-toggle svg {
+  color: var(--gold);
+}
+
+/* ---- fields ------------------------------------------------------------- */
+.ms-sheet .ms-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.4rem 0.85rem;
+}
+
+/* The controls came in at ~34px from the shared inputClass, which left the
+   card airy and pushed the third block below the fold. A fixed 30px with the
+   vertical padding removed is the density a data-entry form wants. */
+.ms-sheet .ms-grid input:not([type="checkbox"]),
+.ms-sheet .ms-grid select {
+  height: 1.9rem;
+  padding-block: 0;
+}
+
+.ms-sheet .ms-span-2 {
+  grid-column: 1 / -1;
+}
+
+/* "wider than one cell, but not the whole row" - an address beside a city,
+   a name beside a code. In a two-column sheet that is the full row anyway,
+   so one class covers both widths. */
+.ms-sheet .ms-span-wide {
+  grid-column: span 2;
+}
+
+/* a narrow sheet is a single column by definition - two columns inside 28rem
+   gives fields too short to read their own content */
+.ms-sheet-sm .ms-grid {
+  grid-template-columns: 1fr;
+}
+
+/* the wide sheets carry ~50 fields: at two columns each field would be
+   550px of empty box and the form would scroll forever. Three only once
+   there is room for it, so a tablet keeps two rather than three cramped. */
+@media (min-width: 900px) {
+  .ms-sheet-lg .ms-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ms-sheet label > span {
+  display: block;
+  margin-bottom: 0.08rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  color: var(--gb-ink-soft);
+}
+
+.ms-sheet input,
+.ms-sheet select,
+.ms-sheet textarea {
+  border-color: #aab2d0;
+  border-radius: 7px;
+  background-color: #fff;
+}
+
+.ms-sheet input:hover:not(:disabled),
+.ms-sheet select:hover:not(:disabled),
+.ms-sheet textarea:hover:not(:disabled) {
+  border-color: #8b93b8;
+}
+
+.ms-sheet input:focus,
+.ms-sheet select:focus,
+.ms-sheet textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 101, 88, 0.12);
+  outline: none;
+}
+
+/* native controls, which every master was leaving raw */
+.ms-sheet select {
+  appearance: none;
+  padding-right: 1.6rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235b6478' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 0.7rem;
+}
+
+.ms-sheet input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+
+.ms-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+.ms-sheet input[type="checkbox"] {
+  height: 0.95rem;
+  width: 0.95rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.ms-sheet textarea {
+  min-height: 3.2rem;
+  padding-block: 0.3rem;
+  resize: vertical;
+}
+
+/* ---- required, invalid, and the error banner ----------------------------
+   validate() rejects an empty agent name, but nothing on the form said so and
+   a rejected save had nothing to point at. :user-invalid only fires once the
+   field has been touched, so an untouched blank form is never shown as red. */
+.ms-sheet .ms-grid label:has(> input:required) > span::after {
+  content: " *";
+  color: #b3271c;
+}
+
+.ms-sheet input:user-invalid,
+.ms-sheet select:user-invalid,
+.ms-sheet textarea:user-invalid {
+  border-color: #b3271c;
+}
+
+.ms-sheet input:user-invalid:focus,
+.ms-sheet select:user-invalid:focus,
+.ms-sheet textarea:user-invalid:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.ms-sheet .ms-form > p:first-child {
+  position: relative;
+  border: 1px solid rgba(179, 39, 28, 0.35);
+  border-left-width: 3px;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8c1f16;
+  background: #fdf0ee;
+}
+
+/* ---- the record type reads in the header, not as a field ---------------- */
+.ms-sheet > div:first-child .ms-type-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: #e5c349;
+  background: rgba(232, 197, 71, 0.14);
+}
+
+/* ---- the action bar ----------------------------------------------------- */
+.ms-sheet .ms-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid #9ca5c8;
+  padding: 0.55rem 0.8rem;
+  background-color: #dde2f0;
+  background-image: linear-gradient(180deg, #e4e8f4 0%, #d6dcec 100%);
+  box-shadow: 0 -6px 14px rgba(16, 24, 40, 0.07);
+}
+
+.ms-sheet .ms-form > .ms-foot {
+  margin: 0.15rem -0.8rem 0;
+}
+
+/* a sheet whose body scrolls on its own: the form fills it and the footer
+   stays outside, so the bar never travels with the content */
+.ms-sheet .ms-form-fill {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 0.7rem;
+}
+
+/* one repeatable line: value, label, and the control that removes it */
+.ms-sheet .ms-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto;
+  align-items: end;
+  gap: 0.45rem 0.7rem;
+}
+
+@media (max-width: 640px) {
+  .ms-sheet .ms-line {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ms-sheet .ms-foot button {
+  min-width: 5.5rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.ms-sheet .ms-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.16);
+}
+
+.ms-sheet .ms-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.22);
+}
+
+/* ---- the sheet's own scrollbar, not the browser's ------------------------ */
+.ms-sheet > div:last-child {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(90, 100, 140, 0.4) transparent;
+}
+
+.ms-sheet > div:last-child::-webkit-scrollbar {
+  width: 10px;
+  background: transparent;
+}
+
+.ms-sheet > div:last-child::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: rgba(90, 100, 140, 0.4);
+}
+
+.ms-sheet > div:last-child::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(90, 100, 140, 0.62);
+}
+
+.ms-sheet > div:last-child::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .ms-sheet .ms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-sheet.ms-sheet-sm,
+  .ms-sheet.ms-sheet-md,
+  .ms-sheet.ms-sheet-lg {
+    width: 100%;
+  }
+
+  div:has(> .ms-sheet) {
+    padding-block: 1.25rem;
+  }
+
+  .ms-sheet {
+    max-height: calc(100vh - 2.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-sheet,
+  .ms-sheet .ms-block,
+  div:has(> .ms-sheet) {
+    animation: none;
+  }
+
+  .ms-sheet .ms-foot button,
+  .ms-sheet [data-modal-close] {
+    transition: none;
+  }
+
+  .ms-sheet .ms-foot button:hover:not(:disabled),
+  .ms-sheet [data-modal-close]:hover {
+    transform: none;
   }
 }
 

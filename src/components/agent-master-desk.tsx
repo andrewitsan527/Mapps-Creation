@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, Plus, Search } from "lucide-react";
+import { Briefcase, Plus, Search, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
 import {
   EmptyState,
   Field,
-  FieldGroup,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -175,10 +173,6 @@ export function AgentMasterDesk({
   purchaseAgents?: PurchaseAgentRecord[];
 }) {
   const title = kind === "SALES AGENT" ? "Sales Agent" : "Purchase Agent";
-  const description =
-    kind === "SALES AGENT"
-      ? "Agents used later on sale bills."
-      : "Agents used later on grey purchase.";
 
   const isSales = kind === "SALES AGENT";
   const [rows, setRows] = useState<LocalAgent[]>(() =>
@@ -313,34 +307,26 @@ export function AgentMasterDesk({
   }
 
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title={title}
-        eyebrow="Masters"
-        icon={Briefcase}
-        description={description}
-        actions={
-          <button className={buttonClass} type="button" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Add {title}
-          </button>
-        }
-      />
+    <div className="ms-page">
+      <div className="ms-stage">
 
       {notice ? (
-        <div className="flex items-center justify-between rounded-md border border-(--line) bg-(--panel-alt) px-2.5 py-1.5 text-[12px]">
-          <span>{notice}</span>
-          <button
-            type="button"
-            className={buttonTinyClass}
-            onClick={() => setNotice(null)}
-          >
-            Dismiss
-          </button>
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ) : null}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3">
+      <MetricStrip className="aw-metrics ms-metrics grid-cols-2 sm:grid-cols-3">
         <Metric label="Total agents" value={rows.length} />
         <Metric
           label="Active"
@@ -357,15 +343,36 @@ export function AgentMasterDesk({
       <Panel
         title={`${title}s`}
         flush
+        className="ms-panel"
         action={
-          <div className="flex items-center gap-1.5">
-            <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
-            <input
-              className={`${inputClass} w-56`}
-              placeholder="Search name, mobile, city, GSTIN"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+          <div className="ms-bar-tools">
+            <label className="aw-search">
+              <span className="sr-only">Search</span>
+              <input
+                value={query}
+                placeholder="Search name, mobile, city, GSTIN"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setQuery("");
+                }}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="aw-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : (
+                <Search className="aw-search-icon h-3.5 w-3.5" aria-hidden />
+              )}
+            </label>
+            <button className={buttonClass} type="button" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            Add {title}
+          </button>
           </div>
         }
       >
@@ -374,8 +381,8 @@ export function AgentMasterDesk({
             <EmptyState icon={Briefcase} text={`No ${title.toLowerCase()} records.`} />
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table erp-register">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register ms-reg w-full">
               <thead>
                 <tr>
                   <th>Agent Name</th>
@@ -422,6 +429,17 @@ export function AgentMasterDesk({
                     </td>
                   </tr>
                 ))}
+                {filtered.length > 0 ? (
+                  <tr className="ms-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>
@@ -431,21 +449,30 @@ export function AgentMasterDesk({
       {unsaved.dialog}
       {draft && mode ? (
         <Overlay
+          frameWidthClass="ms-sheet ms-sheet-md"
           title={mode === "create" ? `New ${title}` : `Edit ${title}`}
+          headerAccessory={
+            <span className="ms-type-chip">
+              {isSales ? "SALES" : "PURCHASE_AGENT"}
+            </span>
+          }
           onClose={unsaved.requestClose}
         >
-          <div className="space-y-2 px-4 py-2.5">
+          <div className="ms-form">
             {error ? (
               <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
                 {error}
               </p>
             ) : null}
 
-            <FieldGroup label="Basic details">
-              <div className="grid grid-cols-4 gap-x-2 gap-y-1.5">
+            <section className="ms-block">
+              <p className="ms-block-head">Basic details</p>
+              <div className="ms-block-body ms-grid">
                 <Field label="Agent Name">
                   <input
                     className={inputClass}
+                    autoFocus
+                    required
                     value={draft.name}
                     onChange={(e) => patch({ name: e.target.value })}
                   />
@@ -489,7 +516,7 @@ export function AgentMasterDesk({
                     onChange={(e) => patch({ phone: e.target.value })}
                   />
                 </Field>
-                <Field label="Email ID">
+                <Field label="Email ID" className={isSales ? "ms-span-2" : undefined}>
                   <input
                     className={inputClass}
                     type="email"
@@ -498,11 +525,12 @@ export function AgentMasterDesk({
                   />
                 </Field>
               </div>
-            </FieldGroup>
+            </section>
 
-            <FieldGroup label="Address details">
-              <div className="grid grid-cols-4 gap-x-2 gap-y-1.5">
-                <Field label="Address" className="col-span-3">
+            <section className="ms-block">
+              <p className="ms-block-head">Address details</p>
+              <div className="ms-block-body ms-grid">
+                <Field label="Address">
                   <textarea
                     className={inputClass}
                     rows={2}
@@ -532,10 +560,11 @@ export function AgentMasterDesk({
                   />
                 </Field>
               </div>
-            </FieldGroup>
+            </section>
 
-            <FieldGroup label="Tax / registration">
-              <div className="grid grid-cols-4 gap-x-2 gap-y-1.5">
+            <section className="ms-block">
+              <p className="ms-block-head">Tax / registration</p>
+              <div className="ms-block-body ms-grid">
                 <Field label="PAN No.">
                   <input
                     className={inputClass}
@@ -566,16 +595,12 @@ export function AgentMasterDesk({
                   />
                 </Field>
               </div>
-            </FieldGroup>
+            </section>
 
-            <FieldGroup label="Status">
-              <div className="grid grid-cols-4 gap-x-2 gap-y-1.5">
-                <Field label="Master Type">
-                  <p className="py-1.5 text-[12.5px] font-semibold">
-                    {isSales ? "SALES" : "PURCHASE_AGENT"}
-                  </p>
-                </Field>
-                <Field label="Black Listed">
+            <section className="ms-block">
+              <p className="ms-block-head">Status</p>
+              <div className="ms-block-body ms-grid">
+                <Field label="Black Listed" className="ms-span-2">
                   <label className="flex items-center gap-2 py-1.5 text-[12.5px]">
                     <input
                       type="checkbox"
@@ -586,9 +611,9 @@ export function AgentMasterDesk({
                   </label>
                 </Field>
               </div>
-            </FieldGroup>
+            </section>
 
-            <div className="sticky bottom-0 flex justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5 -mx-4">
+            <div className="ms-foot">
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -608,6 +633,7 @@ export function AgentMasterDesk({
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }

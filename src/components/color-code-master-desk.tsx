@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Palette, Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import {
   Field,
   Metric,
   MetricStrip,
-  PageHeader,
   Panel,
   TableWrap,
   buttonClass,
@@ -70,9 +69,7 @@ function caretCanLeave(
   return end === input.value.length;
 }
 
-const formGrid =
-  "grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2 xl:grid-cols-4";
-const controlClass = `${inputClass} !h-9 !py-0`;
+const controlClass = inputClass;
 
 export function ColorCodeMasterDesk({
   qualities,
@@ -363,15 +360,59 @@ export function ColorCodeMasterDesk({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="relative">
-      <PageHeader
+    <div className="ms-page">
+      <div className="ms-stage">
+      {notice ? (
+        <div className="gb-toast-wrap" role="status" aria-live="polite">
+          <div className="gb-toast" data-tone="ok">
+            <span className="gb-toast-text">{notice}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <MetricStrip className="aw-metrics ms-metrics grid-cols-2">
+        <Metric label="Qualities" value={rows.length} />
+        <Metric label="Color codes" value={codeCount} tone="accent" />
+      </MetricStrip>
+
+      <Panel
         title="Color Code"
-        eyebrow="Masters"
-        icon={Palette}
-        description="Qualities and their color codes."
-        actions={
-          <button
+        flush
+        className="ms-panel"
+        action={
+          <div className="ms-bar-tools">
+            <label className="aw-search">
+              <span className="sr-only">Search quality name</span>
+              <input
+                value={query}
+                placeholder="Search quality name"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setQuery("");
+                }}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="aw-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : (
+                <Search className="aw-search-icon h-3.5 w-3.5" aria-hidden />
+              )}
+            </label>
+            <button
             ref={addQualityRef}
             className={buttonClass}
             type="button"
@@ -380,48 +421,6 @@ export function ColorCodeMasterDesk({
             <Plus className="h-3.5 w-3.5" />
             Add Quality
           </button>
-        }
-      />
-
-      <div
-        aria-live="polite"
-        className="pointer-events-none absolute inset-x-0 top-full z-20 mt-1"
-      >
-        {notice ? (
-          <div
-            role="status"
-            className="pointer-events-auto flex items-center justify-between gap-3 rounded-md border border-(--line) bg-(--panel) px-2.5 py-1.5 text-[12px] shadow-(--shadow-sm) sm:ml-auto sm:max-w-md"
-          >
-            <span>{notice}</span>
-            <button
-              type="button"
-              className={buttonTinyClass}
-              onClick={() => setNotice(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        ) : null}
-      </div>
-      </div>
-
-      <MetricStrip className="grid-cols-2">
-        <Metric label="Qualities" value={rows.length} />
-        <Metric label="Color codes" value={codeCount} tone="accent" />
-      </MetricStrip>
-
-      <Panel
-        title="Color Code"
-        flush
-        action={
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-            <Search className="h-3.5 w-3.5 shrink-0 text-(--muted)" />
-            <input
-              className={`${inputClass} w-full max-w-56 min-w-0`}
-              placeholder="Search quality name"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
           </div>
         }
       >
@@ -444,8 +443,8 @@ export function ColorCodeMasterDesk({
             ) : null}
           </div>
         ) : (
-          <TableWrap>
-            <table className="erp-table">
+          <TableWrap maxHeight={false}>
+            <table className="erp-table erp-register ms-reg w-full">
               <colgroup>
                 <col className="w-14" />
                 <col />
@@ -505,6 +504,14 @@ export function ColorCodeMasterDesk({
                     </td>
                   </tr>
                 ))}
+                {filtered.length > 0 ? (
+                  <tr className="ms-filler" aria-hidden>
+                    <td />
+                    <td />
+                    <td />
+                    <td />
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </TableWrap>
@@ -518,10 +525,10 @@ export function ColorCodeMasterDesk({
           onClose={unsaved.requestClose}
           flushBody
           trapFocus
-          frameWidthClass="h-[min(760px,calc(100%-4rem))] max-h-[calc(100%-4rem)] min-h-0 w-[min(1360px,calc(100%-8vw))] max-w-[calc(100%-8vw)]"
+          frameWidthClass="ms-sheet ms-sheet-md h-[min(600px,calc(100%-4rem))] min-h-0"
         >
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-5 py-4">
+            <div className="ms-form ms-form-fill">
               {error ? (
                 <p
                   id="color-code-form-error"
@@ -532,12 +539,11 @@ export function ColorCodeMasterDesk({
                 </p>
               ) : null}
 
-              <section className="min-w-0">
-                <h3 className="mb-2 border-b border-(--line) pb-1 text-[13px] font-semibold text-(--ink)">
-                  Quality
-                </h3>
+              <section className="ms-block">
+                <p className="ms-block-head">Quality</p>
+                <div className="ms-block-body">
                 <div className="flex items-end gap-3">
-                  <p className="flex h-9 shrink-0 items-center text-[13px] font-semibold tabular-nums text-(--ink)">
+                  <p className="flex h-[1.9rem] shrink-0 items-center text-[13px] font-semibold tabular-nums text-(--ink)">
                     {draft.displayNo}
                   </p>
                   <Field
@@ -560,15 +566,15 @@ export function ColorCodeMasterDesk({
                     />
                   </Field>
                 </div>
+                </div>
               </section>
 
-              <section className="min-w-0">
-                <h3 className="mb-2 border-b border-(--line) pb-1 text-[13px] font-semibold text-(--ink)">
-                  Color Codes
-                </h3>
+              <section className="ms-block">
+                <p className="ms-block-head">Color Codes</p>
+                <div className="ms-block-body">
                 <div className="space-y-3">
                   {draft.codes.map((code, index) => (
-                    <div key={code.id} className={formGrid}>
+                    <div key={code.id} className="ms-line">
                       <Field label="Color Code">
                         <input
                           ref={(node) => {
@@ -593,10 +599,7 @@ export function ColorCodeMasterDesk({
                           }
                         />
                       </Field>
-                      <Field
-                        label="Color Name"
-                        className="sm:col-span-2"
-                      >
+                      <Field label="Color Name">
                         <input
                           ref={(node) => {
                             const key = `${code.id}:name`;
@@ -623,7 +626,7 @@ export function ColorCodeMasterDesk({
                       <div className="flex items-end">
                         <button
                           type="button"
-                          className={`${buttonTinyClass} h-9`}
+                          className={`${buttonTinyClass} h-[1.9rem]`}
                           onClick={() => removeCode(code.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -642,10 +645,11 @@ export function ColorCodeMasterDesk({
                     Add Color Code
                   </button>
                 </div>
+                </div>
               </section>
             </div>
 
-            <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
+            <div className="ms-foot">
               <button
                 type="button"
                 className={buttonGhostClass}
@@ -665,6 +669,7 @@ export function ColorCodeMasterDesk({
           </div>
         </Overlay>
       ) : null}
+      </div>
     </div>
   );
 }
