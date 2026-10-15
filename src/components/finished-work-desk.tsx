@@ -426,6 +426,114 @@ function isLegacyHold(entry: Entry, mode: "create" | "edit") {
   return entry.lines.some((line) => line.legacy != null);
 }
 
+/* ---------------------------------------------------------------------
+   Presentation finished work.
+
+   Eighteen entries so the register reads as a working desk. Whatever is in
+   the database is ignored here on purpose: the walkthrough needs a fixed,
+   matched set that reads the same every time. Restore the real list by
+   returning `real` from padEntries.
+
+   These continue the chain: the same mill / item / roll combinations that
+   ran through Purchase Order, Grey Purchase, Mill Inward and Mill Program
+   come back finished here, against the same GP and challan numbers.
+
+   Shortage is real, not decoration: grey kg goes in, slightly less finished
+   kg comes out, and the page derives shortage kg and percent from the two.
+   A roll leaves at 25 kg and returns a little lighter after processing.
+--------------------------------------------------------------------- */
+const FW_KG_PER_ROLL = 25;
+
+const FW_PRESENTATION_SPECS: {
+  mill: string;
+  item: string;
+  rolls: number;
+  /** kg recovered per roll after finishing, below the 25 that went in */
+  finishedPerRoll: number;
+  rate: number;
+  lotNo: string;
+}[] = [
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 72, finishedPerRoll: 24.4, rate: 265, lotNo: "L-4401" },
+  { mill: "Shree Balaji Textile Mills", item: "VALENTINO", rolls: 48, finishedPerRoll: 24.1, rate: 278, lotNo: "L-4412" },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "FRENCH RIB", rolls: 60, finishedPerRoll: 24.6, rate: 252, lotNo: "L-4423" },
+  { mill: "Navkar Processing Mills", item: "PEANUT SPANDEX", rolls: 36, finishedPerRoll: 23.8, rate: 294, lotNo: "L-4434" },
+  { mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 84, finishedPerRoll: 24.5, rate: 238, lotNo: "L-4445" },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Poly Knit", rolls: 24, finishedPerRoll: 24.2, rate: 286, lotNo: "L-4456" },
+  { mill: "Navkar Processing Mills", item: "DOUBLE MALTY", rolls: 96, finishedPerRoll: 24.3, rate: 245, lotNo: "L-4467" },
+  { mill: "Shree Balaji Textile Mills", item: "SCRAMBLE", rolls: 54, finishedPerRoll: 24.7, rate: 271, lotNo: "L-4478" },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "MARIO RIB", rolls: 42, finishedPerRoll: 24.0, rate: 259, lotNo: "L-4489" },
+  { mill: "Navkar Processing Mills", item: "PEARL MALTY", rolls: 66, finishedPerRoll: 24.4, rate: 282, lotNo: "L-4500" },
+  { mill: "Shree Balaji Textile Mills", item: "FURRY", rolls: 30, finishedPerRoll: 23.9, rate: 308, lotNo: "L-4511" },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Cotton Lycra", rolls: 78, finishedPerRoll: 24.6, rate: 255, lotNo: "L-4522" },
+  { mill: "Navkar Processing Mills", item: "Rib Knit Fabric", rolls: 90, finishedPerRoll: 24.5, rate: 248, lotNo: "L-4533" },
+  { mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 45, finishedPerRoll: 24.2, rate: 241, lotNo: "L-4544" },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 63, finishedPerRoll: 24.4, rate: 268, lotNo: "L-4555" },
+  { mill: "Navkar Processing Mills", item: "VALENTINO", rolls: 51, finishedPerRoll: 24.1, rate: 284, lotNo: "L-4566" },
+  { mill: "Shree Balaji Textile Mills", item: "FRENCH RIB", rolls: 33, finishedPerRoll: 24.6, rate: 256, lotNo: "L-4577" },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "PEARL MALTY", rolls: 57, finishedPerRoll: 24.3, rate: 276, lotNo: "L-4588" },
+];
+
+function fwIso(daysAgo: number) {
+  const d = new Date(Date.now() - daysAgo * 86400000);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** The register shows the presentation entries and nothing else. */
+function padEntries(_real: Entry[]): Entry[] {
+  return FW_PRESENTATION_SPECS.map((spec, index) => {
+    const iso = fwIso(index);
+    const [yyyy, mm, dd] = iso.split("-");
+    const greyKg = spec.rolls * FW_KG_PER_ROLL;
+    const finishedKg = Math.round(spec.rolls * spec.finishedPerRoll * 1000) / 1000;
+    const shortageKg = Math.round((greyKg - finishedKg) * 1000) / 1000;
+    const shortagePct = Math.round((shortageKg / greyKg) * 10000) / 100;
+    const amount = Math.round(finishedKg * spec.rate * 100) / 100;
+
+    const rolls: RollRow[] = Array.from({ length: spec.rolls }, (_, i) => ({
+      id: `fw-demo-${index + 1}-r${i + 1}`,
+      greyKg: FW_KG_PER_ROLL.toFixed(3),
+      finishedKg: spec.finishedPerRoll.toFixed(3),
+    }));
+
+    return {
+      id: `fw-demo-${index + 1}`,
+      srNo: `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`,
+      date: iso,
+      millId: "",
+      gpNo: `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`,
+      mill: spec.mill,
+      knitterChallanNo: `KC${2100 + index * 9}`,
+      challanNo: `C${4400 + index * 11}`,
+      lotNo: spec.lotNo,
+      item: spec.item,
+      rolls: String(spec.rolls),
+      greyKg: greyKg.toFixed(3),
+      finishedKg: finishedKg.toFixed(3),
+      rate: spec.rate.toFixed(2),
+      shortageKg,
+      shortagePct,
+      amount,
+      uniformRate: true,
+      lines: [
+        {
+          id: `fw-demo-${index + 1}-l1`,
+          itemId: "",
+          lotNo: spec.lotNo,
+          rate: spec.rate.toFixed(2),
+          rollCount: String(spec.rolls),
+          acceptedRollCount: String(spec.rolls),
+          greyKg: greyKg.toFixed(3),
+          finishedKg: finishedKg.toFixed(3),
+          rolls,
+          legacy: null,
+        },
+      ],
+    } satisfies Entry;
+  });
+}
+
 export function FinishedWorkDesk({
   entries,
   mills,
@@ -435,7 +543,7 @@ export function FinishedWorkDesk({
   mills: MasterOption[];
   items: MasterOption[];
 }) {
-  const [rows, setRows] = useState<Entry[]>(() => entries.map(toEntry));
+  const [rows, setRows] = useState<Entry[]>(() => padEntries(entries.map(toEntry)));
   const [draft, setDraft] = useState<Entry | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);

@@ -124,6 +124,64 @@ function expandDemo(specs: typeof DEMO_SPECS): StockGroup[] {
 
 const DEMO_GROUPS = expandDemo(DEMO_SPECS);
 
+/* ---------------------------------------------------------------------
+   Presentation stock.
+
+   What survived QC, grouped the way the board expects: one lot per
+   quality + colour code. Whatever is in the database is ignored here on
+   purpose - the walkthrough needs a fixed set that reads the same every
+   time. Restore the real stock by returning `real` from padStock.
+
+   This closes the chain: the qualities and colour codes are the same ones
+   programmed in Mill Program and inspected on the QC desk, and the colour
+   codes are real rows from the Color Code master. A finished roll weighs
+   a little under its 25 kg grey weight, so the kg here match what came
+   out of finishing.
+
+   Some lots carry rolls still waiting on QC, which is what drives the
+   amber state on the cards and the Without QC figure in the strip.
+--------------------------------------------------------------------- */
+const LS_PRESENTATION_SPECS: {
+  item: string;
+  kgPerRoll: number;
+  lots: [string, string, number, number][];
+}[] = [
+  /* item, kg per roll, [code, colour, rolls, rolls still without QC] */
+  { item: "US POLO", kgPerRoll: 24.4, lots: [["101", "green", 24, 0], ["102", "white", 21, 3], ["103", "blue", 18, 0], ["104", "grey", 14, 2]] },
+  { item: "VALENTINO", kgPerRoll: 24.1, lots: [["901", "Mouse", 16, 0], ["902", "Chikoo", 14, 2], ["913", "Peach", 11, 0], ["909", "Maroon", 9, 3]] },
+  { item: "FRENCH RIB", kgPerRoll: 24.6, lots: [["301", "D.Pista", 20, 0], ["305", "B.Pink", 17, 0], ["307", "Wine", 15, 4]] },
+  { item: "TWILL", kgPerRoll: 24.5, lots: [["601", "Red", 21, 0], ["604", "Chikoo", 19, 0], ["611", "Rani", 17, 2], ["612", "Olive", 15, 0], ["603", "D.Coffee", 12, 0]] },
+  { item: "DOUBLE MALTY", kgPerRoll: 24.3, lots: [["701", "N.Blue", 24, 0], ["703", "Maroon", 22, 4], ["705", "Chikoo", 20, 0], ["706", "Brown", 18, 0]] },
+  { item: "SCRAMBLE", kgPerRoll: 24.7, lots: [["503", "R.Gold", 14, 0], ["509", "Mustard", 12, 2], ["512", "Grey", 11, 0]] },
+  { item: "MARIO RIB", kgPerRoll: 24.0, lots: [["1005", "Onion", 14, 0], ["1011", "B.Pink", 12, 0], ["1015", "Airforce", 10, 3]] },
+  { item: "PEARL MALTY", kgPerRoll: 24.4, lots: [["201", "B.Green", 16, 0], ["204", "Brown", 15, 0], ["207", "Black", 13, 2], ["202", "N.Blue", 11, 0]] },
+  { item: "FURRY", kgPerRoll: 23.9, lots: [["402", "D.Lavender", 10, 0], ["408", "Mustard", 9, 0], ["412", "B.Gold", 8, 2]] },
+  { item: "FAZE COTTON", kgPerRoll: 24.6, lots: [["1202", "Rust", 20, 0], ["1205", "Onion", 18, 0], ["1208", "Wine", 16, 3], ["1210", "Mouse", 13, 0]] },
+];
+
+function padStock(_real: StockGroup[]): StockGroup[] {
+  const groups: StockGroup[] = [];
+  LS_PRESENTATION_SPECS.forEach((spec, specIndex) => {
+    spec.lots.forEach(([code, colour, rolls, held], lotIndex) => {
+      const key = `ls-demo-${specIndex + 1}-${lotIndex + 1}`;
+      groups.push({
+        id: key,
+        item: spec.item,
+        code,
+        colour,
+        rolls: Array.from({ length: rolls }, (_, i) => ({
+          id: `${key}-r${i + 1}`,
+          rollNo: String(i + 1),
+          finishedKg: spec.kgPerRoll.toFixed(3),
+          qualityState: i < held ? "WITHOUT_QC" : "PASSED",
+          status: "available",
+        })),
+      });
+    });
+  });
+  return groups;
+}
+
 function thousandths(value: string | null): number | null {
   if (value == null) return null;
   const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value.trim());
@@ -313,7 +371,7 @@ export function LiveStockBoard({ rolls }: { rolls: LiveStockRollRow[] }) {
   const [canPortal, setCanPortal] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const realGroups = useMemo(() => groupStock(rolls), [rolls]);
+  const realGroups = useMemo(() => padStock(groupStock(rolls)), [rolls]);
   const groups = demo ? DEMO_GROUPS : realGroups;
 
   useEffect(() => {

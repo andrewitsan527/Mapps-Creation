@@ -275,6 +275,164 @@ function billTotals(lines: LocalSaleLine[], discount: string, freight: string) {
   };
 }
 
+/* ---------------------------------------------------------------------
+   Presentation sales bills.
+
+   Eighteen bills so the register reads as a working desk. Whatever is in
+   the database is ignored here on purpose - the walkthrough needs a fixed
+   set that reads the same every time. Restore the real list by returning
+   `real` from padBills.
+
+   This closes the chain: every line sells a quality and colour code that
+   is sitting in Live Stock, which in turn came through QC, Finished Work,
+   Mill Program, Mill Inward, Grey Purchase and the original Purchase
+   Order. Colour codes are real rows from the Color Code master.
+
+   The money is derived, not typed: weight x rate gives the gross, GST is
+   the same CGST_PCT / SGST_PCT the entry sheet uses, and the totals are
+   summed from the lines. Open a bill and the figures will agree.
+--------------------------------------------------------------------- */
+const SL_KG_PER_ROLL = 24.4;
+
+const SL_PRESENTATION_SPECS: {
+  customer: string;
+  agent: string;
+  transport: string;
+  destination: string;
+  status: "OPEN" | "DRAFT";
+  /** [item, colour code, colour, rolls, rate] */
+  lines: [string, string, string, number, number][];
+}[] = [
+  { customer: "Shreeji Garments", agent: "kanu bhai", transport: "VRL Logistics", destination: "Surat", status: "OPEN",
+    lines: [["US POLO", "101", "green", 12, 318], ["US POLO", "102", "white", 8, 318]] },
+  { customer: "Riddhi Siddhi Fashion", agent: "Jignesh bhai", transport: "Gati", destination: "Ahmedabad", status: "OPEN",
+    lines: [["TWILL", "601", "Red", 10, 292], ["TWILL", "604", "Chikoo", 9, 292]] },
+  { customer: "Maruti Textiles", agent: "Ramesh bhai", transport: "VRL Logistics", destination: "Mumbai", status: "OPEN",
+    lines: [["VALENTINO", "901", "Mouse", 7, 336]] },
+  { customer: "Anand Creation", agent: "kanu bhai", transport: "TCI Express", destination: "Rajkot", status: "DRAFT",
+    lines: [["DOUBLE MALTY", "701", "N.Blue", 11, 301], ["DOUBLE MALTY", "705", "Chikoo", 8, 301]] },
+  { customer: "Shree Hari Fabrics", agent: "Jignesh bhai", transport: "Gati", destination: "Surat", status: "OPEN",
+    lines: [["FRENCH RIB", "301", "D.Pista", 9, 308]] },
+  { customer: "Krishna Garments", agent: "Ramesh bhai", transport: "VRL Logistics", destination: "Jaipur", status: "OPEN",
+    lines: [["MARIO RIB", "1005", "Onion", 6, 325], ["MARIO RIB", "1011", "B.Pink", 5, 325]] },
+  { customer: "Shreeji Garments", agent: "kanu bhai", transport: "TCI Express", destination: "Surat", status: "OPEN",
+    lines: [["PEARL MALTY", "201", "B.Green", 8, 341]] },
+  { customer: "Laxmi Textile Agency", agent: "Jignesh bhai", transport: "Gati", destination: "Indore", status: "OPEN",
+    lines: [["SCRAMBLE", "503", "R.Gold", 7, 329], ["SCRAMBLE", "512", "Grey", 5, 329]] },
+  { customer: "Maruti Textiles", agent: "Ramesh bhai", transport: "VRL Logistics", destination: "Mumbai", status: "DRAFT",
+    lines: [["FURRY", "402", "D.Lavender", 5, 372]] },
+  { customer: "Riddhi Siddhi Fashion", agent: "kanu bhai", transport: "TCI Express", destination: "Ahmedabad", status: "OPEN",
+    lines: [["FAZE COTTON", "1202", "Rust", 10, 312], ["FAZE COTTON", "1205", "Onion", 8, 312]] },
+  { customer: "Anand Creation", agent: "Jignesh bhai", transport: "Gati", destination: "Rajkot", status: "OPEN",
+    lines: [["TWILL", "611", "Rani", 8, 292], ["TWILL", "612", "Olive", 7, 292]] },
+  { customer: "Shree Hari Fabrics", agent: "Ramesh bhai", transport: "VRL Logistics", destination: "Surat", status: "OPEN",
+    lines: [["US POLO", "103", "blue", 9, 318]] },
+  { customer: "Krishna Garments", agent: "kanu bhai", transport: "TCI Express", destination: "Jaipur", status: "OPEN",
+    lines: [["VALENTINO", "902", "Chikoo", 6, 336], ["VALENTINO", "913", "Peach", 5, 336]] },
+  { customer: "Laxmi Textile Agency", agent: "Jignesh bhai", transport: "Gati", destination: "Indore", status: "DRAFT",
+    lines: [["PEARL MALTY", "204", "Brown", 7, 341]] },
+  { customer: "Shreeji Garments", agent: "Ramesh bhai", transport: "VRL Logistics", destination: "Surat", status: "OPEN",
+    lines: [["DOUBLE MALTY", "706", "Brown", 9, 301]] },
+  { customer: "Maruti Textiles", agent: "kanu bhai", transport: "TCI Express", destination: "Mumbai", status: "OPEN",
+    lines: [["FRENCH RIB", "305", "B.Pink", 8, 308], ["FRENCH RIB", "307", "Wine", 6, 308]] },
+  { customer: "Anand Creation", agent: "Jignesh bhai", transport: "Gati", destination: "Rajkot", status: "OPEN",
+    lines: [["FAZE COTTON", "1208", "Wine", 7, 312]] },
+  { customer: "Riddhi Siddhi Fashion", agent: "Ramesh bhai", transport: "VRL Logistics", destination: "Ahmedabad", status: "OPEN",
+    lines: [["MARIO RIB", "1015", "Airforce", 5, 325], ["SCRAMBLE", "509", "Mustard", 6, 329]] },
+];
+
+function slIso(daysAgo: number) {
+  const d = new Date(Date.now() - daysAgo * 86400000);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** The register shows the presentation bills and nothing else. */
+function padBills(_real: LocalSaleBill[]): LocalSaleBill[] {
+  return SL_PRESENTATION_SPECS.map((spec, index) => {
+    const iso = slIso(index);
+    const [yyyy, mm, dd] = iso.split("-");
+    const stamp = `${iso}T09:00:00.000Z`;
+
+    const lines: LocalSaleLine[] = spec.lines.map(
+      ([itemName, colourCode, colour, rolls, rate], lineIndex) => {
+        const weight = Math.round(rolls * SL_KG_PER_ROLL * 1000) / 1000;
+        return {
+          id: `sl-demo-${index + 1}-l${lineIndex + 1}`,
+          itemId: "",
+          itemName: `${itemName} \u00b7 ${colour}`,
+          colourCode,
+          hsn: "6006",
+          noOfRolls: String(rolls),
+          rolls: Array.from({ length: rolls }, (_, i) => ({
+            id: `sl-demo-${index + 1}-l${lineIndex + 1}-r${i + 1}`,
+            weight: SL_KG_PER_ROLL.toFixed(3),
+            /* points at the Live Stock roll this one was sold from */
+            liveStockRollId: `ls-demo-${index + 1}-${lineIndex + 1}-r${i + 1}`,
+            rollNo: String(i + 1),
+            stockKg: SL_KG_PER_ROLL.toFixed(3),
+            qualityState: "PASSED",
+            reference: `${colourCode}/${i + 1}`,
+          })),
+          weightKg: weight.toFixed(3),
+          rate: rate.toFixed(2),
+        } as LocalSaleLine;
+      },
+    );
+
+    const totalRolls = spec.lines.reduce((sum, line) => sum + line[3], 0);
+    const totalWeight =
+      Math.round(totalRolls * SL_KG_PER_ROLL * 1000) / 1000;
+    const gross = spec.lines.reduce(
+      (sum, [, , , rolls, rate]) =>
+        sum + Math.round(rolls * SL_KG_PER_ROLL * rate * 100) / 100,
+      0,
+    );
+    const grossAmount = Math.round(gross * 100) / 100;
+    const cgstAmount = Math.round(grossAmount * CGST_PCT) / 100;
+    const sgstAmount = Math.round(grossAmount * SGST_PCT) / 100;
+    const netAmount =
+      Math.round((grossAmount + cgstAmount + sgstAmount) * 100) / 100;
+
+    return {
+      id: `sl-demo-${index + 1}`,
+      billNo: `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`,
+      billDate: iso,
+      challanNo: `SC${7100 + index * 13}`,
+      customerId: "",
+      customerName: spec.customer,
+      agentId: "",
+      agentName: spec.agent,
+      hasteId: "",
+      hasteName: "",
+      lrNo: `LR${58000 + index * 17}`,
+      transportId: "",
+      transportName: spec.transport,
+      noOfParcel: String(Math.max(1, Math.round(totalRolls / 6))),
+      ewayNumber: `EW${910000 + index * 29}`,
+      lrDate: iso,
+      destination: spec.destination,
+      lines,
+      paymentWithinDays: "30",
+      discount: "",
+      addLessAmount: "",
+      freight: "",
+      cgstPct: String(CGST_PCT),
+      sgstPct: String(SGST_PCT),
+      cgstAmount: cgstAmount.toFixed(2),
+      sgstAmount: sgstAmount.toFixed(2),
+      grossAmount: grossAmount.toFixed(2),
+      netAmount: netAmount.toFixed(2),
+      totalRolls: String(totalRolls),
+      totalWeightKg: totalWeight.toFixed(3),
+      status: spec.status,
+      createdAt: stamp,
+      updatedAt: stamp,
+    } as LocalSaleBill;
+  });
+}
+
 function blankBill(billNo: string): LocalSaleBill {
   const now = new Date().toISOString();
   const date = todayIso();
@@ -439,7 +597,7 @@ export function SalesDesk({
   transports: SaleLookupOption[];
   items: SaleLookupOption[];
 }) {
-  const [rows, setRows] = useState<LocalSaleBill[]>(records);
+  const [rows, setRows] = useState<LocalSaleBill[]>(() => padBills(records));
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "DRAFT">("ALL");
   const [dateFrom, setDateFrom] = useState("");

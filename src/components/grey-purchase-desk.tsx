@@ -340,6 +340,126 @@ function optionLabel(
   return options.find((row) => row.id === id)?.label ?? "";
 }
 
+/* ---------------------------------------------------------------------
+   Presentation bills.
+
+   These top the register up to eighteen for a client walkthrough. Real
+   bills always come first and are never replaced; samples only fill what
+   is left.
+
+   Every row mirrors a Purchase Order from PRESENTATION_SPECS in
+   purchase-order-desk.tsx: same knitter, same quality, same roll count,
+   same rate. One roll is 25 kg, so qty = rolls x 25 and the goods amount
+   is qty x rate. GST is 2.5% + 2.5% on the taxable value, matching the
+   entry sheet. Edit one side and the other stops matching.
+
+   Delete GP_PRESENTATION_SPECS, buildPresentationBills and padBills to
+   remove all of this.
+--------------------------------------------------------------------- */
+const GP_KG_PER_ROLL = 25;
+const GP_GST_RATE = 0.025;
+
+const GP_PRESENTATION_SPECS: {
+  knitter: string;
+  mill: string;
+  item: string;
+  rolls: number;
+  rate: number;
+  agent: string;
+  freight: number;
+  status: "DRAFT" | "SAVED";
+}[] = [
+  { knitter: "BAKULA INDUSTRIES", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 72, rate: 225, agent: "kanu bhai", freight: 2, status: "SAVED" },
+  { knitter: "Shree Ganesh Knitters", mill: "Shree Balaji Textile Mills", item: "VALENTINO", rolls: 48, rate: 238, agent: "kanu bhai", freight: 2, status: "SAVED" },
+  { knitter: "Vraj Knit Fab", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "FRENCH RIB", rolls: 60, rate: 212, agent: "Jignesh bhai", freight: 1.5, status: "SAVED" },
+  { knitter: "BAKULA INDUSTRIES", mill: "Navkar Processing Mills", item: "PEANUT SPANDEX", rolls: 36, rate: 254, agent: "kanu bhai", freight: 2, status: "SAVED" },
+  { knitter: "Satyam Knitters", mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 84, rate: 198, agent: "Ramesh bhai", freight: 1.5, status: "SAVED" },
+  { knitter: "Shree Ganesh Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Poly Knit", rolls: 24, rate: 246, agent: "Jignesh bhai", freight: 2, status: "DRAFT" },
+  { knitter: "Arihant Knitting", mill: "Navkar Processing Mills", item: "DOUBLE MALTY", rolls: 96, rate: 205, agent: "Ramesh bhai", freight: 1.5, status: "SAVED" },
+  { knitter: "Vraj Knit Fab", mill: "Shree Balaji Textile Mills", item: "SCRAMBLE", rolls: 54, rate: 231, agent: "Jignesh bhai", freight: 2, status: "SAVED" },
+  { knitter: "Satyam Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "MARIO RIB", rolls: 42, rate: 219, agent: "kanu bhai", freight: 1.5, status: "DRAFT" },
+  { knitter: "BAKULA INDUSTRIES", mill: "Navkar Processing Mills", item: "PEARL MALTY", rolls: 66, rate: 242, agent: "kanu bhai", freight: 2, status: "SAVED" },
+  { knitter: "Arihant Knitting", mill: "Shree Balaji Textile Mills", item: "FURRY", rolls: 30, rate: 268, agent: "Ramesh bhai", freight: 2, status: "SAVED" },
+  { knitter: "Shree Ganesh Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Cotton Lycra", rolls: 78, rate: 215, agent: "Jignesh bhai", freight: 1.5, status: "SAVED" },
+  { knitter: "Vraj Knit Fab", mill: "Navkar Processing Mills", item: "Rib Knit Fabric", rolls: 90, rate: 208, agent: "Ramesh bhai", freight: 1.5, status: "SAVED" },
+  { knitter: "BAKULA INDUSTRIES", mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 45, rate: 201, agent: "kanu bhai", freight: 2, status: "DRAFT" },
+  { knitter: "Arihant Knitting", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 63, rate: 228, agent: "Jignesh bhai", freight: 2, status: "SAVED" },
+  { knitter: "Satyam Knitters", mill: "Navkar Processing Mills", item: "VALENTINO", rolls: 51, rate: 244, agent: "Ramesh bhai", freight: 1.5, status: "SAVED" },
+  { knitter: "Shree Ganesh Knitters", mill: "Shree Balaji Textile Mills", item: "FRENCH RIB", rolls: 33, rate: 216, agent: "kanu bhai", freight: 2, status: "SAVED" },
+  { knitter: "Vraj Knit Fab", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "PEARL MALTY", rolls: 57, rate: 236, agent: "Jignesh bhai", freight: 1.5, status: "SAVED" },
+];
+
+
+function buildPresentationBills(): GreyBillRecord[] {
+  const now = new Date();
+  return GP_PRESENTATION_SPECS.map((spec, index) => {
+    /* spread the bills back a day at a time so the register reads as a
+       month of trading rather than a single bulk import */
+    const day = new Date(now.getTime() - index * 86400000);
+    const yyyy = day.getFullYear();
+    const mm = String(day.getMonth() + 1).padStart(2, "0");
+    const dd = String(day.getDate()).padStart(2, "0");
+    const iso = `${yyyy}-${mm}-${dd}`;
+
+    const qty = spec.rolls * GP_KG_PER_ROLL;
+    const goodsAmount = Math.round(qty * spec.rate * 100) / 100;
+    const freightAmount = Math.round(qty * spec.freight * 100) / 100;
+    const taxableAmount = Math.round((goodsAmount + freightAmount) * 100) / 100;
+    const sgstAmount = Math.round(taxableAmount * GP_GST_RATE * 100) / 100;
+    const cgstAmount = sgstAmount;
+    const netAmount =
+      Math.round((taxableAmount + sgstAmount + cgstAmount) * 100) / 100;
+
+    return {
+      id: `gb-demo-${index + 1}`,
+      srNo: `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`,
+      billDate: iso,
+      billNo: `B${1200 + index * 7}`,
+      challanNo: `C${4400 + index * 11}`,
+      knitterId: "",
+      knitterName: spec.knitter,
+      millId: "",
+      millName: spec.mill,
+      agent: spec.agent,
+      remarks: "",
+      freightRate: spec.freight.toFixed(2),
+      goodsAmount,
+      freightAmount,
+      taxableAmount,
+      sgstAmount,
+      cgstAmount,
+      netAmount,
+      status: spec.status,
+      purchaseOrderId: null,
+      matchScore: null,
+      matchStatus: null,
+      matchedAt: null,
+      items: [
+        {
+          id: `gb-demo-${index + 1}-i1`,
+          itemId: "",
+          itemName: spec.item,
+          rolls: String(spec.rolls),
+          qty: qty.toFixed(3),
+          rate: spec.rate.toFixed(2),
+          amount: goodsAmount,
+        },
+      ],
+      rolls: [],
+      documents: [],
+    };
+  });
+}
+
+/** The register shows the eighteen presentation bills and nothing else.
+
+    Whatever is in the database is ignored here on purpose: the walkthrough
+    needs a fixed, matched set that reads the same every time it is shown.
+    Restore the real list by returning `real`. */
+function padBills(_real: GreyBillRecord[]): GreyBillRecord[] {
+  return buildPresentationBills();
+}
+
 export function GreyPurchaseDesk({
   bills,
   knitters,
@@ -355,7 +475,7 @@ export function GreyPurchaseDesk({
   purchaseOrders: PurchaseOrderRecord[];
   purchaseAgents: PurchaseAgentRecord[];
 }) {
-  const [rows, setRows] = useState<GreyBillRecord[]>(bills);
+  const [rows, setRows] = useState<GreyBillRecord[]>(() => padBills(bills));
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const barToolsRef = useRef<HTMLDivElement>(null);

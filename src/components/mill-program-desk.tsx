@@ -193,6 +193,136 @@ function toInput(program: Program, status: MillProgramStatus): MillProgramInput 
   };
 }
 
+/* ---------------------------------------------------------------------
+   Presentation programmes.
+
+   Eighteen programmes and eighteen available-grey rows, so both blocks
+   show a full register. Whatever is in the database is ignored here on
+   purpose: the walkthrough needs a fixed, matched set that reads the same
+   every time. Restore the real lists by returning `real` from padPrograms
+   and padSources.
+
+   These continue the chain: the same knitter / mill / quality / roll
+   combinations that ran through Purchase Order, Grey Purchase and Mill
+   Inward are programmed here against the same challan numbers. One roll
+   is 25 kg throughout.
+
+   Available Grey is derived, not invented: the page computes remaining as
+   rollCount minus what the programmes already allocate, so the source roll
+   counts below are deliberately larger than the programmed ones and the
+   Remaining column works out on its own.
+--------------------------------------------------------------------- */
+const MP_PRESENTATION_SPECS: {
+  knitter: string;
+  mill: string;
+  item: string;
+  rolls: number;
+  finish: string;
+  gsm: string;
+  width: string;
+  status: MillProgramStatus;
+  /* [code, colour, rolls] - codes are real rows from the Color Code master,
+     taken from the quality that matches the item where one exists. The roll
+     figures add up to what the programme allocates, and Available Grey works
+     its Remaining column out from that. */
+  lines: [string, string, number][];
+}[] = [
+  { knitter: "BAKULA INDUSTRIES", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 72, finish: "Heat Set", gsm: "180", width: "60", status: "sent",
+    lines: [["101", "green", 24], ["102", "white", 24], ["103", "blue", 24]] },
+  { knitter: "Shree Ganesh Knitters", mill: "Shree Balaji Textile Mills", item: "VALENTINO", rolls: 48, finish: "Peach Finish", gsm: "220", width: "58", status: "saved",
+    lines: [["901", "Mouse", 12], ["902", "Chikoo", 12], ["913", "Peach", 12]] },
+  { knitter: "Vraj Knit Fab", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "FRENCH RIB", rolls: 60, finish: "Bio Wash", gsm: "200", width: "62", status: "sent",
+    lines: [["301", "D.Pista", 20], ["305", "B.Pink", 20], ["307", "Wine", 20]] },
+  { knitter: "BAKULA INDUSTRIES", mill: "Navkar Processing Mills", item: "PEANUT SPANDEX", rolls: 36, finish: "Heat Set", gsm: "240", width: "56", status: "saved",
+    lines: [["1201", "Dark Chikoo", 12], ["1203", "Olive", 12]] },
+  { knitter: "Satyam Knitters", mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 84, finish: "Soft Finish", gsm: "190", width: "60", status: "sent",
+    lines: [["601", "Red", 21], ["604", "Chikoo", 21], ["611", "Rani", 21], ["612", "Olive", 21]] },
+  { knitter: "Shree Ganesh Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Poly Knit", rolls: 24, finish: "Peach Finish", gsm: "210", width: "58", status: "draft",
+    lines: [["1209", "Light Chikoo", 6], ["1214", "Rani", 6]] },
+  { knitter: "Arihant Knitting", mill: "Navkar Processing Mills", item: "DOUBLE MALTY", rolls: 96, finish: "Bio Wash", gsm: "230", width: "64", status: "sent",
+    lines: [["701", "N.Blue", 24], ["703", "Maroon", 24], ["705", "Chikoo", 24], ["706", "Brown", 24]] },
+  { knitter: "Vraj Knit Fab", mill: "Shree Balaji Textile Mills", item: "SCRAMBLE", rolls: 54, finish: "Heat Set", gsm: "195", width: "60", status: "saved",
+    lines: [["503", "R.Gold", 14], ["509", "Mustard", 14], ["512", "Grey", 14]] },
+  { knitter: "Satyam Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "MARIO RIB", rolls: 42, finish: "Soft Finish", gsm: "205", width: "58", status: "sent",
+    lines: [["1005", "Onion", 14], ["1011", "B.Pink", 14], ["1015", "Airforce", 14]] },
+  { knitter: "BAKULA INDUSTRIES", mill: "Navkar Processing Mills", item: "PEARL MALTY", rolls: 66, finish: "Peach Finish", gsm: "215", width: "62", status: "saved",
+    lines: [["201", "B.Green", 16], ["204", "Brown", 16], ["207", "Black", 16]] },
+  { knitter: "Arihant Knitting", mill: "Shree Balaji Textile Mills", item: "FURRY", rolls: 30, finish: "Bio Wash", gsm: "250", width: "56", status: "sent",
+    lines: [["402", "D.Lavender", 10], ["408", "Mustard", 10], ["412", "B.Gold", 10]] },
+  { knitter: "Shree Ganesh Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Cotton Lycra", rolls: 78, finish: "Heat Set", gsm: "185", width: "60", status: "saved",
+    lines: [["1202", "Rust", 20], ["1205", "Onion", 20], ["1208", "Wine", 20]] },
+  { knitter: "Vraj Knit Fab", mill: "Navkar Processing Mills", item: "Rib Knit Fabric", rolls: 90, finish: "Soft Finish", gsm: "200", width: "64", status: "sent",
+    lines: [["1206", "Dark Pista", 30], ["1210", "Mouse", 30], ["1213", "Off White", 30]] },
+  { knitter: "BAKULA INDUSTRIES", mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 45, finish: "Bio Wash", gsm: "190", width: "58", status: "draft",
+    lines: [["603", "D.Coffee", 15], ["609", "D.Grey", 15]] },
+  { knitter: "Arihant Knitting", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 63, finish: "Heat Set", gsm: "180", width: "60", status: "sent",
+    lines: [["102", "white", 21], ["104", "grey", 21], ["101", "green", 21]] },
+  { knitter: "Satyam Knitters", mill: "Navkar Processing Mills", item: "VALENTINO", rolls: 51, finish: "Peach Finish", gsm: "220", width: "62", status: "saved",
+    lines: [["905", "D.Coffee", 12], ["909", "Maroon", 12], ["915", "B.Blue", 12]] },
+  { knitter: "Shree Ganesh Knitters", mill: "Shree Balaji Textile Mills", item: "FRENCH RIB", rolls: 33, finish: "Soft Finish", gsm: "205", width: "56", status: "sent",
+    lines: [["302", "Black", 11], ["304", "Brown", 11], ["306", "Lavender", 11]] },
+  { knitter: "Vraj Knit Fab", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "PEARL MALTY", rolls: 57, finish: "Bio Wash", gsm: "215", width: "60", status: "saved",
+    lines: [["202", "N.Blue", 15], ["203", "S.Grey", 15], ["205", "L.Grey", 15]] },
+];
+
+function mpIso(daysAgo: number) {
+  const d = new Date(Date.now() - daysAgo * 86400000);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** The register shows the presentation programmes and nothing else. */
+function padPrograms(_real: Program[]): Program[] {
+  return MP_PRESENTATION_SPECS.map((spec, index) => {
+    const iso = mpIso(index);
+    const [yyyy, mm, dd] = iso.split("-");
+    return {
+      id: `mp-demo-${index + 1}`,
+      srNo: `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`,
+      date: iso,
+      dateOfIssue: iso,
+      millId: "",
+      mill: spec.mill,
+      item: spec.item,
+      knitter: spec.knitter,
+      challanNo: `C${4400 + index * 11}`,
+      inwardId: `mi-p-${index + 1}`,
+      inwardSrNo: `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`,
+      typeOfFinish: spec.finish,
+      gsm: spec.gsm,
+      width: spec.width,
+      lines: spec.lines.map(([codeNo, colour, rolls], lineIndex) => ({
+        id: `mp-demo-${index + 1}-l${lineIndex + 1}`,
+        rolls: String(rolls),
+        codeNo,
+        colour,
+      })),
+      programmedRolls: spec.lines.reduce((sum, [, , rolls]) => sum + rolls, 0),
+      remainingRolls:
+        spec.rolls - spec.lines.reduce((sum, [, , rolls]) => sum + rolls, 0),
+      originalRolls: spec.rolls,
+      status: spec.status,
+      sentAt: spec.status === "sent" ? iso : null,
+    } satisfies Program;
+  });
+}
+
+/** The available-grey block shows the matching sources and nothing else. */
+function padSources(_real: MillProgramSource[]): MillProgramSource[] {
+  return MP_PRESENTATION_SPECS.map((spec, index) => ({
+    id: `mi-p-${index + 1}`,
+    srNo: `${String(index + 1).padStart(3, "0")}-${mpIso(index).split("-").reverse().join("")}`,
+    millId: "",
+    mill: spec.mill,
+    item: spec.item,
+    knitter: spec.knitter,
+    challanNo: `C${4400 + index * 11}`,
+    dateOfIssue: mpIso(index),
+    rollCount: spec.rolls,
+  }));
+}
+
 export function MillProgramDesk({
   programs,
   sources,
@@ -200,7 +330,7 @@ export function MillProgramDesk({
   programs: MillProgramRecord[];
   sources: MillProgramSource[];
 }) {
-  const [rows, setRows] = useState<Program[]>(() => programs.map(toProgram));
+  const [rows, setRows] = useState<Program[]>(() => padPrograms(programs.map(toProgram)));
   const [tab, setTab] = useState<"programs" | "grey">("programs");
   const [draft, setDraft] = useState<Program | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | null>(null);
@@ -224,7 +354,7 @@ export function MillProgramDesk({
 
   const availableRows = useMemo(
     () =>
-      sources.map((inward) => {
+      padSources(sources).map((inward) => {
         const original = inward.rollCount;
         const programmed = allocatedProgramRolls(rows, inward.id);
         return {

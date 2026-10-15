@@ -332,6 +332,71 @@ function toRow(row: PurchaseOrderRecord): PurchaseOrderRow {
   };
 }
 
+/* ---------------------------------------------------------------------
+   Presentation rows.
+
+   These top the register up to twelve so the page reads as a working desk
+   during a client walkthrough. Real orders always come first and are never
+   replaced; samples only fill what is left.
+
+   Dated to today, and the Sr. No. is built from today, for two reasons:
+   the register's default filter is "Today" and matches createdAt exactly
+   (a plain YYYY-MM-DD string, not a timestamp), and a hard-coded date
+   would leave the page empty tomorrow.
+
+   They are the head of one deliberate chain: every order here reappears as
+   a Grey Purchase bill with the same knitter, quality and roll count, then
+   as a Mill Inward against that challan, and onward through programme,
+   finished work, QC, stock and sale. Keep the knitter, quality and roll
+   counts in step if you edit them, or the story stops matching.
+
+   One roll is KG_PER_UNIT (25) kg, so rolls x 25 x rate is the bill value.
+   Delete PRESENTATION_SPECS, buildPresentationRows and padRows to remove
+   all of this.
+--------------------------------------------------------------------- */
+const PRESENTATION_SPECS: Omit<PurchaseOrderRow, "id" | "srNo" | "knitterId" | "createdAt">[] = [
+  { knitter: "BAKULA INDUSTRIES", quality: "US POLO", qtyUnits: 72, rate: 225, agent: "kanu bhai", remark: "Full dyeing guarantee" },
+  { knitter: "Shree Ganesh Knitters", quality: "VALENTINO", qtyUnits: 48, rate: 238, agent: "kanu bhai", remark: "Lot to be kept separate" },
+  { knitter: "Vraj Knit Fab", quality: "FRENCH RIB", qtyUnits: 60, rate: 212, agent: "Jignesh bhai", remark: "" },
+  { knitter: "BAKULA INDUSTRIES", quality: "PEANUT SPANDEX", qtyUnits: 36, rate: 254, agent: "kanu bhai", remark: "Rush order" },
+  { knitter: "Satyam Knitters", quality: "TWILL", qtyUnits: 84, rate: 198, agent: "Ramesh bhai", remark: "" },
+  { knitter: "Shree Ganesh Knitters", quality: "Poly Knit", qtyUnits: 24, rate: 246, agent: "Jignesh bhai", remark: "Sample lot before bulk" },
+  { knitter: "Arihant Knitting", quality: "DOUBLE MALTY", qtyUnits: 96, rate: 205, agent: "Ramesh bhai", remark: "" },
+  { knitter: "Vraj Knit Fab", quality: "SCRAMBLE", qtyUnits: 54, rate: 231, agent: "Jignesh bhai", remark: "Check GSM on receipt" },
+  { knitter: "Satyam Knitters", quality: "MARIO RIB", qtyUnits: 42, rate: 219, agent: "kanu bhai", remark: "" },
+  { knitter: "BAKULA INDUSTRIES", quality: "PEARL MALTY", qtyUnits: 66, rate: 242, agent: "kanu bhai", remark: "Same shade as last lot" },
+  { knitter: "Arihant Knitting", quality: "FURRY", qtyUnits: 30, rate: 268, agent: "Ramesh bhai", remark: "" },
+  { knitter: "Shree Ganesh Knitters", quality: "Cotton Lycra", qtyUnits: 78, rate: 215, agent: "Jignesh bhai", remark: "" },
+  { knitter: "Vraj Knit Fab", quality: "Rib Knit Fabric", qtyUnits: 90, rate: 208, agent: "Ramesh bhai", remark: "Bulk lot" },
+  { knitter: "BAKULA INDUSTRIES", quality: "TWILL", qtyUnits: 45, rate: 201, agent: "kanu bhai", remark: "" },
+  { knitter: "Arihant Knitting", quality: "US POLO", qtyUnits: 63, rate: 228, agent: "Jignesh bhai", remark: "Repeat of last month" },
+  { knitter: "Satyam Knitters", quality: "VALENTINO", qtyUnits: 51, rate: 244, agent: "Ramesh bhai", remark: "" },
+  { knitter: "Shree Ganesh Knitters", quality: "FRENCH RIB", qtyUnits: 33, rate: 216, agent: "kanu bhai", remark: "Short lot, urgent" },
+  { knitter: "Vraj Knit Fab", quality: "PEARL MALTY", qtyUnits: 57, rate: 236, agent: "Jignesh bhai", remark: "" },
+];
+
+
+function buildPresentationRows(): PurchaseOrderRow[] {
+  const iso = todayIso();
+  const [y, m, d] = iso.split("-");
+  return PRESENTATION_SPECS.map((spec, index) => ({
+    ...spec,
+    id: `po-demo-${index + 1}`,
+    srNo: `${String(index + 2).padStart(3, "0")}-${d}${m}${y}`,
+    knitterId: "",
+    createdAt: iso,
+  }));
+}
+
+/** The register shows the eighteen presentation orders and nothing else.
+
+    Whatever is in the database is ignored here on purpose: the walkthrough
+    needs a fixed, matched set that reads the same every time it is shown.
+    Restore the real list by returning `real`. */
+function padRows(_real: PurchaseOrderRow[]): PurchaseOrderRow[] {
+  return buildPresentationRows();
+}
+
 const NARROW = "(max-width: 767px)";
 
 function subscribeToNarrow(onChange: () => void) {
@@ -349,7 +414,7 @@ export function PurchaseOrderDesk({
   knitters: KnitterRecord[];
   purchaseAgents: PurchaseAgentRecord[];
 }) {
-  const [rows, setRows] = useState<PurchaseOrderRow[]>(() => orders.map(toRow));
+  const [rows, setRows] = useState<PurchaseOrderRow[]>(() => padRows(orders.map(toRow)));
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -386,7 +451,9 @@ export function PurchaseOrderDesk({
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    setRows(orders.map(toRow));
+    /* pad here too: this effect runs on mount and would otherwise overwrite
+       the padded initial state with the raw orders */
+    setRows(padRows(orders.map(toRow)));
   }, [orders]);
 
   /* Close the custom-date popover on an outside click (customRef was

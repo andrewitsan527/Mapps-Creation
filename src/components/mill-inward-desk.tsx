@@ -389,6 +389,107 @@ function RollTable({
   );
 }
 
+/* ---------------------------------------------------------------------
+   Presentation inwards.
+
+   Eighteen pending and eighteen completed, so whichever block the client
+   clicks shows a full register. Whatever is in the database is ignored
+   here on purpose: the walkthrough needs a fixed, matched set that reads
+   the same every time. Restore the real list by returning `real` from
+   padInwards.
+
+   These continue the chain: the same eighteen knitter / mill / quality /
+   roll combinations that appear as Purchase Orders and then as Grey
+   Purchase bills arrive here as inwards against the same challans. One
+   roll is 25 kg throughout. Edit one side and the story stops matching.
+--------------------------------------------------------------------- */
+const MI_KG_PER_ROLL = 25;
+
+const MI_PRESENTATION_SPECS: {
+  knitter: string;
+  mill: string;
+  item: string;
+  rolls: number;
+}[] = [
+  { knitter: "BAKULA INDUSTRIES", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 72 },
+  { knitter: "Shree Ganesh Knitters", mill: "Shree Balaji Textile Mills", item: "VALENTINO", rolls: 48 },
+  { knitter: "Vraj Knit Fab", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "FRENCH RIB", rolls: 60 },
+  { knitter: "BAKULA INDUSTRIES", mill: "Navkar Processing Mills", item: "PEANUT SPANDEX", rolls: 36 },
+  { knitter: "Satyam Knitters", mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 84 },
+  { knitter: "Shree Ganesh Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Poly Knit", rolls: 24 },
+  { knitter: "Arihant Knitting", mill: "Navkar Processing Mills", item: "DOUBLE MALTY", rolls: 96 },
+  { knitter: "Vraj Knit Fab", mill: "Shree Balaji Textile Mills", item: "SCRAMBLE", rolls: 54 },
+  { knitter: "Satyam Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "MARIO RIB", rolls: 42 },
+  { knitter: "BAKULA INDUSTRIES", mill: "Navkar Processing Mills", item: "PEARL MALTY", rolls: 66 },
+  { knitter: "Arihant Knitting", mill: "Shree Balaji Textile Mills", item: "FURRY", rolls: 30 },
+  { knitter: "Shree Ganesh Knitters", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Cotton Lycra", rolls: 78 },
+  { knitter: "Vraj Knit Fab", mill: "Navkar Processing Mills", item: "Rib Knit Fabric", rolls: 90 },
+  { knitter: "BAKULA INDUSTRIES", mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 45 },
+  { knitter: "Arihant Knitting", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 63 },
+  { knitter: "Satyam Knitters", mill: "Navkar Processing Mills", item: "VALENTINO", rolls: 51 },
+  { knitter: "Shree Ganesh Knitters", mill: "Shree Balaji Textile Mills", item: "FRENCH RIB", rolls: 33 },
+  { knitter: "Vraj Knit Fab", mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "PEARL MALTY", rolls: 57 },
+];
+
+function miIso(daysAgo: number) {
+  const d = new Date(Date.now() - daysAgo * 86400000);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function buildPresentationInwards(
+  status: "pending" | "completed",
+  dayOffset: number,
+): Inward[] {
+  return MI_PRESENTATION_SPECS.map((spec, index) => {
+    const iso = miIso(dayOffset + index);
+    const [yyyy, mm, dd] = iso.split("-");
+    const qty = spec.rolls * MI_KG_PER_ROLL;
+    const prefix = status === "pending" ? "mi-p" : "mi-c";
+    return {
+      id: `${prefix}-${index + 1}`,
+      srNo: `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`,
+      date: iso,
+      dateOfIssue: status === "completed" ? miIso(dayOffset + index - 1) : null,
+      knitterId: "",
+      knitter: spec.knitter,
+      millId: "",
+      mill: spec.mill,
+      itemId: "",
+      item: spec.item,
+      quantity: qty.toFixed(3),
+      remarks: "",
+      rolls: Array.from({ length: spec.rolls }, (_, rollIndex) => ({
+        id: `${prefix}-${index + 1}-r${rollIndex + 1}`,
+        weight: MI_KG_PER_ROLL.toFixed(3),
+      })),
+      items: [
+        {
+          id: `${prefix}-${index + 1}-i1`,
+          itemId: "",
+          name: spec.item,
+          rolls: String(spec.rolls),
+          qty: qty.toFixed(3),
+        },
+      ],
+      status,
+      sentOn: status === "completed" ? miIso(dayOffset + index - 1) : null,
+      sourceType: "GREY_PURCHASE",
+      sourceId: null,
+      type: "NORMAL",
+      challanNo: `C${4400 + index * 11}`,
+      knitterChallanNo: `KC${2100 + index * 9}`,
+    } satisfies Inward;
+  });
+}
+
+/** The desk shows the presentation inwards and nothing else. */
+function padInwards(_real: Inward[]): Inward[] {
+  return [
+    ...buildPresentationInwards("pending", 0),
+    ...buildPresentationInwards("completed", 20),
+  ];
+}
+
 export function MillInwardDesk({
   entries,
   knitters,
@@ -400,7 +501,7 @@ export function MillInwardDesk({
   mills: MillRecord[];
   items: ItemRecord[];
 }) {
-  const [rows, setRows] = useState<Inward[]>(() => entries.map(toInward));
+  const [rows, setRows] = useState<Inward[]>(() => padInwards(entries.map(toInward)));
   const [mode, setMode] = useState<"pending" | "completed" | "create" | null>(
     null,
   );

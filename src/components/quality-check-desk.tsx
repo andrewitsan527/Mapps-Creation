@@ -22,6 +22,7 @@ import {
   type QualityCheckGrade,
   type QualityCheckProgram,
   type QualityCheckRecord,
+  type QualityCheckResult,
   type QualityCheckWork,
   type RollDecision,
   type WithoutQcGroup,
@@ -94,18 +95,170 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+/* ---------------------------------------------------------------------
+   Presentation QC data.
+
+   Eighteen rows in each of the three blocks, so whichever one the client
+   opens shows a full register. Whatever is in the database is ignored here
+   on purpose: the walkthrough needs a fixed, matched set that reads the
+   same every time. Restore the real lists by returning `real` from the
+   three pad helpers.
+
+   These continue the chain: the same mill / item / roll combinations that
+   came back from Finished Work are inspected here, against the same GP,
+   challan and lot numbers. Colour codes are real rows from the Color Code
+   master, matched to the quality where one exists.
+
+   Pending work carries its physical rolls one by one, because the sheet
+   inspects individual rolls - an entry claiming 72 rolls with an empty
+   array would open blank.
+--------------------------------------------------------------------- */
+const QC_SPECS: {
+  mill: string;
+  item: string;
+  rolls: number;
+  finishedPerRoll: number;
+  lotNo: string;
+  rate: number;
+  colours: [string, string][];
+}[] = [
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 72, finishedPerRoll: 24.4, lotNo: "L-4401", rate: 265, colours: [["101", "green"], ["102", "white"], ["103", "blue"]] },
+  { mill: "Shree Balaji Textile Mills", item: "VALENTINO", rolls: 48, finishedPerRoll: 24.1, lotNo: "L-4412", rate: 278, colours: [["901", "Mouse"], ["902", "Chikoo"], ["913", "Peach"]] },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "FRENCH RIB", rolls: 60, finishedPerRoll: 24.6, lotNo: "L-4423", rate: 252, colours: [["301", "D.Pista"], ["305", "B.Pink"], ["307", "Wine"]] },
+  { mill: "Navkar Processing Mills", item: "PEANUT SPANDEX", rolls: 36, finishedPerRoll: 23.8, lotNo: "L-4434", rate: 294, colours: [["1201", "Dark Chikoo"], ["1203", "Olive"]] },
+  { mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 84, finishedPerRoll: 24.5, lotNo: "L-4445", rate: 238, colours: [["601", "Red"], ["604", "Chikoo"], ["611", "Rani"], ["612", "Olive"]] },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Poly Knit", rolls: 24, finishedPerRoll: 24.2, lotNo: "L-4456", rate: 286, colours: [["1209", "Light Chikoo"], ["1214", "Rani"]] },
+  { mill: "Navkar Processing Mills", item: "DOUBLE MALTY", rolls: 96, finishedPerRoll: 24.3, lotNo: "L-4467", rate: 245, colours: [["701", "N.Blue"], ["703", "Maroon"], ["705", "Chikoo"], ["706", "Brown"]] },
+  { mill: "Shree Balaji Textile Mills", item: "SCRAMBLE", rolls: 54, finishedPerRoll: 24.7, lotNo: "L-4478", rate: 271, colours: [["503", "R.Gold"], ["509", "Mustard"], ["512", "Grey"]] },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "MARIO RIB", rolls: 42, finishedPerRoll: 24.0, lotNo: "L-4489", rate: 259, colours: [["1005", "Onion"], ["1011", "B.Pink"], ["1015", "Airforce"]] },
+  { mill: "Navkar Processing Mills", item: "PEARL MALTY", rolls: 66, finishedPerRoll: 24.4, lotNo: "L-4500", rate: 282, colours: [["201", "B.Green"], ["204", "Brown"], ["207", "Black"]] },
+  { mill: "Shree Balaji Textile Mills", item: "FURRY", rolls: 30, finishedPerRoll: 23.9, lotNo: "L-4511", rate: 308, colours: [["402", "D.Lavender"], ["408", "Mustard"], ["412", "B.Gold"]] },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "Cotton Lycra", rolls: 78, finishedPerRoll: 24.6, lotNo: "L-4522", rate: 255, colours: [["1202", "Rust"], ["1205", "Onion"], ["1208", "Wine"]] },
+  { mill: "Navkar Processing Mills", item: "Rib Knit Fabric", rolls: 90, finishedPerRoll: 24.5, lotNo: "L-4533", rate: 248, colours: [["1206", "Dark Pista"], ["1210", "Mouse"], ["1213", "Off White"]] },
+  { mill: "Shree Balaji Textile Mills", item: "TWILL", rolls: 45, finishedPerRoll: 24.2, lotNo: "L-4544", rate: 241, colours: [["603", "D.Coffee"], ["609", "D.Grey"]] },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "US POLO", rolls: 63, finishedPerRoll: 24.4, lotNo: "L-4555", rate: 268, colours: [["102", "white"], ["104", "grey"], ["101", "green"]] },
+  { mill: "Navkar Processing Mills", item: "VALENTINO", rolls: 51, finishedPerRoll: 24.1, lotNo: "L-4566", rate: 284, colours: [["905", "D.Coffee"], ["909", "Maroon"], ["915", "B.Blue"]] },
+  { mill: "Shree Balaji Textile Mills", item: "FRENCH RIB", rolls: 33, finishedPerRoll: 24.6, lotNo: "L-4577", rate: 256, colours: [["302", "Black"], ["304", "Brown"], ["306", "Lavender"]] },
+  { mill: "SHIVAM TERINE PVT.LTD.-MILL", item: "PEARL MALTY", rolls: 57, finishedPerRoll: 24.3, lotNo: "L-4588", rate: 276, colours: [["202", "N.Blue"], ["203", "S.Grey"], ["205", "L.Grey"]] },
+];
+
+function qcIso(daysAgo: number) {
+  const d = new Date(Date.now() - daysAgo * 86400000);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function qcSrNo(index: number, iso: string) {
+  const [yyyy, mm, dd] = iso.split("-");
+  return `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`;
+}
+
+/** Pending finished work, with every physical roll the sheet will inspect. */
+function padWorks(_real: QualityCheckWork[]): QualityCheckWork[] {
+  return QC_SPECS.map((spec, index) => {
+    const iso = qcIso(index);
+    const greyKg = spec.rolls * 25;
+    const finishedKg = Math.round(spec.rolls * spec.finishedPerRoll * 1000) / 1000;
+    return {
+      id: `fw-demo-${index + 1}`,
+      srNo: qcSrNo(index, iso),
+      date: iso,
+      programId: `mp-demo-${index + 1}`,
+      gpNo: qcSrNo(index, iso),
+      mill: spec.mill,
+      knitterChallanNo: `KC${2100 + index * 9}`,
+      challanNo: `C${4400 + index * 11}`,
+      lotNo: spec.lotNo,
+      item: spec.item,
+      rolls: spec.rolls,
+      greyKg: greyKg.toFixed(3),
+      finishedKg: finishedKg.toFixed(3),
+      rate: spec.rate.toFixed(2),
+      physicalRolls: Array.from({ length: spec.rolls }, (_, i) => {
+        const [codeNo, colour] = spec.colours[i % spec.colours.length];
+        return {
+          id: `fw-demo-${index + 1}-r${i + 1}`,
+          rollNo: i + 1,
+          itemName: spec.item,
+          codeNo,
+          colour,
+          finishedKg: spec.finishedPerRoll.toFixed(3),
+          stockState: "open" as const,
+        };
+      }),
+      draft: null,
+    } satisfies QualityCheckWork;
+  });
+}
+
+/** Submitted QC records, a mix of pass, fail and mixed results. */
+function padRecords(_real: QualityCheckRecord[]): QualityCheckRecord[] {
+  const results: QualityCheckResult[] = ["pass", "pass", "mixed", "pass", "fail", "pass"];
+  const grades: (QualityCheckGrade | "")[] = ["A", "A", "B", "A", "C", "B"];
+  const defects: (QualityCheckDefect | "")[] = ["", "", "MINOR", "", "DYEING", "MILL"];
+  return QC_SPECS.map((spec, index) => {
+    const iso = qcIso(index + 18);
+    const result = results[index % results.length];
+    return {
+      id: `qc-demo-${index + 1}`,
+      srNo: qcSrNo(index, iso),
+      date: iso,
+      finishedWorkId: `fw-demo-${index + 1}`,
+      programId: `mp-demo-${index + 1}`,
+      knitterChallanNo: `KC${2100 + index * 9}`,
+      lines: spec.colours.map(([codeNo, colour], lineIndex) => ({
+        id: `qc-demo-${index + 1}-l${lineIndex + 1}`,
+        rolls: String(Math.floor(spec.rolls / spec.colours.length)),
+        codeNo,
+        colour,
+      })),
+      qcRolls: spec.rolls,
+      result,
+      grade: grades[index % grades.length],
+      defectType: defects[index % defects.length],
+      remarks: result === "fail" ? "Shade variation on two rolls" : "",
+      createdAt: iso,
+      status: "submitted" as const,
+    } satisfies QualityCheckRecord;
+  });
+}
+
+/** Rolls sitting in stock that never went through QC. */
+function padWithoutQc(_real: WithoutQcGroup[]): WithoutQcGroup[] {
+  return QC_SPECS.map((spec, index) => {
+    const [codeNo, colour] = spec.colours[0];
+    /* a slice of the lot, not the whole thing: these are the leftovers */
+    const rolls = Math.max(3, Math.round(spec.rolls / 6));
+    return {
+      finishedWorkId: `fw-demo-${index + 1}`,
+      knitterChallanNo: `KC${2100 + index * 9}`,
+      itemName: `${spec.item} \u00b7 ${codeNo}`,
+      colour,
+      rolls,
+      totalKg: (rolls * spec.finishedPerRoll).toFixed(3),
+      rollIds: Array.from(
+        { length: rolls },
+        (_, i) => `fw-demo-${index + 1}-r${i + 1}`,
+      ),
+    } satisfies WithoutQcGroup;
+  });
+}
+
 export function QualityCheckDesk({
-  works,
+  works: rawWorks,
   programs,
   records,
-  withoutQc,
+  withoutQc: rawWithoutQc,
 }: {
   works: QualityCheckWork[];
   programs: QualityCheckProgram[];
   records: QualityCheckRecord[];
   withoutQc: WithoutQcGroup[];
 }) {
-  const [rows, setRows] = useState(records);
+  const [rows, setRows] = useState(() => padRecords(records));
+  const works = padWorks(rawWorks);
+  const withoutQc = padWithoutQc(rawWithoutQc);
   const [tab, setTab] = useState<"pending" | "records" | "without">("pending");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
