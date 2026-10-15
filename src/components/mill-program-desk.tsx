@@ -340,6 +340,13 @@ function padSources(_real: MillProgramSource[]): MillProgramSource[] {
   }));
 }
 
+/* TEMPORARY - presentation build only. See the note on the Grey Purchase
+   desk: padPrograms()' invented ids exist nowhere in the database. A real
+   id still goes to the server. */
+function isPresentationRow(id: string) {
+  return id.startsWith("mp-demo-");
+}
+
 const RESCUE_KEY = "mill-program";
 
 export function MillProgramDesk({
@@ -817,6 +824,14 @@ export function MillProgramDesk({
     if (!draft || !mode || savingRef.current) return false;
     const creating = mode === "create";
     const currentId = draft.id;
+    if (!creating && isPresentationRow(currentId)) {
+      const kept: Program = { ...draft, status };
+      setRows((prev) => prev.map((row) => (row.id === currentId ? kept : row)));
+      clearDraft(RESCUE_KEY);
+      closeModal();
+      setNotice(notice(kept.srNo));
+      return true;
+    }
     savingRef.current = true;
     setError(null);
     const run = creating
@@ -1362,6 +1377,13 @@ export function MillProgramDesk({
                       <td>
                         <input
                           className={`${inputClass} text-right`}
+                          data-invalid={
+                            validated &&
+                            !isBlankLine(line) &&
+                            parsePositiveRolls(line.rolls) === null
+                              ? ""
+                              : undefined
+                          }
                           value={line.rolls}
                           inputMode="numeric"
                           onChange={(e) =>
@@ -1372,6 +1394,11 @@ export function MillProgramDesk({
                       <td>
                         <input
                           className={inputClass}
+                          data-invalid={
+                            validated && !isBlankLine(line) && !line.codeNo.trim()
+                              ? ""
+                              : undefined
+                          }
                           value={line.codeNo}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -1397,6 +1424,11 @@ export function MillProgramDesk({
                       <td>
                         <input
                           className={inputClass}
+                          data-invalid={
+                            validated && !isBlankLine(line) && !line.colour.trim()
+                              ? ""
+                              : undefined
+                          }
                           value={line.colour}
                           onChange={(e) =>
                             setLine(line.id, { colour: e.target.value })
@@ -1406,7 +1438,7 @@ export function MillProgramDesk({
                       <td>
                         <button
                           type="button"
-                          className={buttonTinyClass}
+                          className={`${buttonTinyClass} mp-line-del`}
                           title="Remove row"
                           onClick={() => removeLine(line.id)}
                         >

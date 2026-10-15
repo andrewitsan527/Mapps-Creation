@@ -467,6 +467,17 @@ function padBills(_real: GreyBillRecord[]): GreyBillRecord[] {
   return buildPresentationBills();
 }
 
+/* TEMPORARY - presentation build only.
+   The desk shows padBills()' invented rows, whose ids exist nowhere in the
+   database, so saving one threw "not found" from the server action. While
+   the desk runs on presentation data those rows are kept in state instead,
+   which lets the whole flow be demonstrated on them. A real id is untouched
+   and still goes to the server. Delete this and its one branch when
+   padBills() returns the real list again. */
+function isPresentationRow(id: string) {
+  return id.startsWith("gb-demo-");
+}
+
 const RESCUE_KEY = "grey-purchase";
 
 export function GreyPurchaseDesk({
@@ -952,6 +963,16 @@ export function GreyPurchaseDesk({
     try {
       const input = { ...billInput(draft), status };
       const creating = mode === "create" || !rows.some((row) => row.id === draft.id);
+      if (!creating && isPresentationRow(draft.id)) {
+        const kept = { ...draft, status };
+        setRows((prev) =>
+          prev.map((row) => (row.id === draft.id ? kept : row)),
+        );
+        clearDraft(RESCUE_KEY);
+        setNotice({ text: "Grey purchase saved.", tone: "ok" });
+        closeModal();
+        return true;
+      }
       const saved = creating
         ? await createGreyBill(input)
         : await updateGreyBill(draft.id, input);

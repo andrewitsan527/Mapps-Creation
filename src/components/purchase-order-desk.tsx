@@ -417,6 +417,13 @@ function subscribeToNarrow(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
+/* TEMPORARY - presentation build only. See the note on the Grey Purchase
+   desk: padRows()' invented ids exist nowhere in the database, so editing
+   one threw "not found". A real id still goes to the server. */
+function isPresentationRow(id: string) {
+  return id.startsWith("po-demo-");
+}
+
 const RESCUE_KEY = "purchase-order";
 
 export function PurchaseOrderDesk({
@@ -613,6 +620,17 @@ export function PurchaseOrderDesk({
     if (!parsed) {
       setValidated(true);
       setError("Enter knitter, quality, quantity, rate and agent. Quantity is counted in 25 kg units.");
+      return;
+    }
+    if (isPresentationRow(editingId)) {
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === editingId ? { ...row, ...parsed, id: editingId } : row,
+        ),
+      );
+      clearDraft(RESCUE_KEY);
+      setToast("Purchase order updated.");
+      closeModal();
       return;
     }
     setSaving(true);

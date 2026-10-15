@@ -590,6 +590,13 @@ function useSidebarCollapsed() {
 }
 
 /* one stash per desk; the key is what the restore bar reads back */
+/* TEMPORARY - presentation build only. See the note on the Grey Purchase
+   desk: padBills()' invented ids exist nowhere in the database. A real id
+   still goes to the server. */
+function isPresentationRow(id: string) {
+  return id.startsWith("sl-demo-");
+}
+
 const RESCUE_KEY = "sales-bill";
 
 export function SalesDesk({
@@ -1186,6 +1193,13 @@ export function SalesDesk({
     }
     const creating = mode === "create";
     const input = billInput(draft);
+    if (!creating && isPresentationRow(draft.id)) {
+      setRows((prev) => prev.map((row) => (row.id === draft.id ? draft : row)));
+      clearDraft(RESCUE_KEY);
+      closeModal();
+      setNotice(`Bill ${draft.billNo} updated.`);
+      return;
+    }
     savingRef.current = true;
     setError(null);
     void (creating
@@ -1218,6 +1232,13 @@ export function SalesDesk({
     if (!draft || !mode || mode === "view" || savingRef.current) return false;
     const creating = mode === "create";
     const input = billInput(draft);
+    if (!creating && isPresentationRow(draft.id)) {
+      setRows((prev) => prev.map((row) => (row.id === draft.id ? draft : row)));
+      clearDraft(RESCUE_KEY);
+      closeModal();
+      setNotice(`Draft ${draft.billNo} saved.`);
+      return true;
+    }
     savingRef.current = true;
     setError(null);
     void (creating

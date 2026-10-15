@@ -541,6 +541,13 @@ function padEntries(_real: Entry[]): Entry[] {
   });
 }
 
+/* TEMPORARY - presentation build only. See the note on the Grey Purchase
+   desk: padEntries()' invented ids exist nowhere in the database. A real id
+   still goes to the server. */
+function isPresentationRow(id: string) {
+  return id.startsWith("fw-demo-");
+}
+
 const RESCUE_KEY = "finished-work";
 
 export function FinishedWorkDesk({
@@ -1032,6 +1039,13 @@ export function FinishedWorkDesk({
     }
     const creating = mode === "create";
     const currentId = draft.id;
+    if (!creating && isPresentationRow(currentId)) {
+      setRows((prev) => prev.map((row) => (row.id === currentId ? draft : row)));
+      clearDraft(RESCUE_KEY);
+      closeModal();
+      setNotice(`${draft.srNo} updated.`);
+      return;
+    }
     savingRef.current = true;
     setError(null);
     const run = creating

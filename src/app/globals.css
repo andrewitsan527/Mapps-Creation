@@ -5291,6 +5291,111 @@ button {
   border-bottom: 0;
 }
 
+/* ---- the program grid reads like the other line grids ------------------
+   It had the bordered frame and the dark header already, but the rows were
+   flat: no striping, a pale index, a white bin button carrying the same
+   weight as a primary control, and inputs a size of their own. This brings
+   it level with the Mill Inward roll grid and the two roll dialogs.
+
+   validateDraft() refuses a row with no roll count, code or colour, and
+   those three fields now say so once a save has been refused. */
+.mp-line-table td {
+  height: 2.15rem;
+  padding: 0.2rem 0.45rem;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.32);
+  background: var(--gb-row);
+}
+
+.mp-line-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.mp-line-table tbody tr:hover td {
+  background: var(--gb-ice);
+}
+
+.mp-line-table tbody td:first-child {
+  position: relative;
+  text-align: center;
+  color: var(--gb-ink-soft);
+}
+
+.mp-line-table tbody td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.3rem;
+  left: 0;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: rgba(125, 186, 228, 0.5);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.mp-line-table tbody tr:hover td:first-child::before {
+  opacity: 1;
+}
+
+.mp-line-table tbody td input {
+  height: 1.8rem;
+  padding-block: 0;
+  border-color: #8f98bd;
+  border-radius: 7px;
+  background-color: #fff;
+}
+
+.mp-line-table tbody td input:hover:not(:disabled) {
+  border-color: #6f78a3;
+}
+
+.mp-line-table tbody td input[data-invalid] {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.mp-line-table tbody td input[data-invalid]:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.mp-line-table td:last-child {
+  text-align: right;
+}
+
+/* removing a row is destructive, and should not look like the controls
+   next to it until the cursor is on that row */
+.mp-line-del {
+  min-height: 0;
+  height: 1.65rem;
+  width: 1.65rem;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #93a3b5;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.mp-line-table tbody tr:hover .mp-line-del {
+  border-color: rgba(179, 39, 28, 0.3);
+  color: #b3271c;
+}
+
+.mp-line-del:hover {
+  border-color: rgba(179, 39, 28, 0.85) !important;
+  background: rgba(179, 39, 28, 0.1);
+  color: #8c1f16 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-line-table tbody td:first-child::before,
+  .mp-line-del {
+    transition: none;
+  }
+}
+
 .mp-foot {
   display: flex;
   flex: 0 0 auto;

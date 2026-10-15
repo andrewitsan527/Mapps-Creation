@@ -251,6 +251,15 @@ function padWithoutQc(_real: WithoutQcGroup[]): WithoutQcGroup[] {
   });
 }
 
+/* TEMPORARY - presentation build only. See the note on the Grey Purchase
+   desk. QC's pending list is derived from the prop rather than held in
+   state, so rather than converting it - which would stop it tracking server
+   updates - a submitted demo work is filtered out additively. For real data
+   the filter list is always empty and nothing changes. */
+function isPresentationWork(id: string) {
+  return id.startsWith("fw-demo-");
+}
+
 const RESCUE_KEY = "quality-check";
 
 export function QualityCheckDesk({
@@ -265,7 +274,8 @@ export function QualityCheckDesk({
   withoutQc: WithoutQcGroup[];
 }) {
   const [rows, setRows] = useState(() => padRecords(records));
-  const works = padWorks(rawWorks);
+  const [demoDone, setDemoDone] = useState<string[]>([]);
+  const works = padWorks(rawWorks).filter((row) => !demoDone.includes(row.id));
   const withoutQc = padWithoutQc(rawWithoutQc);
   const [tab, setTab] = useState<"pending" | "records" | "without">("pending");
 
@@ -360,6 +370,49 @@ export function QualityCheckDesk({
     if (!work?.programId) {
       setError("No matching Mill Program for this challan.");
       return false;
+    }
+    if (isPresentationWork(session.workId)) {
+      const passed = session.rolls.filter((roll) => roll.decision === "pass").length;
+      const failed = session.rolls.filter((roll) => roll.decision === "fail").length;
+      const made: QualityCheckRecord = {
+        id: `qc-demo-live-${session.workId}`,
+        srNo: `QC-${work.knitterChallanNo || session.workId}`,
+        date: session.date,
+        finishedWorkId: session.workId,
+        programId: work.programId,
+        knitterChallanNo: work.knitterChallanNo,
+        lines: Array.from(
+          session.rolls.reduce((groups, roll) => {
+            const key = `${roll.codeNo}|${roll.colour}`;
+            groups.set(key, (groups.get(key) ?? 0) + 1);
+            return groups;
+          }, new Map<string, number>()),
+        ).map(([key, count], index) => {
+          const [codeNo, colour] = key.split("|");
+          return {
+            id: `qc-demo-live-l${index + 1}`,
+            rolls: String(count),
+            codeNo,
+            colour,
+          };
+        }),
+        qcRolls: session.rolls.length,
+        result: failed === 0 ? "pass" : passed === 0 ? "fail" : "mixed",
+        grade: session.grade,
+        defectType: session.defectType,
+        remarks: session.remarks,
+        createdAt: session.date,
+        status: mode === "draft" ? "draft" : "submitted",
+      };
+      setRows((prev) => [made, ...prev.filter((row) => row.id !== made.id)]);
+      if (mode !== "draft") setDemoDone((prev) => [...prev, session.workId]);
+      clearDraft(RESCUE_KEY);
+      setSession(null);
+      setNotice(
+        mode === "draft" ? `${made.srNo} draft saved.` : `${made.srNo} submitted.`,
+      );
+      savingRef.current = false;
+      return true;
     }
     savingRef.current = true;
     setError(null);
