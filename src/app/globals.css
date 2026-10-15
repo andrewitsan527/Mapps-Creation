@@ -2324,6 +2324,146 @@ button {
   color: #fff;
 }
 
+/* ---- GP sheet · entrance and dim --------------------------------------
+   The entry sheet appeared and vanished with no transition at all, so a
+   dialog carrying a whole bill arrived as a hard cut. It rises and settles
+   on the same curve the register tabs use - a rise, never a spring - and
+   the dim deepens so the page behind stops competing with the form.
+
+   .gb-sheet and .gb-sheet-overlay are passed by Grey Purchase alone. The
+   close button is not: .gb-sheet-close is shared with Finished Work, Mill
+   Inward, Mill Program and Purchase Order, so the rotation hangs off
+   .gp-close, which only these two dialogs carry. */
+@keyframes gb-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes gb-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gb-sheet {
+  animation: gb-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.gb-sheet-overlay {
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: gb-overlay-in 0.16s ease both;
+}
+
+/* the close control already went red; it had no transform to turn on */
+.gb-sheet-close.gp-close {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-sheet-close.gp-close:hover {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-sheet,
+  .gb-sheet-overlay {
+    animation: none;
+  }
+
+  .gb-sheet-close.gp-close {
+    transition: none;
+  }
+
+  .gb-sheet-close.gp-close:hover {
+    transform: none;
+  }
+}
+
+/* ---- GP sheet · native controls ----------------------------------------
+   Grey Purchase has no <select> of its own - its four dropdowns are
+   SearchableSelect, which draws its own chevron - so there is nothing here
+   to strip an appearance from. What that chevron never had was a colour of
+   its own or any sign that the field is live, and the date field still
+   showed the browser's default glyph.
+
+   Scoped to .gb-sheet, which only Grey Purchase passes. */
+.gb-sheet [data-searchable-select] > svg {
+  color: #6b7c8c;
+  transition:
+    color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-sheet [data-searchable-select]:hover > svg {
+  color: var(--gb-ink);
+}
+
+.gb-sheet [data-searchable-select]:focus-within > svg {
+  color: var(--accent);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.gb-sheet input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+
+.gb-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.gb-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-sheet [data-searchable-select] > svg {
+    transition: none;
+  }
+
+  .gb-sheet [data-searchable-select]:focus-within > svg {
+    transform: translateY(-50%);
+  }
+}
+
+/* ---- GP sheet · required, invalid, and the corner ladder ---------------
+   validate() rejects a missing date, bill no., challan no. or knitter, but
+   the form never said which four they were: a rejected save put a banner at
+   the top and left you hunting. The mark comes off the required attribute,
+   so it cannot drift from the rule. Knitter is a SearchableSelect with no
+   required prop, so that one is marked on its label.
+
+   The red appears only once a save has been refused. An earlier version
+   also used :user-invalid, which marked a field the moment you stepped out
+   of it - so the form went red while you were still filling it in.
+
+   The corners were 14 / 11 / 6 - 11 read as a failed attempt at the sheet's
+   14, then jumped to 6. The ladder is 14 sheet / 10 block / 7 control. */
+.gb-sheet label:has(> input:required) > span::after,
+.gb-sheet label.gb-req > span::after {
+  content: " *";
+  color: #b3271c;
+}
+
+
+
+.gb-sheet input,
+.gb-sheet select,
+.gb-sheet textarea {
+  border-radius: 7px;
+}
+
 /* ---- GP Entry regions -------------------------------------------------- */
 .gb-entry {
   display: flex;
@@ -2379,7 +2519,7 @@ button {
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--gb-grid);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--gb-row);
   box-shadow: var(--gb-shadow-card);
 }
@@ -2464,7 +2604,7 @@ button {
 .gb-entry .gb-total {
   overflow: auto;
   border: 1px solid var(--gb-pearl-line);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--gb-pearl);
   padding: 0.5rem 0.7rem;
   font-size: 12px;
@@ -2489,6 +2629,156 @@ button {
   background: var(--gb-pearl);
 }
 
+/* The two controls that commit or abandon a whole bill had only the generic
+   Tailwind colour change - no weight, no travel, nothing under the finger.
+   They lift on hover and press in on click, on the curve the sheet uses. */
+.gb-entry-foot button {
+  min-width: 6rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-entry-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.18);
+}
+
+.gb-entry-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.24);
+}
+
+/* ---- GP sheet · the rejection notice ------------------------------------
+   It used to sit in the form flow, so every field below it jumped down the
+   moment a save was refused - the form moved under the cursor at the exact
+   moment you were trying to read what was wrong. It now floats over the top
+   of the sheet, takes no layout space, and clears itself after 5s. The bar
+   along the bottom is the clock: a line draining left to right, not a
+   number counting down. */
+.gb-entry {
+  position: relative;
+}
+
+.gb-entry-alert {
+  position: absolute;
+  z-index: 20;
+  top: 0.55rem;
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  min-width: min(26rem, calc(100% - 1.7rem));
+  max-width: calc(100% - 1.7rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  background: #fdf0ee;
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.22);
+  transform: translateX(-50%);
+  animation: gb-alert-in 0.2s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes gb-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.gb-entry-alert-text {
+  flex: 1 1 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8c1f16;
+}
+
+.gb-entry-alert-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #8c1f16;
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-entry-alert-close:hover {
+  background: rgba(179, 39, 28, 0.14);
+  transform: rotate(90deg);
+}
+
+/* the clock: a line draining the width of the notice over its five seconds */
+.gb-entry-alert-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(179, 39, 28, 0.45), #b3271c);
+  animation: gb-alert-drain 5s linear both;
+}
+
+@keyframes gb-alert-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* ---- a refused save marks the fields, not just the notice --------------
+   The marks appear only once a save has been refused: a form still being
+   filled in should not be red, and a field is not wrong until it is sent. */
+.gb-entry[data-validated] input:required:invalid,
+.gb-entry[data-validated] .gb-req.gb-empty input {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.gb-entry[data-validated] input:required:invalid:focus,
+.gb-entry[data-validated] .gb-req.gb-empty input:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-entry-alert {
+    animation: none;
+  }
+
+  .gb-entry-alert-close {
+    transition: none;
+  }
+
+  .gb-entry-alert-close:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-entry-foot button {
+    transition: none;
+  }
+
+  .gb-entry-foot button:hover:not(:disabled),
+  .gb-entry-foot button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
 /* ---- Roll / Taka sheet ------------------------------------------------- */
 .gb-roll {
   display: flex;
@@ -2510,7 +2800,7 @@ button {
   overflow: auto;
   margin: 0 0.85rem;
   border: 1px solid var(--gb-grid);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--gb-row);
 }
 
@@ -3041,7 +3331,7 @@ button {
   border-color: var(--gb-grid-strong, #b6c8d8);
   border-radius: var(--gb-radius);
   box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
-  animation: gb-fade-in 0.16s ease both;
+  animation: po-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
 }
 
 @media (max-width: 639px) {
@@ -3095,6 +3385,126 @@ button {
   color: var(--gb-ink-soft);
 }
 
+/* ---- PO sheet · required, invalid, and the rejection notice -------------
+   parseDraft refuses an order without knitter, quality, qty, rate or agent,
+   but the form named none of them: a refused save put a banner at the top
+   and left you to work out which of the five was empty. The mark comes off
+   the required attribute, so it cannot drift from the rule.
+
+   The notice used to sit in the form flow, so the fields jumped down at the
+   moment you were trying to read what was wrong. It floats over the sheet,
+   takes no layout space, and clears itself after 5s - the bar along the
+   bottom is the clock, a line draining rather than a number counting. */
+.po-sheet div:has(> :is(input, select):required) > span:first-child::after,
+.po-sheet div:has(> div > :is(input, select):required) > span:first-child::after {
+  content: " *";
+  color: #b3271c;
+}
+
+.po-form-scroll[data-validated] :is(input, select):required:invalid {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.po-form-scroll[data-validated] :is(input, select):required:invalid:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.po-form-body {
+  position: relative;
+}
+
+.po-alert {
+  position: absolute;
+  z-index: 20;
+  top: 0.55rem;
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  min-width: min(22rem, calc(100% - 1.5rem));
+  max-width: calc(100% - 1.5rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  background: #fdf0ee;
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.22);
+  transform: translateX(-50%);
+  animation: po-alert-in 0.2s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes po-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.po-alert-text {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8c1f16;
+}
+
+.po-alert-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #8c1f16;
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.po-alert-close:hover {
+  background: rgba(179, 39, 28, 0.14);
+  transform: rotate(90deg);
+}
+
+.po-alert-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(179, 39, 28, 0.45), #b3271c);
+  animation: po-alert-drain 5s linear both;
+}
+
+@keyframes po-alert-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-alert {
+    animation: none;
+  }
+
+  .po-alert-close {
+    transition: none;
+  }
+
+  .po-alert-close:hover {
+    transform: none;
+  }
+}
+
 .po-form-foot {
   display: flex;
   flex: 0 0 auto;
@@ -3125,6 +3535,133 @@ button {
 
 .po-sheet-overlay {
   padding: 0.5rem;
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: po-overlay-in 0.16s ease both;
+}
+
+/* ---- PO sheet · entrance, dim and the close control ---------------------
+   The sheet had a flat 0.16s fade and the overlay had none at all, so the
+   dialog blinked in while the page behind stayed fully legible. It rises and
+   settles on the curve the register tabs use, and the dim deepens.
+
+   .po-sheet and .po-sheet-overlay are Purchase Order's alone. The close
+   button is not: .gb-sheet-close is shared with Grey Purchase, Finished
+   Work, Mill Inward and Mill Program, so the rotation hangs off .po-close,
+   which only this dialog carries. */
+@keyframes po-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes po-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gb-sheet-close.po-close {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-sheet-close.po-close:hover {
+  transform: rotate(90deg);
+}
+
+/* ---- PO sheet · the close control needs room ---------------------------
+   ErpModal's form mode puts the close at top-2 (8px) and the circle is 28px,
+   while the form header is 8 + 20 + 8 = 36px: the circle's bottom edge
+   landed exactly on the header's border. The header gains a little height
+   and the circle sits inside it with clearance on both sides. */
+.po-sheet > div:first-child {
+  padding-block: 0.7rem;
+}
+
+.po-sheet [data-modal-close] {
+  top: 0.45rem;
+  right: 0.5rem;
+}
+
+/* ---- PO sheet · native controls ----------------------------------------
+   Two real <select> elements here, unlike Grey Purchase, so these keep the
+   browser chevron off and draw our own. */
+.po-sheet select {
+  appearance: none;
+  padding-right: 1.6rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235b6478' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 0.7rem;
+}
+
+.po-sheet input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+
+.po-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.po-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+/* ---- PO sheet · the corner ladder and the action bar -------------------
+   14 sheet / 7 control, and the two controls that commit or abandon the
+   order get some weight under the finger. */
+.po-sheet input,
+.po-sheet select,
+.po-sheet textarea {
+  border-radius: 7px;
+}
+
+.po-form-foot button {
+  min-width: 6rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.po-form-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.18);
+}
+
+.po-form-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.24);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-sheet,
+  .po-sheet-overlay {
+    animation: none;
+  }
+
+  .gb-sheet-close.po-close,
+  .po-form-foot button {
+    transition: none;
+  }
+
+  .gb-sheet-close.po-close:hover,
+  .po-form-foot button:hover:not(:disabled),
+  .po-form-foot button:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 @media (min-width: 640px) {
@@ -3456,6 +3993,246 @@ button {
   padding: 0.5rem;
 }
 
+/* ---- MI sheets · entrance, dim, controls and the notice -----------------
+   Mill Inward runs two dialogs - the inward sheet and the QC return - and
+   neither had any of this. The QC return passed raw utility strings for its
+   overlay and footer, so it had nothing to be styled by at all; both now
+   carry a class alongside what they already had.
+
+   .gb-sheet-close is shared with Grey Purchase, Purchase Order, Finished
+   Work and Mill Program, so the rotation hangs off .mi-close. */
+@keyframes mi-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mi-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.mi-qc-sheet {
+  animation: mi-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.mi-sheet-overlay,
+.mi-qc-overlay {
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: mi-overlay-in 0.16s ease both;
+}
+
+.gb-sheet-close.mi-close {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-sheet-close.mi-close:hover {
+  transform: rotate(90deg);
+}
+
+/* three native selects and four date fields, all left raw until now */
+.mi-sheet select,
+.mi-qc-sheet select {
+  appearance: none;
+  padding-right: 1.6rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235b6478' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 0.7rem;
+}
+
+.mi-sheet input[type="date"]::-webkit-calendar-picker-indicator,
+.mi-qc-sheet input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+
+.mi-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.mi-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator,
+.mi-qc-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.mi-qc-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+/* 14 sheet / 10 block / 7 control */
+.mi-sheet input,
+.mi-sheet select,
+.mi-sheet textarea,
+.mi-qc-sheet input,
+.mi-qc-sheet select,
+.mi-qc-sheet textarea {
+  border-radius: 7px;
+}
+
+.mi-qc-sheet table.erp-table {
+  border-radius: 10px;
+}
+
+.mi-foot button,
+.mi-qc-foot button {
+  min-width: 6rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.mi-foot button:hover:not(:disabled),
+.mi-qc-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.18);
+}
+
+.mi-foot button:active:not(:disabled),
+.mi-qc-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.24);
+}
+
+/* requireCore() needs mill and item always, and knitter only when the inward
+   came from a grey purchase - the knitter control is only rendered in that
+   case, so marking it required there is the same condition */
+.mi-entry label:has(> select:required) > span:first-child::after {
+  content: " *";
+  color: #b3271c;
+}
+
+.mi-entry[data-validated] select:required:invalid,
+.mi-entry[data-validated] input:required:invalid {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.mi-entry[data-validated] select:required:invalid:focus,
+.mi-entry[data-validated] input:required:invalid:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+/* the notice floated nothing before: it sat in the form flow and pushed
+   every field down at the moment you were reading it */
+.mi-entry {
+  position: relative;
+}
+
+.mi-alert {
+  position: absolute;
+  z-index: 20;
+  top: 0.55rem;
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  min-width: min(24rem, calc(100% - 1.6rem));
+  max-width: calc(100% - 1.6rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  background: #fdf0ee;
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.22);
+  transform: translateX(-50%);
+  animation: mi-alert-in 0.2s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes mi-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.mi-alert-text {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8c1f16;
+}
+
+.mi-alert-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #8c1f16;
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.mi-alert-close:hover {
+  background: rgba(179, 39, 28, 0.14);
+  transform: rotate(90deg);
+}
+
+.mi-alert-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(179, 39, 28, 0.45), #b3271c);
+  animation: mi-alert-drain 5s linear both;
+}
+
+@keyframes mi-alert-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-sheet,
+  .mi-qc-sheet,
+  .mi-sheet-overlay,
+  .mi-qc-overlay,
+  .mi-alert {
+    animation: none;
+  }
+
+  .gb-sheet-close.mi-close,
+  .mi-foot button,
+  .mi-qc-foot button,
+  .mi-alert-close {
+    transition: none;
+  }
+
+  .gb-sheet-close.mi-close:hover,
+  .mi-foot button:hover:not(:disabled),
+  .mi-foot button:active:not(:disabled),
+  .mi-qc-foot button:hover:not(:disabled),
+  .mi-qc-foot button:active:not(:disabled),
+  .mi-alert-close:hover {
+    transform: none;
+  }
+}
+
 @media (min-width: 640px) {
   .mi-sheet-overlay {
     padding: 1.25rem 3vw;
@@ -3468,7 +4245,7 @@ button {
   border-color: var(--gb-grid-strong);
   border-radius: var(--gb-radius);
   box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
-  animation: gb-fade-in 0.16s ease both;
+  animation: mi-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
 }
 
 @media (min-width: 640px) {
@@ -3545,6 +4322,10 @@ button {
   table-layout: fixed;
 }
 
+.mi-roll-table thead th:nth-child(2) {
+  text-align: right;
+}
+
 .mi-roll-table thead th {
   position: sticky;
   top: -0.35rem;
@@ -3562,9 +4343,109 @@ button {
 }
 
 .mi-roll-table td {
-  height: 2.5rem;
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid var(--gb-grid-strong);
+  height: 2.15rem;
+  padding: 0.2rem 0.5rem;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.32);
+}
+
+/* ---- the roll grid reads as one object --------------------------------
+   Before: a bare number at the far left, an input capped at 13rem floating
+   in the middle, a dead gap, and a white bin button in an unlabelled column
+   at the far right - three things that happened to share a row. The number
+   gets a rail, the field fills its cell, and the bin is quiet until the row
+   is under the cursor, then it is clearly destructive. */
+.mi-roll-grid {
+  overflow: hidden;
+  border: 1px solid var(--gb-grid-strong);
+  border-radius: 10px;
+  background: var(--gb-row);
+}
+
+.mi-roll-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.mi-roll-table tbody tr:hover td {
+  background: var(--gb-ice);
+}
+
+/* the roll number is an index, not data: a rail marks it as the row's spine */
+.mi-roll-table td:first-child {
+  position: relative;
+  color: var(--gb-ink-soft);
+  text-align: center;
+}
+
+.mi-roll-table td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.3rem;
+  left: 0;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: rgba(125, 186, 228, 0.5);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.mi-roll-table tbody tr:hover td:first-child::before {
+  opacity: 1;
+}
+
+.mi-roll-table td:last-child {
+  text-align: right;
+}
+
+.mi-roll-del {
+  min-height: 0;
+  height: 1.65rem;
+  width: 1.65rem;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #93a3b5;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.mi-roll-table tbody tr:hover .mi-roll-del {
+  border-color: rgba(179, 39, 28, 0.3);
+  color: #b3271c;
+}
+
+.mi-roll-del:hover {
+  border-color: rgba(179, 39, 28, 0.85) !important;
+  background: rgba(179, 39, 28, 0.1);
+  color: #8c1f16 !important;
+}
+
+/* the add control is the last row of the grid, not a button floating under it */
+.mi-roll-add {
+  width: 100%;
+  justify-content: center;
+  border-width: 0;
+  border-top: 1px dashed var(--gb-grid-strong);
+  border-radius: 0;
+  background: var(--gb-workspace-top);
+  color: var(--gb-ink-soft);
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.mi-roll-add:hover {
+  background: var(--gb-ice);
+  color: var(--gb-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-roll-table td:first-child::before,
+  .mi-roll-del,
+  .mi-roll-add {
+    transition: none;
+  }
 }
 
 .mi-roll-table tbody tr:last-child td {
@@ -3682,8 +4563,12 @@ button {
 
 /* a roll weight is a short number — stop the input spanning the sheet */
 .mi-roll-table td input {
-  max-width: 13rem;
-  margin-left: auto;
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  height: 1.8rem;
+  padding-block: 0;
+  border-radius: 7px;
 }
 
 .mi-entry-rolls > div {
@@ -4073,6 +4958,207 @@ button {
 /* ---- Create / edit sheet ----------------------------------------------- */
 .mp-sheet-overlay {
   padding: 0.5rem;
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: mp-overlay-in 0.16s ease both;
+}
+
+/* ---- MP sheet - entrance, dim, controls and the notice ------------------
+   .gb-sheet-close is shared with Grey Purchase, Purchase Order, Finished
+   Work and Mill Inward, so the rotation hangs off .mp-close. */
+@keyframes mp-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mp-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gb-sheet-close.mp-close {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-sheet-close.mp-close:hover {
+  transform: rotate(90deg);
+}
+
+.mp-sheet select {
+  appearance: none;
+  padding-right: 1.6rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235b6478' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 0.7rem;
+}
+
+.mp-sheet input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+
+.mp-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.mp-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+.mp-sheet input,
+.mp-sheet select,
+.mp-sheet textarea {
+  border-radius: 7px;
+}
+
+.mp-foot button {
+  min-width: 6rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.mp-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.18);
+}
+
+.mp-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.24);
+}
+
+/* validateDraft() wants mill, item, finish, GSM and width before it even
+   looks at the program rows */
+.mp-entry label:has(> :is(input, select):required) > span:first-child::after {
+  content: " *";
+  color: #b3271c;
+}
+
+.mp-entry[data-validated] :is(input, select):required:invalid {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.mp-entry[data-validated] :is(input, select):required:invalid:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.mp-entry {
+  position: relative;
+}
+
+.mp-alert {
+  position: absolute;
+  z-index: 20;
+  top: 0.55rem;
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  min-width: min(24rem, calc(100% - 1.6rem));
+  max-width: calc(100% - 1.6rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  background: #fdf0ee;
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.22);
+  transform: translateX(-50%);
+  animation: mp-alert-in 0.2s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes mp-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.mp-alert-text {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8c1f16;
+}
+
+.mp-alert-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #8c1f16;
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.mp-alert-close:hover {
+  background: rgba(179, 39, 28, 0.14);
+  transform: rotate(90deg);
+}
+
+.mp-alert-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(179, 39, 28, 0.45), #b3271c);
+  animation: mp-alert-drain 5s linear both;
+}
+
+@keyframes mp-alert-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-sheet,
+  .mp-sheet-overlay,
+  .mp-alert {
+    animation: none;
+  }
+
+  .gb-sheet-close.mp-close,
+  .mp-foot button,
+  .mp-alert-close {
+    transition: none;
+  }
+
+  .gb-sheet-close.mp-close:hover,
+  .mp-foot button:hover:not(:disabled),
+  .mp-foot button:active:not(:disabled),
+  .mp-alert-close:hover {
+    transform: none;
+  }
 }
 
 @media (min-width: 640px) {
@@ -4087,8 +5173,10 @@ button {
   border-color: var(--gb-grid-strong, #b6c8d8);
   border-radius: var(--gb-radius);
   box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
-  /* opacity only: the unsaved-changes dialog inside is position: fixed */
-  animation: gb-fade-in 0.16s ease both;
+  /* The unsaved-changes dialog is position: fixed, and a transform on an
+     ancestor would become its containing block - but it renders outside the
+     Overlay now, so the sheet can rise like every other one. */
+  animation: mp-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
 }
 
 @media (min-width: 640px) {
@@ -4497,7 +5585,226 @@ button {
   border-color: var(--gb-grid-strong, #b6c8d8);
   border-radius: var(--gb-radius);
   box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
-  animation: gb-fade-in 0.16s ease both;
+  animation: qc-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+/* ---- QC sheet - entrance, dim, close, controls and the action bar -------
+   This sheet was the odd one out: its overlay had no class to dim or fade,
+   its close button carried ten lines of !important utilities inline so it
+   could not be styled with the others, and Save draft / Submit QC sat
+   inside the scrolling body - on a long roll list the worker had to scroll
+   to the bottom to submit. The buttons are an action bar now.
+
+   It does not use .gb-sheet-close, so .qc-close is the whole control here
+   rather than a modifier. */
+@keyframes qc-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes qc-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.qc-sheet-overlay {
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: qc-overlay-in 0.16s ease both;
+}
+
+.qc-close {
+  display: inline-flex;
+  height: 1.85rem;
+  width: 1.85rem;
+  min-height: 0;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.24);
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.qc-close:hover {
+  border-color: rgba(179, 39, 28, 0.85);
+  background: rgba(179, 39, 28, 0.82);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.qc-sheet select {
+  appearance: none;
+  padding-right: 1.6rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235b6478' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 0.7rem;
+}
+
+.qc-sheet input,
+.qc-sheet select,
+.qc-sheet textarea {
+  border-radius: 7px;
+}
+
+/* the action bar the sheet never had */
+.qc-foot {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--gb-grid-strong);
+  padding: 0.6rem 0.9rem;
+  background: var(--gb-pearl);
+}
+
+.qc-foot button {
+  min-width: 6rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.qc-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.18);
+}
+
+.qc-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.24);
+}
+
+@media (max-width: 767px) {
+  .qc-foot {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .qc-foot button {
+    min-width: 0;
+  }
+}
+
+/* the notice floats instead of pushing the roll list down */
+.qc-entry {
+  position: relative;
+}
+
+.qc-alert {
+  position: absolute;
+  z-index: 20;
+  top: 0.55rem;
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  min-width: min(24rem, calc(100% - 1.6rem));
+  max-width: calc(100% - 1.6rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  background: #fdf0ee;
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.22);
+  transform: translateX(-50%);
+  animation: qc-alert-in 0.2s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes qc-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.qc-alert-text {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8c1f16;
+}
+
+.qc-alert-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #8c1f16;
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.qc-alert-close:hover {
+  background: rgba(179, 39, 28, 0.14);
+  transform: rotate(90deg);
+}
+
+.qc-alert-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(179, 39, 28, 0.45), #b3271c);
+  animation: qc-alert-drain 5s linear both;
+}
+
+@keyframes qc-alert-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qc-sheet,
+  .qc-sheet-overlay,
+  .qc-alert {
+    animation: none;
+  }
+
+  .qc-close,
+  .qc-foot button,
+  .qc-alert-close {
+    transition: none;
+  }
+
+  .qc-close:hover,
+  .qc-foot button:hover:not(:disabled),
+  .qc-foot button:active:not(:disabled),
+  .qc-alert-close:hover {
+    transform: none;
+  }
 }
 
 .qc-sheet > div:first-child {
@@ -4753,6 +6060,234 @@ button {
 /* ---- Finished Work entry sheet ----------------------------------------- */
 .fw-sheet-overlay {
   padding: 0.5rem;
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: fw-overlay-in 0.16s ease both;
+}
+
+/* ---- FW sheet - entrance, dim, controls and the notice ------------------
+   .gb-sheet-close is shared with four other desks, so the rotation hangs
+   off .fw-close. Finished Work has no native <select>: its three dropdowns
+   are SearchableSelect, which draws its own chevron. */
+@keyframes fw-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fw-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gb-sheet-close.fw-close {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.gb-sheet-close.fw-close:hover {
+  transform: rotate(90deg);
+}
+
+.fw-sheet [data-searchable-select] > svg {
+  color: #6b7c8c;
+  transition:
+    color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.fw-sheet [data-searchable-select]:hover > svg {
+  color: var(--gb-ink);
+}
+
+.fw-sheet [data-searchable-select]:focus-within > svg {
+  color: var(--accent);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.fw-sheet input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+
+.fw-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.fw-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+.fw-sheet input,
+.fw-sheet select,
+.fw-sheet textarea {
+  border-radius: 7px;
+}
+
+.fw-foot button {
+  min-width: 6rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.fw-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.18);
+}
+
+.fw-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.24);
+}
+
+/* validate() wants date, mill, GP no., knitter challan no. and challan no.
+   before it looks at the line rows; the mill is a SearchableSelect with no
+   required prop, so its label is marked directly */
+.fw-entry label:has(> input:required) > span:first-child::after,
+.fw-entry label.fw-req > span:first-child::after {
+  content: " *";
+  color: #b3271c;
+}
+
+/* Details refuses to open without a roll count; the field it is talking
+   about says so itself, and stops saying it the moment a count is there */
+.fw-entry input[data-invalid] {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.fw-entry input[data-invalid]:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.fw-entry[data-validated] input:required:invalid {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.fw-entry[data-validated] input:required:invalid:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.fw-entry {
+  position: relative;
+}
+
+.fw-alert {
+  position: absolute;
+  z-index: 20;
+  top: 0.55rem;
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  min-width: min(24rem, calc(100% - 1.6rem));
+  max-width: calc(100% - 1.6rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  background: #fdf0ee;
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.22);
+  transform: translateX(-50%);
+  animation: fw-alert-in 0.2s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes fw-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.fw-alert-text {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8c1f16;
+}
+
+.fw-alert-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #8c1f16;
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.fw-alert-close:hover {
+  background: rgba(179, 39, 28, 0.14);
+  transform: rotate(90deg);
+}
+
+.fw-alert-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(179, 39, 28, 0.45), #b3271c);
+  animation: fw-alert-drain 5s linear both;
+}
+
+@keyframes fw-alert-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-sheet,
+  .fw-sheet-overlay,
+  .fw-alert {
+    animation: none;
+  }
+
+  .gb-sheet-close.fw-close,
+  .fw-foot button,
+  .fw-alert-close,
+  .fw-sheet [data-searchable-select] > svg {
+    transition: none;
+  }
+
+  .gb-sheet-close.fw-close:hover,
+  .fw-foot button:hover:not(:disabled),
+  .fw-foot button:active:not(:disabled),
+  .fw-alert-close:hover {
+    transform: none;
+  }
+
+  .fw-sheet [data-searchable-select]:focus-within > svg {
+    transform: translateY(-50%);
+  }
 }
 
 @media (min-width: 640px) {
@@ -4767,8 +6302,12 @@ button {
   border-color: var(--gb-grid-strong);
   border-radius: var(--gb-radius);
   box-shadow: 0 24px 60px rgba(8, 16, 24, 0.32);
-  /* opacity only — nested roll-cut and unsaved dialogs are position: fixed */
-  animation: gb-fade-in 0.16s ease both;
+  /* A transform on an ancestor becomes the containing block of a fixed
+     descendant. The unsaved-changes dialog renders outside the Overlay, and
+     the roll-cut, detail and detail-discard dialogs all go through
+     createPortal onto document.body - so none of them is inside this
+     subtree, and the sheet can rise like every other one. */
+  animation: fw-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
 }
 
 @media (min-width: 640px) {
@@ -5304,7 +6843,8 @@ button {
   background: rgba(255, 255, 255, 0.07);
   transition:
     background-color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
 }
 
 .ls-drawer-close::after {
@@ -5317,11 +6857,12 @@ button {
 .ls-drawer-close:hover {
   border-color: rgba(179, 39, 28, 0.85);
   background: rgba(179, 39, 28, 0.8);
+  transform: rotate(90deg);
 }
 
 .ls-drawer-tiles > div {
   border-color: var(--gb-pearl-line);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--gb-pearl);
 }
 
@@ -5947,11 +7488,239 @@ button {
    accounting grid for the lines, and a pearl settlement block that is always
    the heaviest thing on the screen. CSS only — the Enter-to-next-field
    handler, focus refs and validation are untouched. */
+/* ---- Sales sheets - entrance, dim, controls and the notice -------------
+   The bill sheet was the reference every other page was measured against,
+   so it already had the close rotation and the footer buttons. What it
+   never had was an entrance beyond a flat fade, a dim of its own, styled
+   native controls, or a notice that stays out of the layout.
+
+   Roll Details carried no scope class at all, so nothing could reach it;
+   it now has one beside the utilities it already used. */
+@keyframes sl-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sl-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sl-roll-sheet {
+  border-radius: 14px;
+  animation: sl-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+div:has(> .sl-sheet),
+.sl-roll-overlay {
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: sl-overlay-in 0.16s ease both;
+}
+
+/* one native <select> and six SearchableSelects, all left raw until now */
+.sl-sheet select,
+.sl-roll-sheet select {
+  appearance: none;
+  padding-right: 1.6rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235b6478' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 0.7rem;
+}
+
+.sl-sheet [data-searchable-select] > svg {
+  color: #6b7c8c;
+  transition:
+    color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.sl-sheet [data-searchable-select]:hover > svg {
+  color: var(--gb-ink);
+}
+
+.sl-sheet [data-searchable-select]:focus-within > svg {
+  color: var(--accent);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.sl-sheet input[type="date"]::-webkit-calendar-picker-indicator,
+.sl-roll-sheet input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.16s ease;
+}
+
+.sl-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.sl-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator,
+.sl-roll-sheet input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.sl-roll-sheet input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+/* 14 sheet / 10 block / 7 control */
+.sl-sheet input,
+.sl-sheet select,
+.sl-sheet textarea,
+.sl-roll-sheet input,
+.sl-roll-sheet select,
+.sl-roll-sheet textarea {
+  border-radius: 7px;
+}
+
+/* validate() refuses on customer and bill date before it reads the lines;
+   the customer is a SearchableSelect with no required prop, so its label
+   is marked directly */
+.sl-sheet label:has(> input:required) > span:first-child::after,
+.sl-sheet label.sl-req > span:first-child::after {
+  content: " *";
+  color: #b3271c;
+}
+
+/* Details used to be disabled when the roll count was empty, so a click did
+   nothing at all. It now refuses in words and the row marks the field that
+   is in the way - rolls, item or colour code, whichever comes first. */
+.sl-entry input[data-invalid],
+.sl-entry .sl-cell-invalid input {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.sl-entry input[data-invalid]:focus,
+.sl-entry .sl-cell-invalid input:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.sl-entry[data-validated] input:required:invalid {
+  border-color: #b3271c;
+  background-color: #fffafa;
+}
+
+.sl-entry[data-validated] input:required:invalid:focus {
+  border-color: #b3271c;
+  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
+}
+
+.sl-entry {
+  position: relative;
+}
+
+.sl-alert {
+  position: absolute;
+  z-index: 20;
+  top: 0.55rem;
+  left: 50%;
+  display: flex;
+  overflow: hidden;
+  min-width: min(24rem, calc(100% - 1.6rem));
+  max-width: calc(100% - 1.6rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  background: #fdf0ee;
+  box-shadow: 0 12px 28px rgba(8, 16, 24, 0.22);
+  transform: translateX(-50%);
+  animation: sl-alert-in 0.2s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes sl-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.sl-alert-text {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8c1f16;
+}
+
+.sl-alert-close {
+  display: inline-flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #8c1f16;
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.sl-alert-close:hover {
+  background: rgba(179, 39, 28, 0.14);
+  transform: rotate(90deg);
+}
+
+.sl-alert-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(179, 39, 28, 0.45), #b3271c);
+  animation: sl-alert-drain 5s linear both;
+}
+
+@keyframes sl-alert-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-sheet,
+  .sl-roll-sheet,
+  div:has(> .sl-sheet),
+  .sl-roll-overlay,
+  .sl-alert {
+    animation: none;
+  }
+
+  .sl-alert-close,
+  .sl-sheet [data-searchable-select] > svg {
+    transition: none;
+  }
+
+  .sl-alert-close:hover {
+    transform: none;
+  }
+
+  .sl-sheet [data-searchable-select]:focus-within > svg {
+    transform: translateY(-50%);
+  }
+}
+
 .sl-sheet {
   border-color: var(--gb-grid-strong, #b6c8d8);
   border-radius: var(--gb-radius);
   box-shadow: 0 30px 70px rgba(8, 16, 24, 0.38);
-  animation: gb-fade-in 0.17s ease both;
+  animation: sl-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
 }
 
 /* header */
@@ -8051,7 +9820,10 @@ button {
 .sl-page .sl-new,
 .gb-page .gb-new,
 .fw-page .fw-new,
-.qc-page .qc-new {
+.qc-page .qc-new,
+.po-page .po-new,
+.mi-page .mi-new,
+.mp-page .mp-new {
   position: relative;
   overflow: hidden;
   box-shadow:
@@ -8066,7 +9838,10 @@ button {
 .sl-page .sl-new:hover:not(:disabled),
 .gb-page .gb-new:hover:not(:disabled),
 .fw-page .fw-new:hover:not(:disabled),
-.qc-page .qc-new:hover:not(:disabled) {
+.qc-page .qc-new:hover:not(:disabled),
+.po-page .po-new:hover:not(:disabled),
+.mi-page .mi-new:hover:not(:disabled),
+.mp-page .mp-new:hover:not(:disabled) {
   transform: translateY(-1px);
   filter: brightness(1.08);
   box-shadow:
@@ -8077,7 +9852,10 @@ button {
 .sl-page .sl-new:active:not(:disabled),
 .gb-page .gb-new:active:not(:disabled),
 .fw-page .fw-new:active:not(:disabled),
-.qc-page .qc-new:active:not(:disabled) {
+.qc-page .qc-new:active:not(:disabled),
+.po-page .po-new:active:not(:disabled),
+.mi-page .mi-new:active:not(:disabled),
+.mp-page .mp-new:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(8, 16, 24, 0.22);
 }
@@ -8086,7 +9864,10 @@ button {
 .sl-page .sl-new::after,
 .gb-page .gb-new::after,
 .fw-page .fw-new::after,
-.qc-page .qc-new::after {
+.qc-page .qc-new::after,
+.po-page .po-new::after,
+.mi-page .mi-new::after,
+.mp-page .mp-new::after {
   content: "";
   position: absolute;
   inset-block: 0;
@@ -8105,7 +9886,10 @@ button {
 .sl-page .sl-new:hover::after,
 .gb-page .gb-new:hover::after,
 .fw-page .fw-new:hover::after,
-.qc-page .qc-new:hover::after {
+.qc-page .qc-new:hover::after,
+.po-page .po-new:hover::after,
+.mi-page .mi-new:hover::after,
+.mp-page .mp-new:hover::after {
   animation: aw-sheen 0.55s ease both;
 }
 
@@ -8120,7 +9904,11 @@ button {
 .fw-sheet .fw-foot button:focus-visible,
 .sl-page .sl-new:focus-visible,
 .gb-page .gb-new:focus-visible,
-.fw-page .fw-new:focus-visible {
+.fw-page .fw-new:focus-visible,
+.qc-page .qc-new:focus-visible,
+.po-page .po-new:focus-visible,
+.mi-page .mi-new:focus-visible,
+.mp-page .mp-new:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
 }
@@ -8133,7 +9921,10 @@ button {
   .sl-page .sl-new,
   .gb-page .gb-new,
   .fw-page .fw-new,
-  .qc-page .qc-new {
+  .qc-page .qc-new,
+  .po-page .po-new,
+  .mi-page .mi-new,
+  .mp-page .mp-new {
     transition: none;
   }
 
@@ -8144,14 +9935,20 @@ button {
   .sl-page .sl-new:hover:not(:disabled),
   .gb-page .gb-new:hover:not(:disabled),
   .fw-page .fw-new:hover:not(:disabled),
-  .qc-page .qc-new:hover:not(:disabled) {
+  .qc-page .qc-new:hover:not(:disabled),
+  .po-page .po-new:hover:not(:disabled),
+  .mi-page .mi-new:hover:not(:disabled),
+  .mp-page .mp-new:hover:not(:disabled) {
     transform: none;
   }
 
   .sl-page .sl-new:hover::after,
   .gb-page .gb-new:hover::after,
   .fw-page .fw-new:hover::after,
-  .qc-page .qc-new:hover::after {
+  .qc-page .qc-new:hover::after,
+  .po-page .po-new:hover::after,
+  .mi-page .mi-new:hover::after,
+  .mp-page .mp-new:hover::after {
     animation: none;
   }
 }
@@ -8196,6 +9993,15 @@ button {
     border-color 0.16s ease,
     background-color 0.16s ease,
     color 0.16s ease;
+}
+
+.ls-page .ls-sort {
+  appearance: none;
+  padding-right: 1.5rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23d8e3ee' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.45rem center;
+  background-size: 0.65rem;
 }
 
 .ls-page .ls-sort option {
@@ -8911,10 +10717,30 @@ button {
 }
 
 /* ---- 4. the roll sheet: centred, not a side drawer --------------------- */
+@keyframes ls-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ls-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .ls-sheet-overlay {
-  background: rgba(8, 16, 24, 0.42);
+  background: rgba(8, 16, 24, 0.55);
   backdrop-filter: blur(2px);
-  animation: gb-fade-in 0.16s ease both;
+  animation: ls-overlay-in 0.16s ease both;
 }
 
 .ls-sheet {
@@ -8925,7 +10751,7 @@ button {
   border-radius: var(--gb-radius);
   background: var(--gb-workspace-top);
   box-shadow: 0 30px 70px rgba(8, 16, 24, 0.38);
-  animation: gb-fade-in 0.17s ease both;
+  animation: ls-sheet-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
 }
 
 /* satin header with the gold hairline, like every other sheet */
@@ -9024,7 +10850,7 @@ button {
 /* the roll table is a register like any other */
 .ls-sheet .ls-roll-table {
   border: 1px solid var(--gb-grid-strong);
-  border-radius: 11px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -13226,24 +15052,11 @@ div:has(> .ms-sheet) {
 
 /* ---- required, invalid, and the error banner ----------------------------
    validate() rejects an empty agent name, but nothing on the form said so and
-   a rejected save had nothing to point at. :user-invalid only fires once the
-   field has been touched, so an untouched blank form is never shown as red. */
+   a rejected save had nothing to point at. The asterisk says what is needed
+   up front; marking a field red while it is still being filled in does not. */
 .ms-sheet .ms-grid label:has(> input:required) > span::after {
   content: " *";
   color: #b3271c;
-}
-
-.ms-sheet input:user-invalid,
-.ms-sheet select:user-invalid,
-.ms-sheet textarea:user-invalid {
-  border-color: #b3271c;
-}
-
-.ms-sheet input:user-invalid:focus,
-.ms-sheet select:user-invalid:focus,
-.ms-sheet textarea:user-invalid:focus {
-  border-color: #b3271c;
-  box-shadow: 0 0 0 3px rgba(179, 39, 28, 0.14);
 }
 
 .ms-sheet .ms-form > p:first-child {
@@ -13394,6 +15207,480 @@ div:has(> .ms-sheet) {
 
   .ms-sheet .ms-foot button:hover:not(:disabled),
   .ms-sheet [data-modal-close]:hover {
+    transform: none;
+  }
+}
+
+/* ---------- The rescued draft bar ---------------------------------------
+   A session that expires mid-entry leaves the work on screen but only until
+   the page reloads, and "refresh" is the first thing most people try. When
+   that happens the entry is read back out of this browser's storage and
+   offered here, above the register, before anything else on the page.
+
+   It is amber rather than red: nothing has gone wrong at this point - there
+   is simply something waiting to be picked up. */
+.aw-rescue {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(201, 162, 39, 0.5);
+  border-left: 3px solid var(--gold);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem 0.5rem 0.75rem;
+  background: #fbf4e0;
+  box-shadow: 0 2px 8px rgba(8, 16, 24, 0.1);
+  animation: aw-rescue-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes aw-rescue-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.aw-rescue-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b5312;
+}
+
+.aw-rescue-go,
+.aw-rescue-drop {
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0.28rem 0.7rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.aw-rescue-go {
+  color: #fff;
+  background: var(--accent);
+}
+
+.aw-rescue-go:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.18);
+}
+
+.aw-rescue-go:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.22);
+}
+
+.aw-rescue-drop {
+  border-color: rgba(107, 83, 18, 0.3);
+  color: #6b5312;
+  background: transparent;
+}
+
+.aw-rescue-drop:hover {
+  border-color: rgba(107, 83, 18, 0.55);
+  background: rgba(201, 162, 39, 0.14);
+}
+
+@media (max-width: 480px) {
+  .aw-rescue {
+    flex-wrap: wrap;
+  }
+
+  .aw-rescue-text {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-rescue {
+    animation: none;
+  }
+
+  .aw-rescue-go,
+  .aw-rescue-drop {
+    transition: none;
+  }
+
+  .aw-rescue-go:hover,
+  .aw-rescue-go:active {
+    transform: none;
+  }
+}
+
+/* ---------- The roll dialogs ---------------------------------------------
+   Every desk opens a second, smaller dialog to enter weights roll by roll,
+   and each one had been left on raw utilities: a flat black overlay, no
+   entrance, a plain panel header and a footer the same colour as the body.
+   Grey Purchase already had its own treatment, so this brings the other
+   three in line with it and with the sheets they open from.
+
+   Scoped per page, as every other dialog is - no shared class. */
+
+/* ---- Sales: Roll Details ----------------------------------------------- */
+.sl-roll-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  padding-block: 0.5rem;
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.sl-roll-sheet > div:first-child h2 {
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+  color: var(--gb-midnight-ink);
+}
+
+.sl-roll-sheet [data-modal-close] {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 241, 248, 0.24);
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--gb-midnight-ink);
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.sl-roll-sheet [data-modal-close]:hover {
+  border-color: rgba(179, 39, 28, 0.85);
+  background: rgba(179, 39, 28, 0.82);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* Required / Entered read as counters, so they get the ledger ground and a
+   gold rule rather than the default panel tint */
+.sl-roll-stats {
+  background: var(--gb-pearl);
+  box-shadow: inset 0 -1px 0 rgba(201, 162, 39, 0.22);
+}
+
+.sl-roll-total {
+  font-weight: 600;
+  color: var(--gb-ink);
+  background: var(--gb-pearl);
+}
+
+.sl-roll-foot {
+  background-color: #e7ebf5;
+  background-image: linear-gradient(180deg, #eef1f8 0%, #e2e7f3 100%);
+  box-shadow: 0 -6px 14px rgba(16, 24, 40, 0.07);
+}
+
+.sl-roll-foot button,
+.fw-roll-foot button {
+  min-width: 5.5rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.sl-roll-foot button:hover:not(:disabled),
+.fw-roll-foot button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 16, 24, 0.16);
+}
+
+.sl-roll-foot button:active:not(:disabled),
+.fw-roll-foot button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(8, 16, 24, 0.22);
+}
+
+/* The dialog read as washed out because everything in it sat in the same
+   narrow value range: a white body, a near-white column header, hairline
+   borders and pale grey numbers. The body takes a ground so the white
+   inputs have something to sit on, the header goes dark like every other
+   register, and the borders and numbers come up to readable weight. */
+.sl-roll-sheet > div:last-child {
+  background-color: #eef1f8;
+  background-image: linear-gradient(180deg, #f4f6fb 0%, #eaedf6 100%);
+}
+
+.sl-roll-sheet table.erp-table thead th {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: #dce7f1;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.sl-roll-sheet table.erp-table thead th:first-child {
+  border-top-left-radius: 10px;
+}
+
+.sl-roll-sheet table.erp-table thead th:last-child {
+  border-top-right-radius: 10px;
+}
+
+.sl-roll-sheet table.erp-table tbody td {
+  height: 2.15rem;
+  padding: 0.2rem 0.6rem;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.32);
+  background: var(--gb-row);
+}
+
+.sl-roll-sheet table.erp-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.sl-roll-sheet table.erp-table tbody tr:hover td {
+  background: var(--gb-ice);
+}
+
+/* the roll number is the row's spine, not data */
+.sl-roll-sheet table.erp-table tbody td:first-child {
+  position: relative;
+  text-align: center;
+  color: var(--gb-ink-soft);
+}
+
+.sl-roll-sheet table.erp-table tbody td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.3rem;
+  left: 0;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: rgba(125, 186, 228, 0.5);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.sl-roll-sheet table.erp-table tbody tr:hover td:first-child::before {
+  opacity: 1;
+}
+
+.sl-roll-sheet table.erp-table tbody td input {
+  height: 1.8rem;
+  padding-block: 0;
+  border-color: #8f98bd;
+  background-color: #fff;
+}
+
+.sl-roll-sheet table.erp-table tbody td input:hover:not(:disabled) {
+  border-color: #6f78a3;
+}
+
+/* Both notices used to sit in the flow, each adding a strip and resizing
+   the whole dialog - with 52 rolls the window jumped as you worked down
+   it. They float over the foot of the grid instead, so the dialog is the
+   same size whether or not something is wrong. */
+.sl-roll-body {
+  position: relative;
+}
+
+.sl-roll-note {
+  position: absolute;
+  z-index: 15;
+  right: 0.75rem;
+  bottom: 3.9rem;
+  left: 0.75rem;
+  border: 1px solid rgba(179, 39, 28, 0.4);
+  border-left: 3px solid #b3271c;
+  border-radius: 9px;
+  padding: 0.4rem 0.6rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8c1f16;
+  background: #fdf0ee;
+  box-shadow: 0 10px 22px rgba(8, 16, 24, 0.2);
+  animation: sl-roll-note-in 0.18s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes sl-roll-note-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-roll-note {
+    animation: none;
+  }
+}
+
+/* the scrolling half of the grid keeps the dialog's own slim bar */
+.sl-roll-sheet [class*="overflow-y-auto"] {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(90, 100, 140, 0.4) transparent;
+}
+
+.sl-roll-sheet [class*="overflow-y-auto"]::-webkit-scrollbar {
+  width: 9px;
+  background: transparent;
+}
+
+.sl-roll-sheet [class*="overflow-y-auto"]::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: rgba(90, 100, 140, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-roll-sheet table.erp-table tbody td:first-child::before {
+    transition: none;
+  }
+}
+
+/* ---- Finished Work: Roll / Takka Details ------------------------------- */
+@keyframes fw-roll-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fw-roll-overlay,
+.fw-confirm-overlay {
+  background-color: rgba(8, 16, 24, 0.55);
+  backdrop-filter: blur(2px);
+  animation: fw-overlay-in 0.16s ease both;
+}
+
+.fw-roll-sheet {
+  border-radius: 14px;
+  border-color: var(--gb-grid-strong);
+  box-shadow: 0 30px 70px rgba(8, 16, 24, 0.38);
+  animation: fw-roll-in 0.22s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+.fw-roll-sheet > div:first-child {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+  box-shadow: inset 0 1px 0 var(--gb-sheen);
+}
+
+.fw-roll-sheet > div:first-child h2 {
+  color: var(--gb-midnight-ink);
+}
+
+.fw-roll-sheet > div:nth-child(2) {
+  background-color: #eef1f8;
+  background-image: linear-gradient(180deg, #f4f6fb 0%, #eaedf6 100%);
+}
+
+/* same problem as Sales: a light column header on a white body left the
+   grid with nothing to read against */
+.fw-roll-sheet table.erp-table thead th {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: #dce7f1;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.24);
+  background-color: var(--gb-midnight);
+  background-image: linear-gradient(
+    165deg,
+    var(--gb-midnight-lift) 0%,
+    var(--gb-midnight-deep) 100%
+  );
+}
+
+.fw-roll-sheet table.erp-table tbody td {
+  height: 2.15rem;
+  padding: 0.2rem 0.6rem;
+  border-bottom: 1px solid rgba(146, 171, 192, 0.32);
+  background: var(--gb-row);
+}
+
+.fw-roll-sheet table.erp-table tbody tr:nth-child(even) td {
+  background: var(--gb-row-alt);
+}
+
+.fw-roll-sheet table.erp-table tbody tr:hover td {
+  background: var(--gb-ice);
+}
+
+.fw-roll-sheet table.erp-table tbody td:first-child {
+  color: var(--gb-ink-soft);
+}
+
+.fw-roll-sheet table.erp-table tbody td input {
+  height: 1.8rem;
+  padding-block: 0;
+  border-color: #aab2d0;
+  background-color: #fff;
+}
+
+.fw-roll-sheet table.erp-table tbody td input:hover:not(:disabled) {
+  border-color: #8b93b8;
+}
+
+.fw-roll-sheet input {
+  border-radius: 7px;
+}
+
+.fw-roll-foot {
+  background-color: #e7ebf5;
+  background-image: linear-gradient(180deg, #eef1f8 0%, #e2e7f3 100%);
+  box-shadow: 0 -6px 14px rgba(16, 24, 40, 0.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-roll-overlay,
+  .fw-confirm-overlay,
+  .fw-roll-sheet {
+    animation: none;
+  }
+
+  .sl-roll-sheet [data-modal-close],
+  .sl-roll-foot button,
+  .fw-roll-foot button {
+    transition: none;
+  }
+
+  .sl-roll-sheet [data-modal-close]:hover,
+  .sl-roll-foot button:hover:not(:disabled),
+  .sl-roll-foot button:active:not(:disabled),
+  .fw-roll-foot button:hover:not(:disabled),
+  .fw-roll-foot button:active:not(:disabled) {
     transform: none;
   }
 }

@@ -5,6 +5,13 @@ import { ArrowDownToLine, Plus, Search, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
+import {
+  clearDraft,
+  describeAge,
+  stashDraft,
+  useRescuedDraft,
+} from "@/lib/draft-rescue";
 import {
   EmptyState,
   Field,
@@ -326,7 +333,7 @@ function RollTable({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="mi-roll-grid">
       <table className="erp-table mi-roll-table">
         <colgroup>
           <col className="w-[3.25rem]" />
@@ -336,7 +343,7 @@ function RollTable({
         <thead>
           <tr>
             <th className="w-16">Roll</th>
-            <th>Weight (KG)</th>
+            <th>Weight</th>
             {!readOnly ? <th className="w-10" /> : null}
           </tr>
         </thead>
@@ -369,7 +376,7 @@ function RollTable({
                 <td>
                   <button
                     type="button"
-                    className={buttonTinyClass}
+                    className={`${buttonTinyClass} mi-roll-del`}
                     tabIndex={-1}
                     title="Remove roll"
                     onClick={() => removeRoll(roll.id)}
@@ -385,7 +392,7 @@ function RollTable({
       {!readOnly ? (
         <button
           type="button"
-          className={buttonGhostClass}
+          className={`${buttonGhostClass} mi-roll-add`}
           tabIndex={-1}
           onClick={() => onChange([...rolls, emptyRoll()])}
         >
@@ -498,6 +505,8 @@ function padInwards(_real: Inward[]): Inward[] {
   ];
 }
 
+const RESCUE_KEY = "mill-inward";
+
 export function MillInwardDesk({
   entries,
   knitters,
@@ -514,6 +523,10 @@ export function MillInwardDesk({
     null,
   );
   const [draft, setDraft] = useState<Inward | null>(null);
+  const rescued = useRescuedDraft<{
+    mode: "pending" | "completed" | "create";
+    inward: Inward;
+  }>(RESCUE_KEY);
   const [notice, setNotice] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "done">("pending");
   const [search, setSearch] = useState("");
@@ -544,6 +557,9 @@ export function MillInwardDesk({
     return () => window.clearTimeout(id);
   }, [notice]);
   const [error, setError] = useState<string | null>(null);
+  /* set when a save, send or create was refused: :user-invalid only matches
+     a control the user has been inside, which a first save never has */
+  const [validated, setValidated] = useState(false);
   const savingRef = useRef(false);
 
   const pending = rows.filter(
@@ -614,7 +630,8 @@ export function MillInwardDesk({
         type="button"
         className={`aw-chip${dateFilter === "today" ? " is-on" : ""}`}
         onClick={() => {
-          setDateFilter("today");
+          /* a second click on the active chip goes back to the full span */
+          setDateFilter((current) => (current === "today" ? "custom" : "today"));
           setCustomOpen(false);
         }}
       >
@@ -624,7 +641,8 @@ export function MillInwardDesk({
         type="button"
         className={`aw-chip${dateFilter === "yesterday" ? " is-on" : ""}`}
         onClick={() => {
-          setDateFilter("yesterday");
+          /* a second click on the active chip goes back to the full span */
+          setDateFilter((current) => (current === "yesterday" ? "custom" : "yesterday"));
           setCustomOpen(false);
         }}
       >
@@ -700,24 +718,28 @@ export function MillInwardDesk({
     setDraft(cloneInward(row));
     setMode("pending");
     setError(null);
+    setValidated(false);
   }
 
   function openCompleted(row: Inward) {
     setDraft(cloneInward(row));
     setMode("completed");
     setError(null);
+    setValidated(false);
   }
 
   function openCreate() {
     setDraft(blankInward(nextSrNo(rows, todayIso())));
     setMode("create");
     setError(null);
+    setValidated(false);
   }
 
   function closeModal() {
     setMode(null);
     setDraft(null);
     setError(null);
+    setValidated(false);
   }
 
   const unsaved = useUnsavedClose({
@@ -728,6 +750,23 @@ export function MillInwardDesk({
 
   function patch(partial: Partial<Inward>) {
     setDraft((prev) => (prev ? { ...prev, ...partial } : prev));
+  }
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
+  /* TEMPORARY - presentation build only.
+     The desk shows padInwards()' invented rows, whose ids ("mi-p-1",
+     "mi-c-1") exist nowhere in the database, so every write threw "Mill
+     inward not found." from the server action. While the desk runs on
+     presentation data these rows are saved in state instead, which keeps the
+     demo clickable end to end. Delete this helper and the three branches
+     that call it when padInwards() goes back to returning the real list. */
+  function isPresentationRow(id: string) {
+    return id.startsWith("mi-p-") || id.startsWith("mi-c-");
   }
 
   function requireCore(draft: Inward, requireKnitter: boolean) {
@@ -754,11 +793,13 @@ export function MillInwardDesk({
         .then((record) => {
           const saved = toInward(record);
           setRows((prev) => prev.map((row) => (row.id === snapshot.id ? saved : row)));
+          clearDraft(RESCUE_KEY);
           closeModal();
           showNotice(`Saved ${saved.srNo}.`);
         })
         .catch((err: unknown) => {
-          setError(err instanceof Error ? err.message : "Could not save the mill inward.");
+          if (mode && draft) stashDraft(RESCUE_KEY, { mode, inward: draft });
+          setError(friendlyError(err, "Could not save the mill inward."));
         })
         .finally(() => {
           savingRef.current = false;
@@ -770,21 +811,31 @@ export function MillInwardDesk({
       draft.sourceType === "GREY_PURCHASE",
     );
     if (message) {
+      setValidated(true);
       setError(message);
       return;
     }
     const snapshot = cloneInward(draft);
+    if (isPresentationRow(snapshot.id)) {
+      setRows((prev) => prev.map((row) => (row.id === snapshot.id ? snapshot : row)));
+      clearDraft(RESCUE_KEY);
+      closeModal();
+      showNotice(`Saved ${snapshot.srNo}.`);
+      return;
+    }
     savingRef.current = true;
     setError(null);
     void updateMillInwardEntry(snapshot.id, toInput(snapshot))
       .then((record) => {
         const saved = toInward(record);
         setRows((prev) => prev.map((row) => (row.id === snapshot.id ? saved : row)));
+        clearDraft(RESCUE_KEY);
         closeModal();
         showNotice(`Saved ${saved.srNo}.`);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not save the mill inward.");
+        if (mode && draft) stashDraft(RESCUE_KEY, { mode, inward: draft });
+        setError(friendlyError(err, "Could not save the mill inward."));
       })
       .finally(() => {
         savingRef.current = false;
@@ -805,11 +856,13 @@ export function MillInwardDesk({
         .then((record) => {
           const saved = toInward(record);
           setRows((prev) => prev.map((row) => (row.id === snapshot.id ? saved : row)));
+          clearDraft(RESCUE_KEY);
           closeModal();
           showNotice(`${saved.srNo} sent to mill.`);
         })
         .catch((err: unknown) => {
-          setError(err instanceof Error ? err.message : "Could not send the mill inward.");
+          if (mode && draft) stashDraft(RESCUE_KEY, { mode, inward: draft });
+          setError(friendlyError(err, "Could not send the mill inward."));
         })
         .finally(() => {
           savingRef.current = false;
@@ -821,21 +874,32 @@ export function MillInwardDesk({
       draft.sourceType === "GREY_PURCHASE",
     );
     if (sendMessage) {
+      setValidated(true);
       setError(sendMessage);
       return;
     }
     const snapshot = cloneInward(draft);
+    if (isPresentationRow(snapshot.id)) {
+      const sent: Inward = { ...snapshot, status: "completed" };
+      setRows((prev) => prev.map((row) => (row.id === snapshot.id ? sent : row)));
+      clearDraft(RESCUE_KEY);
+      closeModal();
+      showNotice(`${sent.srNo} sent to mill.`);
+      return;
+    }
     savingRef.current = true;
     setError(null);
     void sendMillInwardEntry(snapshot.id, toInput(snapshot))
       .then((record) => {
         const saved = toInward(record);
         setRows((prev) => prev.map((row) => (row.id === snapshot.id ? saved : row)));
+        clearDraft(RESCUE_KEY);
         closeModal();
         showNotice(`${saved.srNo} sent to mill.`);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not send the mill inward.");
+        if (mode && draft) stashDraft(RESCUE_KEY, { mode, inward: draft });
+        setError(friendlyError(err, "Could not send the mill inward."));
       })
       .finally(() => {
         savingRef.current = false;
@@ -846,6 +910,7 @@ export function MillInwardDesk({
     if (!draft || mode !== "create" || savingRef.current) return;
     const createMessage = requireCore(draft, false);
     if (createMessage) {
+      setValidated(true);
       setError(createMessage);
       return;
     }
@@ -857,17 +922,31 @@ export function MillInwardDesk({
       sourceType: "MANUAL",
       sourceId: null,
     });
+    if (rows.some((row) => isPresentationRow(row.id))) {
+      const made: Inward = {
+        ...snapshot,
+        id: `mi-p-new-${crypto.randomUUID()}`,
+        status: "pending",
+      };
+      setRows((prev) => [made, ...prev]);
+      clearDraft(RESCUE_KEY);
+      closeModal();
+      showNotice(`${made.srNo} added to pending inward.`);
+      return;
+    }
     savingRef.current = true;
     setError(null);
     void createMillInwardEntry(toInput(snapshot))
       .then((record) => {
         const saved = toInward(record);
         setRows((prev) => [saved, ...prev]);
+        clearDraft(RESCUE_KEY);
         closeModal();
         showNotice(`${saved.srNo} added to pending inward.`);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not save the mill inward.");
+        if (mode && draft) stashDraft(RESCUE_KEY, { mode, inward: draft });
+        setError(friendlyError(err, "Could not save the mill inward."));
       })
       .finally(() => {
         savingRef.current = false;
@@ -890,6 +969,34 @@ export function MillInwardDesk({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {rescued && !mode ? (
+        <div className="aw-rescue" role="status">
+          <span className="aw-rescue-text">
+            Unsaved Mill Inward from {describeAge(rescued.at)}
+          </span>
+          <button
+            type="button"
+            className="aw-rescue-go"
+            onClick={() => {
+              setDraft(rescued.data.inward);
+              setMode(rescued.data.mode);
+              setError(null);
+              setValidated(false);
+              clearDraft(RESCUE_KEY);
+            }}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="aw-rescue-drop"
+            onClick={() => clearDraft(RESCUE_KEY)}
+          >
+            Discard
+          </button>
         </div>
       ) : null}
 
@@ -1186,13 +1293,13 @@ export function MillInwardDesk({
                   : `Pending inward ${draft.srNo}`
           }
           onClose={unsaved.requestClose}
-          closeClassName="gb-sheet-close"
+          closeClassName="gb-sheet-close mi-close"
           flushBody
           portal
           trackViewport={isQcReturn(draft)}
           overlayClassName={
             isQcReturn(draft)
-              ? "px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-8 md:py-10"
+              ? "mi-qc-overlay px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-8 md:py-10"
               : "mi-sheet-overlay"
           }
           frameWidthClass={
@@ -1201,11 +1308,23 @@ export function MillInwardDesk({
               : "mi-sheet"
           }
         >
-          <div className={isQcReturn(draft) ? "flex min-h-0 flex-1 flex-col" : "mi-entry"}>
+          <div
+            className={isQcReturn(draft) ? "mi-entry flex min-h-0 flex-1 flex-col" : "mi-entry"}
+            data-validated={validated ? "" : undefined}
+          >
             {error ? (
-              <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
-                {error}
-              </p>
+              <div className="mi-alert" role="alert" key={error}>
+                <span className="mi-alert-text">{error}</span>
+                <button
+                  type="button"
+                  className="mi-alert-close"
+                  onClick={() => setError(null)}
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <i className="mi-alert-timer" aria-hidden />
+              </div>
             ) : null}
 
             {isQcReturn(draft) ? (
@@ -1336,6 +1455,7 @@ export function MillInwardDesk({
                 <Field label="Knitter Name">
                   <select
                     className={inputClass}
+                    required
                     value={draft.knitterId}
                     disabled={readOnly}
                     onChange={(e) => {
@@ -1356,6 +1476,7 @@ export function MillInwardDesk({
               <Field label="Mill Name">
                 <select
                   className={inputClass}
+                  required
                   value={draft.millId}
                   disabled={readOnly}
                   onChange={(e) => {
@@ -1375,6 +1496,7 @@ export function MillInwardDesk({
               <Field label="Item Name" className="col-span-2">
                 <select
                   className={inputClass}
+                  required
                   value={draft.itemId}
                   disabled={readOnly}
                   onChange={(e) => {
@@ -1454,7 +1576,7 @@ export function MillInwardDesk({
             </>
             ) : null}
 
-            <div className={isQcReturn(draft) ? "flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5" : "mi-foot"}>
+            <div className={isQcReturn(draft) ? "mi-qc-foot flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5" : "mi-foot"}>
               <button
                 type="button"
                 className={buttonGhostClass}

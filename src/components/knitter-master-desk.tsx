@@ -5,6 +5,7 @@ import { ChevronRight, Plus, Scissors, Search, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
 import {
   EmptyState,
   Field,
@@ -389,7 +390,7 @@ export function KnitterMasterDesk({ knitters }: { knitters: KnitterRecord[] }) {
           : `${local.knitterName} updated.`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save knitter.");
+      setError(friendlyError(err, "Could not save knitter."));
     } finally {
       setSaving(false);
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { friendlyError } from "@/lib/user-error";
 
 export type WhatsAppActionResult = {
   shareUrl?: string;
@@ -45,7 +46,7 @@ export function WhatsAppForm({
             }
           } catch (err) {
             window.alert(
-              err instanceof Error ? err.message : "Something went wrong",
+              friendlyError(err, "Something went wrong"),
             );
           }
         });

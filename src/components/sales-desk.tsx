@@ -7,6 +7,13 @@ import { SIDEBAR_CHANGE_EVENT, SIDEBAR_KEY } from "@/components/erp-shell";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { SearchableSelect } from "@/components/searchable-select";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
+import {
+  clearDraft,
+  describeAge,
+  stashDraft,
+  useRescuedDraft,
+} from "@/lib/draft-rescue";
 import { formatMoney } from "@/lib/utils";
 import {
   EmptyState,
@@ -582,6 +589,9 @@ function useSidebarCollapsed() {
   return collapsed;
 }
 
+/* one stash per desk; the key is what the restore bar reads back */
+const RESCUE_KEY = "sales-bill";
+
 export function SalesDesk({
   records,
   customers,
@@ -622,8 +632,26 @@ export function SalesDesk({
   const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
   const sidebarCollapsed = useSidebarCollapsed();
   const [error, setError] = useState<string | null>(null);
+  /* raised when a save is refused, so the empty required fields mark */
+  const [validated, setValidated] = useState(false);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
   const [notice, setNotice] = useState<string | null>(null);
   const [rollLineId, setRollLineId] = useState<string | null>(null);
+  const rescued = useRescuedDraft<{ mode: "create" | "edit"; bill: LocalSaleBill }>(
+    RESCUE_KEY,
+  );
+  /* the weight cell the cursor is in: a half-typed number is not a wrong
+     one, so that row is left alone until the cursor moves on */
+  const [weightFocusId, setWeightFocusId] = useState<string | null>(null);
+  /* which line, and which of its fields, stopped Details from opening */
+  const [detailBlock, setDetailBlock] = useState<
+    { lineId: string; field: "rolls" | "item" | "colour" } | null
+  >(null);
   const [rollDraft, setRollDraft] = useState<LocalSaleRoll[]>([]);
   const weightRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const billTrapRef = useRef<HTMLDivElement>(null);
@@ -739,6 +767,8 @@ export function SalesDesk({
     setDraft(blankBill(billNo));
     setMode("create");
     setError(null);
+    setValidated(false);
+    setDetailBlock(null);
     setRollLineId(null);
     clearColourState();
   }
@@ -748,6 +778,8 @@ export function SalesDesk({
     setDraft(bill);
     setMode(nextMode);
     setError(null);
+    setValidated(false);
+    setDetailBlock(null);
     setRollLineId(null);
     clearColourState();
     for (const line of bill.lines) {
@@ -760,6 +792,8 @@ export function SalesDesk({
     setDraft(null);
     setMode(null);
     setError(null);
+    setValidated(false);
+    setDetailBlock(null);
     setRollLineId(null);
   }
 
@@ -858,7 +892,7 @@ export function SalesDesk({
         const latest = colorLookupRef.current.get(lineId);
         if (!latest || latest.token !== token) return;
         colorLookupRef.current.set(lineId, { token, pendingKey: null, settledKey: null });
-        setError(err instanceof Error ? err.message : "Could not look up the color code.");
+        setError(friendlyError(err, "Could not look up the color code."));
       });
   }
 
@@ -919,6 +953,31 @@ export function SalesDesk({
   }
 
   function openRolls(line: LocalSaleLine) {
+    if (!readOnly) {
+      /* checked in the order the row is filled in, so the message always
+         points at the first thing still missing */
+      if (!line.itemId) {
+        setDetailBlock({ lineId: line.id, field: "item" });
+        setError("Select an “Item Name” first.");
+        return;
+      }
+      if (!line.colourCode.trim()) {
+        setDetailBlock({ lineId: line.id, field: "colour" });
+        setError("Enter a “Color Code” next.");
+        return;
+      }
+      if (colourMiss[line.id]) {
+        setDetailBlock({ lineId: line.id, field: "colour" });
+        setError("That “Color Code” was not found — check the code.");
+        return;
+      }
+      if (num(line.noOfRolls) <= 0) {
+        setDetailBlock({ lineId: line.id, field: "rolls" });
+        setError("Enter “No. of Rolls”, for example 25.");
+        return;
+      }
+      setDetailBlock(null);
+    }
     returnFocusLineId.current = line.id;
     setStockNote(null);
     setStockChoices([]);
@@ -1007,7 +1066,7 @@ export function SalesDesk({
     );
     const matches = matchEntryRows(rollDraft, stockChoices, taken);
     if (matches.some((match) => !match.stock)) {
-      setStockNote("Every weight must match a distinct available stock roll.");
+      setStockNote("Each weight must match a different roll in stock.");
       return;
     }
     const rolls = matches.map((match, index) => {
@@ -1054,13 +1113,13 @@ export function SalesDesk({
     if (named.length === 0) return "Add at least one item.";
     const usedRolls = new Set<string>();
     for (const line of named) {
-      if (!line.itemId) return "Select a valid item.";
+      if (!line.itemId) return "Select an “Item Name” from the list.";
       const count = Math.floor(num(line.noOfRolls));
       if (count <= 0) {
-        return `Enter no. of rolls for ${line.itemName || "item"}.`;
+        return `Enter “No. of Rolls” for ${line.itemName || "this item"}.`;
       }
       if (!line.colourCode.trim()) {
-        return `Enter color code for ${line.itemName || "item"}.`;
+        return `Enter “Color Code” for ${line.itemName || "this item"}.`;
       }
       if (colourMiss[line.id]) {
         return `Color code "${line.colourCode.trim()}" was not found.`;
@@ -1072,7 +1131,7 @@ export function SalesDesk({
         return `Enter ${count} matching roll weights for ${line.itemName || "item"}.`;
       }
       for (const id of picked) {
-        if (usedRolls.has(id)) return "A stock roll is selected more than once.";
+        if (usedRolls.has(id)) return "The same roll is picked twice — choose a different one.";
         usedRolls.add(id);
       }
     }
@@ -1121,6 +1180,7 @@ export function SalesDesk({
     if (!draft || !mode || mode === "view" || savingRef.current) return;
     const message = validate(draft);
     if (message) {
+      setValidated(true);
       setError(message);
       return;
     }
@@ -1133,6 +1193,7 @@ export function SalesDesk({
       : updateSaleBill(draft.id, input, "OPEN")
     )
       .then((saved) => {
+        clearDraft(RESCUE_KEY);
         remember(saved, creating);
         closeModal();
         setNotice(
@@ -1142,7 +1203,11 @@ export function SalesDesk({
         );
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not save the sales bill.");
+        stashDraft(RESCUE_KEY, {
+          mode: creating ? "create" : "edit",
+          bill: draft,
+        });
+        setError(friendlyError(err, "Could not save the sales bill."));
       })
       .finally(() => {
         savingRef.current = false;
@@ -1160,12 +1225,17 @@ export function SalesDesk({
       : updateSaleBill(draft.id, input, "DRAFT")
     )
       .then((saved) => {
+        clearDraft(RESCUE_KEY);
         remember(saved, creating);
         closeModal();
         setNotice(`Draft ${saved.billNo} saved.`);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not save the sales bill.");
+        stashDraft(RESCUE_KEY, {
+          mode: creating ? "create" : "edit",
+          bill: draft,
+        });
+        setError(friendlyError(err, "Could not save the sales bill."));
       })
       .finally(() => {
         savingRef.current = false;
@@ -1205,7 +1275,7 @@ export function SalesDesk({
       if (draft?.id === id) closeModal();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not delete the sales bill.",
+        friendlyError(err, "Could not delete the sales bill."),
       );
       setPendingDelete(null);
     } finally {
@@ -1266,6 +1336,12 @@ export function SalesDesk({
     stockChoices,
   ]);
 
+  /* a row is only "wrong" once the cursor has left it: typing 24 on the way
+     to 24.400 would otherwise be reported as a mismatch on the first digit */
+  const invalidAwayFromCursor = entryPlan.matches.some(
+    (match, index) => match?.invalid && rollDraft[index]?.id !== weightFocusId,
+  );
+
   const cellInput = `${inputClass} h-8 py-1`;
 
   return (
@@ -1284,6 +1360,34 @@ export function SalesDesk({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {rescued && !mode ? (
+        <div className="aw-rescue" role="status">
+          <span className="aw-rescue-text">
+            Unsaved Sales Bill from {describeAge(rescued.at)}
+          </span>
+          <button
+            type="button"
+            className="aw-rescue-go"
+            onClick={() => {
+              setDraft(rescued.data.bill);
+              setMode(rescued.data.mode);
+              setError(null);
+              setValidated(false);
+              clearDraft(RESCUE_KEY);
+            }}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="aw-rescue-drop"
+            onClick={() => clearDraft(RESCUE_KEY)}
+          >
+            Discard
+          </button>
         </div>
       ) : null}
 
@@ -1638,7 +1742,8 @@ export function SalesDesk({
         >
           <div
             ref={billTrapRef}
-            className="flex min-h-0 flex-1 flex-col"
+            className="sl-entry flex min-h-0 flex-1 flex-col"
+            data-validated={validated ? "" : undefined}
               onKeyDown={(e) => {
                 if (e.key !== "Enter" || e.defaultPrevented) return;
                 const target = e.target as HTMLElement;
@@ -1682,9 +1787,18 @@ export function SalesDesk({
             <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="flex min-h-full flex-col gap-1.5 px-3 py-1.5 [&_input]:h-8 [&_input]:py-1 sm:px-4">
                 {error ? (
-                  <p className="shrink-0 rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
-                    {error}
-                  </p>
+                  <div className="sl-alert" role="alert" key={error}>
+                    <span className="sl-alert-text">{error}</span>
+                    <button
+                      type="button"
+                      className="sl-alert-close"
+                      onClick={() => setError(null)}
+                      aria-label="Dismiss"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <i className="sl-alert-timer" aria-hidden />
+                  </div>
                 ) : null}
 
                 <section className="shrink-0 border-b border-(--line) pb-1.5">
@@ -1702,6 +1816,7 @@ export function SalesDesk({
                       <input
                         className={inputClass}
                         type="date"
+                        required
                         value={draft.billDate}
                         disabled={readOnly}
                         onChange={(e) => {
@@ -1751,7 +1866,7 @@ export function SalesDesk({
                 <section className="shrink-0 border-b border-(--line) pb-1.5">
                   <p className="band-label mb-1">Customer / delivery</p>
                   <div className="grid grid-cols-1 gap-x-2 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
-                    <Field label="Customer Name" className="sm:col-span-2">
+                    <Field label="Customer Name" className="sl-req sm:col-span-2">
                       <SearchableSelect
                         value={draft.customerId}
                         options={customers}
@@ -1894,6 +2009,13 @@ export function SalesDesk({
                             <td className="text-center tabular-nums">{index + 1}</td>
                             <td>
                               <SearchableSelect
+                                className={
+                                  detailBlock?.lineId === line.id &&
+                                  detailBlock.field === "item" &&
+                                  !line.itemId
+                                    ? "sl-cell-invalid"
+                                    : undefined
+                                }
                                 value={line.itemId}
                                 options={items}
                                 disabled={readOnly}
@@ -1910,6 +2032,14 @@ export function SalesDesk({
                             <td>
                               <input
                                 className={cellInput}
+                                data-invalid={
+                                  colourMiss[line.id] ||
+                                  (detailBlock?.lineId === line.id &&
+                                    detailBlock.field === "colour" &&
+                                    !line.colourCode.trim())
+                                    ? ""
+                                    : undefined
+                                }
                                 value={
                                   editingColourId === line.id ||
                                   !colourNames[line.id] ||
@@ -1985,6 +2115,13 @@ export function SalesDesk({
                             <td>
                               <input
                                 className={`${cellInput} text-right`}
+                                data-invalid={
+                                  detailBlock?.lineId === line.id &&
+                                  detailBlock.field === "rolls" &&
+                                  num(line.noOfRolls) <= 0
+                                    ? ""
+                                    : undefined
+                                }
                                 inputMode="numeric"
                                 value={line.noOfRolls}
                                 disabled={readOnly}
@@ -2000,7 +2137,6 @@ export function SalesDesk({
                                 type="button"
                                 data-details
                                 className={buttonTinyClass}
-                                disabled={num(line.noOfRolls) <= 0}
                                 onClick={() => openRolls(line)}
                               >
                                 Details
@@ -2223,13 +2359,13 @@ export function SalesDesk({
         <Overlay
           portal
           title="Roll Details"
-          frameWidthClass="w-[min(100vw-2rem,454px)] max-h-[calc(100vh-2rem)] overflow-hidden"
-          overlayClassName="[z-index:80] p-2 sm:p-4"
+          frameWidthClass="sl-roll-sheet w-[min(100vw-2rem,454px)] max-h-[calc(100vh-2rem)] overflow-hidden"
+          overlayClassName="sl-roll-overlay [z-index:80] p-2 sm:p-4"
           onClose={rollGuard.requestClose}
         >
           <div
             ref={rollTrapRef}
-            className="flex min-h-0 flex-col overflow-hidden"
+            className="sl-roll-body flex min-h-0 flex-col overflow-hidden"
             onFocus={(event) => {
               const target = event.target as HTMLElement;
               if (!target.closest("[data-roll-weight]")) rollAdvanceScroll.current = null;
@@ -2249,7 +2385,7 @@ export function SalesDesk({
               </p>
             </div>
             <div
-              className={`grid shrink-0 border-b border-(--line) bg-(--panel-alt) ${
+              className={`sl-roll-stats grid shrink-0 border-b border-(--line) ${
                 readOnly ? "grid-cols-1" : "grid-cols-2"
               }`}
             >
@@ -2279,15 +2415,15 @@ export function SalesDesk({
               )}
             </div>
             {stockNote ? (
-              <p className="shrink-0 border-b border-(--danger)/40 bg-(--danger-soft) px-3 py-1.5 text-[11px] text-(--danger)">
+              <p className="sl-roll-note" role="alert">
                 {stockNote}
               </p>
             ) : null}
             {!readOnly && !entryPlan.colourReady ? (
               <p className="px-4 py-2 text-[12px] text-(--danger)">
                 {!rollLine.itemId || !rollLine.colourCode.trim()
-                  ? "Select an item and color code before entering weights."
-                  : "Color code was not found."}
+                  ? "Enter “Item Name” and “Color Code” before entering weights."
+                  : "That “Color Code” was not found — check the code."}
               </p>
             ) : (
               <div className="min-h-0 px-4 pt-2.5">
@@ -2328,7 +2464,9 @@ export function SalesDesk({
                                 <input
                                   data-roll-weight
                                   className={`${inputClass} text-right tabular-nums ${
-                                    invalid ? "border-(--danger)! focus:border-(--danger)!" : ""
+                                    invalid && weightFocusId !== roll.id
+                                      ? "border-(--danger)! focus:border-(--danger)!"
+                                      : ""
                                   }`}
                                   inputMode="decimal"
                                   value={roll.weight}
@@ -2348,6 +2486,7 @@ export function SalesDesk({
                                     }
                                   }}
                                   onFocus={(event) => {
+                                    setWeightFocusId(roll.id);
                                     if (rollPointerFocus.current) {
                                       rollPointerFocus.current = false;
                                       rollAdvanceScroll.current = null;
@@ -2366,6 +2505,11 @@ export function SalesDesk({
                                       ),
                                     );
                                   }}
+                                  onBlur={() =>
+                                    setWeightFocusId((current) =>
+                                      current === roll.id ? null : current,
+                                    )
+                                  }
                                 />
                               )}
                             </td>
@@ -2392,16 +2536,16 @@ export function SalesDesk({
                 </div>
               </div>
             )}
-            {!readOnly && entryPlan.invalid ? (
-              <p className="shrink-0 border-t border-(--danger)/30 px-4 py-1.5 text-[11px] text-(--danger)">
+            {!readOnly && invalidAwayFromCursor ? (
+              <p className="sl-roll-note" role="alert">
                 Incorrect weight — no matching available stock roll
               </p>
             ) : null}
-            <div className="flex shrink-0 justify-between border-t border-(--line) bg-(--panel) px-4 py-2 text-[12px] font-semibold">
+            <div className="sl-roll-total flex shrink-0 justify-between border-t border-(--line) px-4 py-2 text-[12px] font-semibold">
               <span>Total Weight</span>
               <span className="tabular-nums">{entryPlan.total} KG</span>
             </div>
-            <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
+            <div className="sl-roll-foot flex shrink-0 justify-end gap-1.5 border-t border-(--line) px-4 py-2.5">
               <button
                 type="button"
                 className={buttonGhostClass}

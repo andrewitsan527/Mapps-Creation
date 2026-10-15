@@ -5,6 +5,13 @@ import { Factory, Plus, Search, Send, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
+import {
+  clearDraft,
+  describeAge,
+  stashDraft,
+  useRescuedDraft,
+} from "@/lib/draft-rescue";
 import {
   EmptyState,
   Field,
@@ -333,6 +340,8 @@ function padSources(_real: MillProgramSource[]): MillProgramSource[] {
   }));
 }
 
+const RESCUE_KEY = "mill-program";
+
 export function MillProgramDesk({
   programs,
   sources,
@@ -389,7 +398,8 @@ export function MillProgramDesk({
         type="button"
         className={`aw-chip${dateFilter === "today" ? " is-on" : ""}`}
         onClick={() => {
-          setDateFilter("today");
+          /* a second click on the active chip goes back to the full span */
+          setDateFilter((current) => (current === "today" ? "custom" : "today"));
           setCustomOpen(false);
         }}
       >
@@ -399,7 +409,8 @@ export function MillProgramDesk({
         type="button"
         className={`aw-chip${dateFilter === "yesterday" ? " is-on" : ""}`}
         onClick={() => {
-          setDateFilter("yesterday");
+          /* a second click on the active chip goes back to the full span */
+          setDateFilter((current) => (current === "yesterday" ? "custom" : "yesterday"));
           setCustomOpen(false);
         }}
       >
@@ -462,9 +473,20 @@ export function MillProgramDesk({
   );
 
   const [draft, setDraft] = useState<Program | null>(null);
+  const rescued = useRescuedDraft<{ mode: "create" | "edit"; program: Program }>(
+    RESCUE_KEY,
+  );
   const [mode, setMode] = useState<"create" | "edit" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /* raised when a save or send is refused, so the empty required fields mark */
+  const [validated, setValidated] = useState(false);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
   const savingRef = useRef(false);
   const colorLookupRef = useRef(
     new Map<string, { token: number; pendingKey: string | null; settledKey: string | null }>(),
@@ -605,6 +627,7 @@ export function MillProgramDesk({
     setDraft(blankProgram(nextSrNo(rows, todayIso())));
     setMode("create");
     setError(null);
+    setValidated(false);
   }
 
   function openEdit(row: Program) {
@@ -614,6 +637,7 @@ export function MillProgramDesk({
     });
     setMode("edit");
     setError(null);
+    setValidated(false);
   }
 
   function closeModal() {
@@ -621,6 +645,7 @@ export function MillProgramDesk({
     setDraft(null);
     setMode(null);
     setError(null);
+    setValidated(false);
   }
 
   function changeMill(millId: string) {
@@ -746,7 +771,7 @@ export function MillProgramDesk({
           settledKey: null,
         });
         setError(
-          err instanceof Error ? err.message : "Could not look up the color code.",
+          friendlyError(err, "Could not look up the color code."),
         );
       });
   }
@@ -771,7 +796,7 @@ export function MillProgramDesk({
     }
     for (const line of filled) {
       if (parsePositiveRolls(line.rolls) === null) {
-        return "Each program row must have a whole number of rolls greater than zero.";
+        return "Enter “No. of Rolls” first, for example 25.";
       }
       if (!line.codeNo.trim() || !line.colour.trim()) {
         return "Enter code no. and colour on every program row.";
@@ -783,7 +808,7 @@ export function MillProgramDesk({
     const available =
       original - allocatedProgramRolls(rows, current.inwardId, current.id);
     if (programmed > available) {
-      return "Programmed rolls exceed available rolls for this Mill Inward.";
+      return "You have programmed more rolls than this mill inward has.";
     }
     return null;
   }
@@ -805,11 +830,13 @@ export function MillProgramDesk({
             ? [saved, ...prev]
             : prev.map((row) => (row.id === currentId ? saved : row)),
         );
+        clearDraft(RESCUE_KEY);
         closeModal();
         setNotice(notice(saved.srNo));
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not save the mill program.");
+        if (mode) stashDraft(RESCUE_KEY, { mode, program: draft });
+        setError(friendlyError(err, "Could not save the mill program."));
       })
       .finally(() => {
         savingRef.current = false;
@@ -821,6 +848,7 @@ export function MillProgramDesk({
     if (!draft || !mode || savingRef.current) return;
     const message = validateDraft(draft);
     if (message) {
+      setValidated(true);
       setError(message);
       return;
     }
@@ -846,6 +874,7 @@ export function MillProgramDesk({
     if (!draft || !mode || draft.status === "sent" || savingRef.current) return;
     const message = validateDraft(draft);
     if (message) {
+      setValidated(true);
       setError(message);
       return;
     }
@@ -868,6 +897,34 @@ export function MillProgramDesk({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {rescued && !mode ? (
+        <div className="aw-rescue" role="status">
+          <span className="aw-rescue-text">
+            Unsaved Mill Program from {describeAge(rescued.at)}
+          </span>
+          <button
+            type="button"
+            className="aw-rescue-go"
+            onClick={() => {
+              setDraft(rescued.data.program);
+              setMode(rescued.data.mode);
+              setError(null);
+              setValidated(false);
+              clearDraft(RESCUE_KEY);
+            }}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="aw-rescue-drop"
+            onClick={() => clearDraft(RESCUE_KEY)}
+          >
+            Discard
+          </button>
         </div>
       ) : null}
 
@@ -1097,7 +1154,7 @@ export function MillProgramDesk({
           lockScroll
           overlayClassName="mp-sheet-overlay"
           frameWidthClass="mp-sheet"
-          closeClassName="gb-sheet-close"
+          closeClassName="gb-sheet-close mp-close"
           title={
             mode === "create"
               ? `New Mill Program ${draft.srNo}`
@@ -1105,21 +1162,31 @@ export function MillProgramDesk({
           }
           onClose={unsaved.requestClose}
         >
-          <div className="mp-entry">
-            <div className="mp-entry-main">
+          <div className="mp-entry" data-validated={validated ? "" : undefined}>
             {error ? (
-              <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
-                {error}
-              </p>
+              <div className="mp-alert" role="alert" key={error}>
+                <span className="mp-alert-text">{error}</span>
+                <button
+                  type="button"
+                  className="mp-alert-close"
+                  onClick={() => setError(null)}
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <i className="mp-alert-timer" aria-hidden />
+              </div>
             ) : null}
+            <div className="mp-entry-main">
 
             <FieldGroup label="Source">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Field label="Mill Name">
                   <select
                     className={inputClass}
+                    required
                     value={draft.millId}
-                    disabled={mode === "edit"}
+                    disabled={mode === "edit" && draft.status !== "draft"}
                     onChange={(e) => changeMill(e.target.value)}
                   >
                     <option value="">Select mill</option>
@@ -1133,8 +1200,9 @@ export function MillProgramDesk({
                 <Field label="Item Name">
                   <select
                     className={inputClass}
+                    required
                     value={draft.item}
-                    disabled={mode === "edit" || !draft.millId}
+                    disabled={(mode === "edit" && draft.status !== "draft") || !draft.millId}
                     onChange={(e) => changeItem(e.target.value)}
                   >
                     <option value="">
@@ -1189,7 +1257,7 @@ export function MillProgramDesk({
                                     type="radio"
                                     name="mill-inward-source"
                                     checked={draft.inwardId === row.inward.id}
-                                    disabled={mode === "edit"}
+                                    disabled={mode === "edit" && draft.status !== "draft"}
                                     onChange={() => applySource(row.inward)}
                                   />
                                 </td>
@@ -1241,6 +1309,7 @@ export function MillProgramDesk({
                 <Field label="Type of Finish">
                   <input
                     className={inputClass}
+                    required
                     value={draft.typeOfFinish}
                     onChange={(e) => patch({ typeOfFinish: e.target.value })}
                   />
@@ -1248,6 +1317,7 @@ export function MillProgramDesk({
                 <Field label="GSM">
                   <input
                     className={inputClass}
+                    required
                     value={draft.gsm}
                     inputMode="decimal"
                     onChange={(e) => patch({ gsm: e.target.value })}
@@ -1256,6 +1326,7 @@ export function MillProgramDesk({
                 <Field label="Width">
                   <input
                     className={inputClass}
+                    required
                     value={draft.width}
                     onChange={(e) => patch({ width: e.target.value })}
                   />
@@ -1363,7 +1434,7 @@ export function MillProgramDesk({
               </div>
               {overLimit ? (
                 <p className="mt-2 text-[11px] text-(--danger)">
-                  Programmed rolls exceed available rolls for this Mill Inward.
+                  You have programmed more rolls than this mill inward has.
                   Reduce the allocation before saving.
                 </p>
               ) : null}
@@ -1385,15 +1456,16 @@ export function MillProgramDesk({
               >
                 Save Draft
               </button>
-              <button
-                type="button"
-                className={buttonGhostClass}
-                disabled={overLimit}
-                onClick={saveProgram}
-              >
-                {mode === "create" ? "Save Mill Program" : "Save Changes"}
-              </button>
-              {draft.status === "draft" ? null : (
+              {mode === "create" || draft.status === "draft" ? null : (
+                <button
+                  type="button"
+                  className={buttonGhostClass}
+                  disabled={overLimit}
+                  onClick={saveProgram}
+                >
+                  Save Changes
+                </button>
+              )}
               <button
                 type="button"
                 className={`${buttonClass} mp-send`}
@@ -1403,7 +1475,6 @@ export function MillProgramDesk({
                 <Send className="h-3 w-3" />
                 {draft.status === "sent" ? "Sent" : "Send Mill Program"}
               </button>
-              )}
             </div>
           </div>
         </Overlay>

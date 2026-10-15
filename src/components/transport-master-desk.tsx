@@ -17,6 +17,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { type LocalTransporter } from "@/lib/local-workflow";
+import { friendlyError } from "@/lib/user-error";
 import {
   createTransport,
   updateTransport,
@@ -146,7 +147,7 @@ export function TransportMasterDesk({
           : `${local.transportName} updated.`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save transport.");
+      setError(friendlyError(err, "Could not save transport."));
     } finally {
       setSaving(false);
     }

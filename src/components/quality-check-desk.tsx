@@ -5,6 +5,13 @@ import { BadgeCheck, Plus, Search, X } from "lucide-react";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
+import {
+  clearDraft,
+  describeAge,
+  stashDraft,
+  useRescuedDraft,
+} from "@/lib/draft-rescue";
 import {
   EmptyState,
   Field,
@@ -66,22 +73,21 @@ function kgText(value: string) {
   return Number.isFinite(weight) ? weight.toFixed(3) : value;
 }
 
-function passClass(selected: boolean) {
-  return selected ? `${buttonClass} w-full md:w-auto` : `${buttonGhostClass} w-full md:w-auto`;
-}
-
-function failClass(selected: boolean) {
-  return selected
-    ? `${buttonGhostClass} w-full border-(--danger) bg-(--danger-soft) text-(--danger) md:w-auto`
-    : `${buttonGhostClass} w-full md:w-auto`;
-}
-
-function mobileDecisionClass(kind: "pass" | "fail", selected: boolean) {
+function decisionClass(kind: "pass" | "fail", selected: boolean) {
   const base =
-    "pressable inline-flex h-11 min-h-11 w-full items-center justify-center rounded-md border px-1 text-[12px] font-semibold";
-  if (selected && kind === "pass") return `${base} border-transparent bg-(--accent) text-white`;
-  if (selected && kind === "fail") return `${base} border-transparent bg-(--danger) text-white`;
-  return `${base} border-(--line) bg-white text-(--ink)`;
+    "pressable inline-flex h-11 min-h-11 w-full items-center justify-center rounded-md border px-1 text-[12px] font-semibold transition md:h-auto md:min-h-0 md:w-auto md:px-2.5 md:py-1.5";
+  if (selected) {
+    return `${base} border-transparent text-white ${
+      kind === "pass" ? "bg-(--accent)" : "bg-(--danger)"
+    }`;
+  }
+  /* undecided: neutral until the cursor is on it, then it shows which way
+     it goes - the label no longer has to be read to know */
+  return `${base} border-(--line) bg-white text-(--ink) ${
+    kind === "pass"
+      ? "hover:border-(--accent) hover:bg-(--accent-soft) hover:text-(--accent)"
+      : "hover:border-(--danger) hover:bg-(--danger-soft) hover:text-(--danger)"
+  }`;
 }
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
@@ -245,6 +251,8 @@ function padWithoutQc(_real: WithoutQcGroup[]): WithoutQcGroup[] {
   });
 }
 
+const RESCUE_KEY = "quality-check";
+
 export function QualityCheckDesk({
   works: rawWorks,
   programs,
@@ -264,6 +272,7 @@ export function QualityCheckDesk({
   const searchRef = useRef<HTMLDivElement>(null);
 
   const [session, setSession] = useState<Session | null>(null);
+  const rescued = useRescuedDraft<Session>(RESCUE_KEY);
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -288,6 +297,12 @@ export function QualityCheckDesk({
   const failCount = session?.rolls.filter((roll) => roll.decision === "fail").length ?? 0;
   const withoutCount = session?.rolls.filter((roll) => roll.stockState === "without_qc").length ?? 0;
 
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   function openWork(target: QualityCheckWork, onlyIds?: string[]) {
     const allowed = onlyIds ? new Set(onlyIds) : null;
     const source = target.physicalRolls.filter((roll) => !allowed || allowed.has(roll.id));
@@ -310,7 +325,7 @@ export function QualityCheckDesk({
       })),
     });
     setError(null);
-    setLookupError(programFor(target) ? null : "Finished work found, but no matching Mill Program.");
+    setLookupError(programFor(target) ? null : "Found the finished work, but no mill program matches it.");
   }
 
   function programFor(target: QualityCheckWork) {
@@ -362,6 +377,7 @@ export function QualityCheckDesk({
         })),
       });
       setRows((prev) => [result.record, ...prev.filter((row) => row.id !== result.record.id)]);
+      clearDraft(RESCUE_KEY);
       setSession(null);
       setNotice(
         mode === "draft"
@@ -372,7 +388,10 @@ export function QualityCheckDesk({
       );
       return true;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not save the QC.");
+      /* the session carries every roll decision made so far, and is keyed by
+         workId, so it can be put straight back */
+      stashDraft(RESCUE_KEY, session);
+      setError(friendlyError(err, "Could not save the QC."));
       return false;
     } finally {
       savingRef.current = false;
@@ -442,6 +461,32 @@ export function QualityCheckDesk({
           Find
         </button>
       </div>
+
+      {rescued && !session ? (
+        <div className="aw-rescue" role="status">
+          <span className="aw-rescue-text">
+            Unsaved QC from {describeAge(rescued.at)}
+          </span>
+          <button
+            type="button"
+            className="aw-rescue-go"
+            onClick={() => {
+              setSession(rescued.data);
+              setError(null);
+              clearDraft(RESCUE_KEY);
+            }}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="aw-rescue-drop"
+            onClick={() => clearDraft(RESCUE_KEY)}
+          >
+            Discard
+          </button>
+        </div>
+      ) : null}
 
       {/* Three lists, one at a time. This
           screen is worked on standing up, so the blocks and the row actions
@@ -715,16 +760,25 @@ export function QualityCheckDesk({
           portal
           lockScroll
           trackViewport
-          closeClassName={`${buttonGhostClass} relative !h-8 !w-8 !min-h-8 !min-w-8 shrink-0 !rounded-md !border-transparent !bg-transparent !p-0 !shadow-none before:absolute before:-inset-1.5 before:content-[''] hover:!border-transparent hover:!bg-transparent md:!h-auto md:!w-auto md:!min-h-0 md:!min-w-11 md:!border-(--line) md:!bg-white md:!px-2 md:!py-1.5 md:!shadow-none md:before:hidden`}
+          closeClassName="qc-close"
           headerClassName="justify-between gap-2 px-2 py-0.5 md:px-5 md:py-2.5"
-          overlayClassName="px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-[max(1.5rem,4vw)] md:py-8"
+          overlayClassName="qc-sheet-overlay px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:px-[max(1.5rem,4vw)] md:py-8"
           frameWidthClass="qc-sheet h-auto max-h-full w-full min-h-0 self-stretch md:h-[min(720px,100%)] md:max-h-[min(720px,100%)] md:w-full md:max-w-[960px] md:self-center"
         >
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="qc-entry flex min-h-0 flex-1 flex-col">
             {error ? (
-              <p className="mx-3 mt-2 shrink-0 rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[12px] text-(--danger) md:mx-4" role="alert">
-                {error}
-              </p>
+              <div className="qc-alert" role="alert" key={error}>
+                <span className="qc-alert-text">{error}</span>
+                <button
+                  type="button"
+                  className="qc-alert-close"
+                  onClick={() => setError(null)}
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <i className="qc-alert-timer" aria-hidden />
+              </div>
             ) : null}
             <div className="table-scroll min-h-0 flex-1 space-y-2 overflow-x-hidden overflow-y-auto px-3 py-2 md:space-y-3 md:px-4 md:py-2.5">
               <div className="grid grid-cols-2 gap-x-3 gap-y-1 md:hidden">
@@ -816,7 +870,7 @@ export function QualityCheckDesk({
                       <div className="grid w-[8.75rem] shrink-0 grid-cols-2 gap-1">
                         <button
                           type="button"
-                          className={mobileDecisionClass("pass", roll.decision === "pass")}
+                          className={decisionClass("pass", roll.decision === "pass")}
                           aria-pressed={roll.decision === "pass"}
                           aria-label={`Roll ${roll.rollNo} pass`}
                           onClick={() => patchRoll(roll.id, "pass")}
@@ -825,7 +879,7 @@ export function QualityCheckDesk({
                         </button>
                         <button
                           type="button"
-                          className={mobileDecisionClass("fail", roll.decision === "fail")}
+                          className={decisionClass("fail", roll.decision === "fail")}
                           aria-pressed={roll.decision === "fail"}
                           aria-label={`Roll ${roll.rollNo} fail`}
                           onClick={() => patchRoll(roll.id, "fail")}
@@ -870,7 +924,7 @@ export function QualityCheckDesk({
                           <div className="flex gap-1">
                             <button
                               type="button"
-                              className={passClass(roll.decision === "pass")}
+                              className={decisionClass("pass", roll.decision === "pass")}
                               aria-pressed={roll.decision === "pass"}
                               aria-label={`Roll ${roll.rollNo} pass`}
                               onClick={() => patchRoll(roll.id, "pass")}
@@ -879,7 +933,7 @@ export function QualityCheckDesk({
                             </button>
                             <button
                               type="button"
-                              className={failClass(roll.decision === "fail")}
+                              className={decisionClass("fail", roll.decision === "fail")}
                               aria-pressed={roll.decision === "fail"}
                               aria-label={`Roll ${roll.rollNo} fail`}
                               onClick={() => patchRoll(roll.id, "fail")}
@@ -923,15 +977,15 @@ export function QualityCheckDesk({
               <Field label="Remarks">
                 <input className={`${inputClass} max-md:!min-h-9 max-md:!py-1 max-md:!text-[13px]`} value={session.remarks} onFocus={keepFieldVisible} onChange={(event) => setSession({ ...session, remarks: event.target.value })} />
               </Field>
-              <div className="flex gap-2 md:justify-end">
-                <button type="button" className={`${buttonGhostClass} min-w-0 flex-1 md:flex-none md:w-auto`} onClick={() => void persist("draft")}>
-                  Save draft
-                </button>
-                <button type="button" className={`${buttonClass} min-w-0 flex-1 md:flex-none md:w-auto`} onClick={() => void persist("submit")}>
-                  <Plus className="h-3.5 w-3.5" />
-                  Submit QC
-                </button>
-              </div>
+            </div>
+            <div className="qc-foot">
+              <button type="button" className={`${buttonGhostClass} min-w-0 flex-1 md:flex-none md:w-auto`} onClick={() => void persist("draft")}>
+                Save draft
+              </button>
+              <button type="button" className={`${buttonClass} min-w-0 flex-1 md:flex-none md:w-auto`} onClick={() => void persist("submit")}>
+                <Plus className="h-3.5 w-3.5" />
+                Submit QC
+              </button>
             </div>
           </div>
         </Overlay>

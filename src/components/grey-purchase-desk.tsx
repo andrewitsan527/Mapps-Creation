@@ -15,6 +15,13 @@ import { ErpModal as Overlay } from "@/components/erp-modal";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
+import {
+  clearDraft,
+  describeAge,
+  stashDraft,
+  useRescuedDraft,
+} from "@/lib/draft-rescue";
 import {
   EmptyState,
   Field,
@@ -460,6 +467,8 @@ function padBills(_real: GreyBillRecord[]): GreyBillRecord[] {
   return buildPresentationBills();
 }
 
+const RESCUE_KEY = "grey-purchase";
+
 export function GreyPurchaseDesk({
   bills,
   knitters,
@@ -492,12 +501,18 @@ export function GreyPurchaseDesk({
     return () => document.removeEventListener("mousedown", onDown);
   }, [searchOpen]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const rescued = useRescuedDraft<{ mode: "create" | "edit"; bill: Draft }>(
+    RESCUE_KEY,
+  );
   const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
   const [notice, setNotice] = useState<{
     text: string;
     tone: "ok" | "warn" | "error";
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /* set when a save was rejected: :user-invalid only marks fields the user
+     has been in, so an untouched blank bill showed no red at all */
+  const [validated, setValidated] = useState(false);
   const [rollOpen, setRollOpen] = useState(false);
   const [billBusy, setBillBusy] = useState(false);
   const [billWarnings, setBillWarnings] = useState<string[]>([]);
@@ -608,6 +623,7 @@ export function GreyPurchaseDesk({
     setDraft(null);
     setMode(null);
     setError(null);
+    setValidated(false);
     setRollOpen(false);
     setBillWarnings([]);
     setChallanNote(null);
@@ -638,7 +654,7 @@ export function GreyPurchaseDesk({
       } else warnings.push("Bill no. was not read.");
       const billDate = extracted.billDate.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(billDate)) next.billDate = billDate;
-      else warnings.push(billDate ? "Bill date was not a valid date." : "Bill date was not read.");
+      else warnings.push(billDate ? "The bill date could not be read." : "Bill date was not read.");
       const agent = extracted.agent.trim();
       if (agent) next.agent = agent;
       else warnings.push("Agent was not read.");
@@ -695,7 +711,7 @@ export function GreyPurchaseDesk({
       data.set("file", file);
       applyBillExtract(await extractGreyPurchaseBill(data));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not extract the bill.");
+      setError(friendlyError(err, "Could not extract the bill."));
     } finally {
       setBillBusy(false);
       if (billFileRef.current) billFileRef.current.value = "";
@@ -750,11 +766,11 @@ export function GreyPurchaseDesk({
           if (manual === 0 && result.quantityKg.trim()) {
             const reported = Number(result.quantityKg);
             if (Number.isFinite(reported) && Math.abs(sum - reported) > 0.001) {
-              lines.push("Weight total does not match the challan KG. The weights were not adjusted.");
+              lines.push("The weights add up to a different total than the challan, so nothing was changed.");
             }
           }
           if (result.slots.length < expected && result.unreadable.length === 0) {
-            lines.push("Some printed rows were not returned, so these weights were placed from row 1. Check the sequence before saving.");
+            lines.push("Some rows could not be matched, so the weights were filled in from row 1. Check the order before saving.");
           }
           if (result.unreadable.length > 0) lines.push(...result.unreadable.slice(0, 3));
           note = lines.join(" ");
@@ -762,7 +778,7 @@ export function GreyPurchaseDesk({
         });
         setChallanNote(note);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not extract the challan.");
+        setError(friendlyError(err, "Could not extract the challan."));
       } finally {
         setChallanBusy(false);
       }
@@ -771,6 +787,7 @@ export function GreyPurchaseDesk({
 
   function openCreate() {
     setError(null);
+    setValidated(false);
     setNotice(null);
     setBillWarnings([]);
     setChallanNote(null);
@@ -906,6 +923,12 @@ export function GreyPurchaseDesk({
     patch({ rolls: remaining.length > 0 ? remaining : [emptyRoll()] });
   }
 
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   function validate(entry: Draft, status: "DRAFT" | "SAVED") {
     if (!entry.billDate) return "Enter a date of issue.";
     if (status !== "SAVED") return null;
@@ -919,10 +942,12 @@ export function GreyPurchaseDesk({
     if (!draft || savingRef.current) return false;
     const message = validate(draft, status);
     if (message) {
+      setValidated(true);
       setError(message);
       return false;
     }
     savingRef.current = true;
+    setValidated(false);
     setError(null);
     try {
       const input = { ...billInput(draft), status };
@@ -986,10 +1011,14 @@ export function GreyPurchaseDesk({
             : "Draft saved.",
         tone: "ok",
       });
+      clearDraft(RESCUE_KEY);
       closeModal();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the grey bill.");
+      if (mode === "create" || mode === "edit") {
+        stashDraft(RESCUE_KEY, { mode, bill: draft });
+      }
+      setError(friendlyError(err, "Could not save the grey bill."));
       return false;
     } finally {
       savingRef.current = false;
@@ -1091,6 +1120,34 @@ export function GreyPurchaseDesk({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {rescued && !mode ? (
+        <div className="aw-rescue" role="status">
+          <span className="aw-rescue-text">
+            Unsaved Grey Purchase from {describeAge(rescued.at)}
+          </span>
+          <button
+            type="button"
+            className="aw-rescue-go"
+            onClick={() => {
+              setDraft(rescued.data.bill);
+              setMode(rescued.data.mode);
+              setError(null);
+              setValidated(false);
+              clearDraft(RESCUE_KEY);
+            }}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="aw-rescue-drop"
+            onClick={() => clearDraft(RESCUE_KEY)}
+          >
+            Discard
+          </button>
         </div>
       ) : null}
 
@@ -1314,7 +1371,7 @@ export function GreyPurchaseDesk({
           flushBody
           overlayClassName="gb-sheet-overlay"
           headerClassName="gb-sheet-head justify-between px-4 py-2"
-          closeClassName="gb-sheet-close"
+          closeClassName="gb-sheet-close gp-close"
           lockScroll
           portal
           headerAccessory={
@@ -1373,13 +1430,26 @@ export function GreyPurchaseDesk({
           }
           frameWidthClass="gb-sheet gb-sheet-entry"
         >
-          <div ref={billTrapRef} className="gb-entry">
-            <div className="gb-entry-main">
+          <div
+            ref={billTrapRef}
+            className="gb-entry"
+            data-validated={validated ? "" : undefined}
+          >
             {error ? (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
-                {error}
-              </p>
+              <div className="gb-entry-alert" role="alert" key={error}>
+                <span className="gb-entry-alert-text">{error}</span>
+                <button
+                  type="button"
+                  className="gb-entry-alert-close"
+                  onClick={() => setError(null)}
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <i className="gb-entry-alert-timer" aria-hidden />
+              </div>
             ) : null}
+            <div className="gb-entry-main">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Sr. No.">
                 <input className={inputClass} value={draft.srNo} readOnly />
@@ -1389,6 +1459,7 @@ export function GreyPurchaseDesk({
                   className={inputClass}
                   type="date"
                   autoComplete="off"
+                  required
                   value={draft.billDate}
                   disabled={readOnly}
                   onChange={(e) => patch({ billDate: e.target.value })}
@@ -1398,6 +1469,7 @@ export function GreyPurchaseDesk({
                 <input
                   className={inputClass}
                   autoComplete="off"
+                  required
                   value={draft.billNo}
                   disabled={readOnly}
                   onChange={(e) => {
@@ -1416,6 +1488,7 @@ export function GreyPurchaseDesk({
               <Field label="Challan No.">
                 <input
                   className={inputClass}
+                  required
                   value={draft.challanNo}
                   disabled={readOnly}
                   onChange={(e) => patch({ challanNo: e.target.value })}
@@ -1423,7 +1496,10 @@ export function GreyPurchaseDesk({
               </Field>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <Field label="Knitter Name">
+              <Field
+                label="Knitter Name"
+                className={`gb-req${draft.knitterId ? "" : " gb-empty"}`}
+              >
                 <SearchableSelect
                   value={draft.knitterId}
                   options={knitterOptions}
@@ -1750,7 +1826,7 @@ export function GreyPurchaseDesk({
           flushBody
           overlayClassName="gb-sheet-overlay"
           headerClassName="gb-sheet-head justify-between px-4 py-2"
-          closeClassName="gb-sheet-close"
+          closeClassName="gb-sheet-close gp-close"
           portal
           frameWidthClass="gb-sheet gb-sheet-roll"
         >

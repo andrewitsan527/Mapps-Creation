@@ -17,6 +17,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { type LocalHaste } from "@/lib/local-workflow";
+import { friendlyError } from "@/lib/user-error";
 import {
   createHaste,
   updateHaste,
@@ -218,7 +219,7 @@ export function HasteMasterDesk({ hastes }: { hastes: HasteRecord[] }) {
           : `${local.hasteName} updated.`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save haste.");
+      setError(friendlyError(err, "Could not save haste."));
     } finally {
       setSaving(false);
     }

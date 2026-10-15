@@ -5,6 +5,7 @@ import { Briefcase, Plus, Search, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
 import {
   EmptyState,
   Field,
@@ -277,7 +278,7 @@ export function AgentMasterDesk({
           mode === "create" ? `${local.name} saved.` : `${local.name} updated.`,
         );
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not save sales agent.");
+        setError(friendlyError(err, "Could not save sales agent."));
       } finally {
         setSaving(false);
       }
@@ -300,7 +301,7 @@ export function AgentMasterDesk({
         mode === "create" ? `${local.name} saved.` : `${local.name} updated.`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save purchase agent.");
+      setError(friendlyError(err, "Could not save purchase agent."));
     } finally {
       setSaving(false);
     }

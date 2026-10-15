@@ -9,6 +9,13 @@ import {
 } from "react";
 import { ClipboardList, Plus, Search, X } from "lucide-react";
 import { formatMoney, formatQty } from "@/lib/utils";
+import { friendlyError } from "@/lib/user-error";
+import {
+  clearDraft,
+  describeAge,
+  stashDraft,
+  useRescuedDraft,
+} from "@/lib/draft-rescue";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import {
   createPurchaseOrder,
@@ -183,6 +190,7 @@ function OrderFields({
             tabIndex={0}
             data-po-tab="2"
             className={inputClass}
+            required
             value={draft.knitterId}
             onChange={(event) =>
               onChange({ ...draft, knitterId: event.target.value })
@@ -208,6 +216,7 @@ function OrderFields({
             tabIndex={0}
             data-po-tab="3"
             className={inputClass}
+            required
             value={draft.quality}
             onChange={set("quality")}
             placeholder="Valentino NE-4% Micro"
@@ -227,6 +236,7 @@ function OrderFields({
               tabIndex={0}
               data-po-tab="4"
               className={`${inputClass} min-w-0 flex-1 text-right`}
+              required
               value={draft.qtyUnits}
               onChange={set("qtyUnits")}
               placeholder="24"
@@ -251,6 +261,7 @@ function OrderFields({
               tabIndex={0}
               data-po-tab="5"
               className={`${inputClass} po-affix-field min-w-0 flex-1 text-right`}
+              required
               value={draft.rate}
               onChange={set("rate")}
               placeholder="170"
@@ -274,6 +285,7 @@ function OrderFields({
             tabIndex={0}
             data-po-tab="6"
             className={inputClass}
+            required
             value={draft.agent}
             onChange={(event) =>
               onChange({ ...draft, agent: event.target.value })
@@ -405,6 +417,8 @@ function subscribeToNarrow(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
+const RESCUE_KEY = "purchase-order";
+
 export function PurchaseOrderDesk({
   orders,
   knitters,
@@ -417,6 +431,11 @@ export function PurchaseOrderDesk({
   const [rows, setRows] = useState<PurchaseOrderRow[]>(() => padRows(orders.map(toRow)));
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const rescued = useRescuedDraft<{
+    mode: "create" | "edit";
+    editingId: string | null;
+    order: Draft;
+  }>(RESCUE_KEY);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(emptyDraft);
   const [mode, setMode] = useState<"create" | "edit" | "view" | null>(null);
@@ -448,6 +467,15 @@ export function PurchaseOrderDesk({
     return () => document.removeEventListener("mousedown", onDown);
   }, [searchOpen]);
   const [error, setError] = useState<string | null>(null);
+  /* set when a save was refused, so the empty required fields mark even
+     though :user-invalid only matches fields the user has been inside */
+  const [validated, setValidated] = useState(false);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -515,6 +543,7 @@ export function PurchaseOrderDesk({
     setDraft(emptyDraft());
     setEditDraft(emptyDraft());
     setError(null);
+    setValidated(false);
   }
 
   const formDraft = mode === "create" ? draft : editDraft;
@@ -535,6 +564,7 @@ export function PurchaseOrderDesk({
     setEditingId(null);
     setEditDraft(emptyDraft());
     setError(null);
+    setValidated(false);
     setMode("create");
   }
 
@@ -549,6 +579,7 @@ export function PurchaseOrderDesk({
       remark: row.remark,
     });
     setError(null);
+    setValidated(false);
     setMode(nextMode);
   }
 
@@ -556,7 +587,8 @@ export function PurchaseOrderDesk({
     const parsed = parseDraft(draft);
     if (!parsed || saving) {
       if (!parsed) {
-        setError("Enter knitter, quality, qty (25 kg units), rate and agent.");
+        setValidated(true);
+        setError("Enter knitter, quality, quantity, rate and agent. Quantity is counted in 25 kg units.");
       }
       return;
     }
@@ -565,9 +597,11 @@ export function PurchaseOrderDesk({
       const saved = toRow(await createPurchaseOrder(parsed));
       setRows((prev) => [saved, ...prev.filter((row) => row.id !== saved.id)]);
       setToast(`Purchase order ${saved.srNo} saved.`);
+      clearDraft(RESCUE_KEY);
       closeModal();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save purchase order.");
+      stashDraft(RESCUE_KEY, { mode: "create", editingId: null, order: draft });
+      setError(friendlyError(err, "Could not save purchase order."));
     } finally {
       setSaving(false);
     }
@@ -577,7 +611,8 @@ export function PurchaseOrderDesk({
     if (!editingId || saving) return;
     const parsed = parseDraft(editDraft);
     if (!parsed) {
-      setError("Enter knitter, quality, qty (25 kg units), rate and agent.");
+      setValidated(true);
+      setError("Enter knitter, quality, quantity, rate and agent. Quantity is counted in 25 kg units.");
       return;
     }
     setSaving(true);
@@ -585,9 +620,11 @@ export function PurchaseOrderDesk({
       const saved = toRow(await updatePurchaseOrder(editingId, parsed));
       setRows((prev) => prev.map((row) => (row.id === saved.id ? saved : row)));
       setToast(`Purchase order ${saved.srNo} updated.`);
+      clearDraft(RESCUE_KEY);
       closeModal();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save purchase order.");
+      stashDraft(RESCUE_KEY, { mode: "edit", editingId, order: editDraft });
+      setError(friendlyError(err, "Could not save purchase order."));
     } finally {
       setSaving(false);
     }
@@ -609,6 +646,40 @@ export function PurchaseOrderDesk({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {rescued && !mode ? (
+        <div className="aw-rescue" role="status">
+          <span className="aw-rescue-text">
+            Unsaved Purchase Order from {describeAge(rescued.at)}
+          </span>
+          <button
+            type="button"
+            className="aw-rescue-go"
+            onClick={() => {
+              if (rescued.data.mode === "create") {
+                setDraft(rescued.data.order);
+                setEditingId(null);
+              } else {
+                setEditDraft(rescued.data.order);
+                setEditingId(rescued.data.editingId);
+              }
+              setMode(rescued.data.mode);
+              setError(null);
+              setValidated(false);
+              clearDraft(RESCUE_KEY);
+            }}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="aw-rescue-drop"
+            onClick={() => clearDraft(RESCUE_KEY)}
+          >
+            Discard
+          </button>
         </div>
       ) : null}
 
@@ -942,7 +1013,7 @@ export function PurchaseOrderDesk({
           form
           trapFocus
           closeTabIndex={-1}
-          closeClassName="gb-sheet-close"
+          closeClassName="gb-sheet-close po-close"
           bodyClassName="po-form-body"
           portal
           lockScroll
@@ -957,15 +1028,24 @@ export function PurchaseOrderDesk({
           }
           onClose={unsaved.requestClose}
         >
-          <div className="po-form-scroll">
-            {error ? (
-              <p
-                role="alert"
-                className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)"
+          {error ? (
+            <div className="po-alert" role="alert" key={error}>
+              <span className="po-alert-text">{error}</span>
+              <button
+                type="button"
+                className="po-alert-close"
+                onClick={() => setError(null)}
+                aria-label="Dismiss"
               >
-                {error}
-              </p>
-            ) : null}
+                <X className="h-3 w-3" />
+              </button>
+              <i className="po-alert-timer" aria-hidden />
+            </div>
+          ) : null}
+          <div
+            className="po-form-scroll"
+            data-validated={validated ? "" : undefined}
+          >
             <OrderFields
               srNo={formSr}
               draft={formDraft}

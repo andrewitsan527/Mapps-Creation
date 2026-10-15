@@ -6,6 +6,7 @@ import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { SearchableSelect } from "@/components/searchable-select";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
 import {
   EmptyState,
   Field,
@@ -309,7 +310,7 @@ export function SalesMasterDesk({
       entry.distance,
     ];
     if (numeric.some((value) => !optionalNumberOk(value))) {
-      return "Numeric fields must contain valid numbers.";
+      return "Check the number fields — one of them has letters or symbols in it.";
     }
     return null;
   }
@@ -340,7 +341,7 @@ export function SalesMasterDesk({
           : `${local.accountName} updated.`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save sales master.");
+      setError(friendlyError(err, "Could not save sales master."));
     } finally {
       setSaving(false);
     }

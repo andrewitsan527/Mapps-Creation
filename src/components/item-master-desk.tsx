@@ -17,6 +17,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { type LocalItem } from "@/lib/local-workflow";
+import { friendlyError } from "@/lib/user-error";
 import {
   createItem,
   updateItem,
@@ -230,7 +231,7 @@ export function ItemMasterDesk({ items }: { items: ItemRecord[] }) {
           : `${local.itemName} updated.`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save item.");
+      setError(friendlyError(err, "Could not save item."));
     } finally {
       setSaving(false);
     }

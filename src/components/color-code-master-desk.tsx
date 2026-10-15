@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Search, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
+import { friendlyError } from "@/lib/user-error";
 import {
   Field,
   Metric,
@@ -336,7 +337,7 @@ export function ColorCodeMasterDesk({
         mode === "create" ? `${saved.qualityName} saved.` : `${saved.qualityName} updated.`,
       );
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not save quality.";
+      const message = friendlyError(err, "Could not save quality.");
       showIssue({ message, focus: focusForServerError(message, draft) });
     } finally {
       setSaving(false);
@@ -353,7 +354,7 @@ export function ColorCodeMasterDesk({
       setNotice(`${row.qualityName} deleted.`);
       window.requestAnimationFrame(() => addQualityRef.current?.focus());
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Could not delete quality.");
+      setNotice(friendlyError(err, "Could not delete quality."));
     } finally {
       setSaving(false);
     }

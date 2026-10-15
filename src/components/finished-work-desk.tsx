@@ -6,6 +6,13 @@ import { Plus, Shirt, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useUnsavedClose } from "@/components/unsaved-changes";
+import { friendlyError } from "@/lib/user-error";
+import {
+  clearDraft,
+  describeAge,
+  stashDraft,
+  useRescuedDraft,
+} from "@/lib/draft-rescue";
 import {
   EmptyState,
   Field,
@@ -212,12 +219,12 @@ function rollProblem(roll: RollRow) {
   if (rollState(roll) !== "invalid") return null;
   const grey = parseQty(roll.greyKg);
   const finished = parseQty(roll.finishedKg);
-  if (grey != null && grey < 0) return "Grey KG cannot be negative.";
-  if (finished != null && finished < 0) return "Finished KG cannot be negative.";
+  if (grey != null && grey < 0) return "“Grey KG” can't be less than 0.";
+  if (finished != null && finished < 0) return "“Finished KG” can't be less than 0.";
   if (grey != null && finished != null && finished > grey) {
-    return "Finished KG cannot be greater than Grey KG.";
+    return "“Finished KG” can't be more than “Grey KG” — check the weights.";
   }
-  return "Enter grey KG and finished KG for each roll.";
+  return "Enter “Grey KG” and “Finished KG” for each roll.";
 }
 
 function rollTotals(rolls: RollRow[]) {
@@ -252,11 +259,11 @@ function aggregateWeightProblem(line: ItemLine) {
   if (!line.greyKg.trim() && !line.finishedKg.trim()) return null;
   const grey = parseQty(line.greyKg);
   const finished = parseQty(line.finishedKg);
-  if (!line.greyKg.trim()) return "Enter grey KG.";
-  if (!line.finishedKg.trim()) return "Enter finished KG.";
-  if (grey == null || grey < 0) return "Grey KG cannot be negative.";
-  if (finished == null || finished < 0) return "Finished KG cannot be negative.";
-  if (finished > grey) return "Finished KG cannot be greater than Grey KG.";
+  if (!line.greyKg.trim()) return "Enter “Grey KG”.";
+  if (!line.finishedKg.trim()) return "Enter “Finished KG”.";
+  if (grey == null || grey < 0) return "“Grey KG” can't be less than 0.";
+  if (finished == null || finished < 0) return "“Finished KG” can't be less than 0.";
+  if (finished > grey) return "“Finished KG” can't be more than “Grey KG” — check the weights.";
   return null;
 }
 
@@ -534,6 +541,8 @@ function padEntries(_real: Entry[]): Entry[] {
   });
 }
 
+const RESCUE_KEY = "finished-work";
+
 export function FinishedWorkDesk({
   entries,
   mills,
@@ -545,9 +554,22 @@ export function FinishedWorkDesk({
 }) {
   const [rows, setRows] = useState<Entry[]>(() => padEntries(entries.map(toEntry)));
   const [draft, setDraft] = useState<Entry | null>(null);
+  const rescued = useRescuedDraft<{ mode: "create" | "edit"; entry: Entry }>(
+    RESCUE_KEY,
+  );
   const [mode, setMode] = useState<"create" | "edit" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /* raised when a save is refused, so the empty required fields mark */
+  const [validated, setValidated] = useState(false);
+  /* the line whose roll count blocked Details from opening */
+  const [rollCountFlag, setRollCountFlag] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
   const [detailLineId, setDetailLineId] = useState<string | null>(null);
   const [rollDraft, setRollDraft] = useState<RollRow[] | null>(null);
   const [rollBaseline, setRollBaseline] = useState("");
@@ -686,6 +708,8 @@ export function FinishedWorkDesk({
     setMode("create");
     setDetailLineId(null);
     setError(null);
+    setValidated(false);
+    setRollCountFlag(null);
   }
 
   function openEdit(row: Entry) {
@@ -693,6 +717,8 @@ export function FinishedWorkDesk({
     setMode("edit");
     setDetailLineId(null);
     setError(null);
+    setValidated(false);
+    setRollCountFlag(null);
   }
 
   function closeModal() {
@@ -703,6 +729,8 @@ export function FinishedWorkDesk({
     setDetailDiscard(false);
     setRollCut(null);
     setError(null);
+    setValidated(false);
+    setRollCountFlag(null);
   }
 
   const unsaved = useUnsavedClose({
@@ -776,9 +804,13 @@ export function FinishedWorkDesk({
   function startDetails(line: ItemLine) {
     const count = rollCountValue(line.rollCount);
     if (count == null || count <= 0) {
-      setError("No. of rolls must be a whole number greater than zero.");
+      /* mark the row's own field: the banner says what is missing, the red
+         border says where. It clears itself as soon as the count is valid. */
+      setRollCountFlag(line.id);
+      setError("Enter “No. of Rolls” first, for example 25.");
       return;
     }
+    setRollCountFlag(null);
     const rows = Array.from({ length: count }, (_, index) => {
       const existing = line.rolls[index];
       return existing
@@ -798,16 +830,20 @@ export function FinishedWorkDesk({
     const next = rollCountValue(line.rollCount);
     if (next == null || (openAfter && next <= 0)) {
       if (openAfter || line.rollCount.trim()) {
+        /* the banner says what is missing; the red border on this row's own
+           field says where, so Details not opening explains itself */
+        setRollCountFlag(line.id);
         setError(
           openAfter
-            ? "No. of rolls must be a whole number greater than zero."
-            : "No. of rolls must be a whole number.",
+            ? "Enter “No. of Rolls” first, for example 25."
+            : "“No. of Rolls” must be a full number — 25, not 25.5.",
         );
       } else {
         patchLine(line.id, { rollCount: line.acceptedRollCount });
       }
       return;
     }
+    setRollCountFlag(null);
     const excess = line.rolls.slice(next);
     if (excess.some((roll) => roll.greyKg.trim() || roll.finishedKg.trim())) {
       setRollCut({
@@ -887,7 +923,7 @@ export function FinishedWorkDesk({
     }
     const valid = rollDraft.filter((roll) => rollState(roll) === "valid");
     if (valid.length === 0) {
-      setDetailError("Enter roll details.");
+      setDetailError("Open Details and enter the weights for each roll.");
       return;
     }
     const totals = rollTotals(valid);
@@ -945,16 +981,16 @@ export function FinishedWorkDesk({
   function validate(entry: Entry, editing: "create" | "edit") {
     if (!entry.date.trim()) return "Enter date.";
     if (!entry.millId.trim()) return "Select a mill.";
-    if (!entry.gpNo.trim()) return "Enter GP No.";
+    if (!entry.gpNo.trim()) return "Enter “GP No.”.";
     if (!entry.knitterChallanNo.trim()) return "Enter knitter challan no.";
     if (!entry.challanNo.trim()) return "Enter challan no.";
     if (isLegacyHold(entry, editing)) {
       const line = entry.lines.find((row) => row.legacy) ?? entry.lines[0];
       if (line && !line.itemId.trim()) return "Select an item.";
-      if (line && !line.lotNo.trim()) return "Enter lot no.";
-      if (line && !line.rate.trim()) return "Enter rate.";
+      if (line && !line.lotNo.trim()) return "Enter “Lot No.”.";
+      if (line && !line.rate.trim()) return "Enter “Rate”.";
       const rate = Number(line?.rate);
-      if (line && (!Number.isFinite(rate) || rate < 0)) return "Rate cannot be negative.";
+      if (line && (!Number.isFinite(rate) || rate < 0)) return "“Rate” can't be less than 0.";
       if (line) {
         const weight = aggregateWeightProblem(line);
         if (weight) return weight;
@@ -968,13 +1004,13 @@ export function FinishedWorkDesk({
       if (!line.itemId || (allowed.size > 0 && !allowed.has(line.itemId))) {
         return "Select an item.";
       }
-      if (!line.lotNo.trim()) return "Enter lot no.";
-      if (!line.rate.trim()) return "Enter rate.";
+      if (!line.lotNo.trim()) return "Enter “Lot No.”.";
+      if (!line.rate.trim()) return "Enter “Rate”.";
       const rate = Number(line.rate);
-      if (!Number.isFinite(rate) || rate < 0) return "Rate cannot be negative.";
+      if (!Number.isFinite(rate) || rate < 0) return "“Rate” can't be less than 0.";
       const count = rollCountValue(line.rollCount);
       if (line.rollCount.trim() && count == null) {
-        return "No. of rolls must be a whole number.";
+        return "“No. of Rolls” must be a full number — 25, not 25.5.";
       }
       const weight = aggregateWeightProblem(line);
       if (weight) return weight;
@@ -990,6 +1026,7 @@ export function FinishedWorkDesk({
     if (!draft || !mode || savingRef.current) return;
     const message = validate(draft, mode);
     if (message) {
+      setValidated(true);
       setError(message);
       return;
     }
@@ -1006,6 +1043,7 @@ export function FinishedWorkDesk({
         setRows((prev) =>
           creating ? [saved, ...prev] : prev.map((row) => (row.id === currentId ? saved : row)),
         );
+        clearDraft(RESCUE_KEY);
         closeModal();
         const savedNotice = creating ? `${saved.srNo} saved.` : `${saved.srNo} updated.`;
         setNotice(
@@ -1013,7 +1051,8 @@ export function FinishedWorkDesk({
         );
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not save the finished work.");
+        if (mode) stashDraft(RESCUE_KEY, { mode, entry: draft });
+        setError(friendlyError(err, "Could not save the finished work."));
       })
       .finally(() => {
         savingRef.current = false;
@@ -1042,6 +1081,34 @@ export function FinishedWorkDesk({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {rescued && !mode ? (
+        <div className="aw-rescue" role="status">
+          <span className="aw-rescue-text">
+            Unsaved Finished Work from {describeAge(rescued.at)}
+          </span>
+          <button
+            type="button"
+            className="aw-rescue-go"
+            onClick={() => {
+              setDraft(rescued.data.entry);
+              setMode(rescued.data.mode);
+              setError(null);
+              setValidated(false);
+              clearDraft(RESCUE_KEY);
+            }}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="aw-rescue-drop"
+            onClick={() => clearDraft(RESCUE_KEY)}
+          >
+            Discard
+          </button>
         </div>
       ) : null}
 
@@ -1191,7 +1258,7 @@ export function FinishedWorkDesk({
           flushBody
           overlayClassName="fw-sheet-overlay"
           frameWidthClass="fw-sheet"
-          closeClassName="gb-sheet-close"
+          closeClassName="gb-sheet-close fw-close"
           title={
             mode === "create"
               ? `New Finished Work ${draft.srNo}`
@@ -1201,13 +1268,22 @@ export function FinishedWorkDesk({
           trapFocus={detailLineId == null && rollCut == null}
           onClose={unsaved.requestClose}
         >
-          <div className="fw-entry">
-            <div className="fw-entry-main">
+          <div className="fw-entry" data-validated={validated ? "" : undefined}>
             {error ? (
-              <p className="rounded-md border border-(--danger)/40 bg-(--danger-soft) px-2 py-1.5 text-[11px] text-(--danger)">
-                {error}
-              </p>
+              <div className="fw-alert" role="alert" key={error}>
+                <span className="fw-alert-text">{error}</span>
+                <button
+                  type="button"
+                  className="fw-alert-close"
+                  onClick={() => setError(null)}
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <i className="fw-alert-timer" aria-hidden />
+              </div>
             ) : null}
+            <div className="fw-entry-main">
 
             <FieldGroup label="Receipt details">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -1220,6 +1296,7 @@ export function FinishedWorkDesk({
                   <input
                     className={inputClass}
                     type="date"
+                    required
                     value={draft.date}
                     onChange={(e) => patch({ date: e.target.value })}
                   />
@@ -1227,11 +1304,12 @@ export function FinishedWorkDesk({
                 <Field label="GP No.">
                   <input
                     className={inputClass}
+                    required
                     value={draft.gpNo}
                     onChange={(e) => patch({ gpNo: e.target.value })}
                   />
                 </Field>
-                <Field label="Mill Name">
+                <Field label="Mill Name" className="fw-req">
                   <SearchableSelect
                     value={draft.millId}
                     options={millOptions.map((mill) => ({
@@ -1248,6 +1326,7 @@ export function FinishedWorkDesk({
                 <Field label="Knitter Challan No.">
                   <input
                     className={inputClass}
+                    required
                     value={draft.knitterChallanNo}
                     onChange={(e) => patch({ knitterChallanNo: e.target.value })}
                   />
@@ -1255,6 +1334,7 @@ export function FinishedWorkDesk({
                 <Field label="Challan No.">
                   <input
                     className={inputClass}
+                    required
                     value={draft.challanNo}
                     onChange={(e) => patch({ challanNo: e.target.value })}
                   />
@@ -1330,6 +1410,12 @@ export function FinishedWorkDesk({
                           <td>
                             <input
                               data-roll-count={line.id}
+                              data-invalid={
+                                rollCountFlag === line.id &&
+                                (rollCountValue(line.rollCount) ?? 0) <= 0
+                                  ? ""
+                                  : undefined
+                              }
                               className={`${cellInput} text-right`}
                               inputMode="numeric"
                               value={line.rollCount}
@@ -1499,13 +1585,13 @@ export function FinishedWorkDesk({
       ) : null}
 
       {detailLine && rollDraft && detailTotals ? createPortal((
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-[4vw] py-8">
+        <div className="fw-roll-overlay fixed inset-0 z-[60] flex items-center justify-center px-[4vw] py-8">
           <div
             ref={detailRootRef}
             role="dialog"
             aria-modal="true"
             aria-label="Roll / Takka Details"
-            className="flex max-h-[calc(100vh-4rem)] w-[min(28rem,92vw)] flex-col overflow-hidden rounded-xl border border-(--line) bg-(--panel) shadow-(--shadow-sm)"
+            className="fw-roll-sheet flex max-h-[calc(100vh-4rem)] w-[min(28rem,92vw)] flex-col overflow-hidden rounded-xl border border-(--line) bg-(--panel) shadow-(--shadow-sm)"
           >
             <div className="flex shrink-0 items-center justify-between border-b border-(--line) px-4 py-2">
               <h2 className="text-[14px] font-semibold">Roll / Takka Details</h2>
@@ -1583,7 +1669,7 @@ export function FinishedWorkDesk({
                 </table>
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-1.5 border-t border-(--line) bg-(--panel) px-4 py-2.5">
+            <div className="fw-roll-foot flex shrink-0 justify-end gap-1.5 border-t border-(--line) px-4 py-2.5">
               <button type="button" className={buttonGhostClass} onClick={requestCloseDetails}>
                 Cancel
               </button>
@@ -1601,7 +1687,7 @@ export function FinishedWorkDesk({
       ), document.body) : null}
 
       {detailDiscard ? createPortal((
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
+        <div className="fw-confirm-overlay fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div
             ref={confirmRootRef}
             data-modal-confirm
@@ -1627,7 +1713,7 @@ export function FinishedWorkDesk({
       ), document.body) : null}
 
       {rollCut ? createPortal((
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
+        <div className="fw-confirm-overlay fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div
             ref={confirmRootRef}
             data-modal-confirm

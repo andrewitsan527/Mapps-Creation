@@ -5,6 +5,7 @@ import { Building2, ChevronRight, Plus, Search, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
+import { friendlyError } from "@/lib/user-error";
 import {
   EmptyState,
   Field,
@@ -374,7 +375,7 @@ export function MillMasterDesk({ mills }: { mills: MillRecord[] }) {
           : `${local.millName} updated.`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save mill.");
+      setError(friendlyError(err, "Could not save mill."));
     } finally {
       setSaving(false);
     }
