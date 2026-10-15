@@ -260,25 +260,20 @@ export function QualityCheckDesk({
   const works = padWorks(rawWorks);
   const withoutQc = padWithoutQc(rawWithoutQc);
   const [tab, setTab] = useState<"pending" | "records" | "without">("pending");
-  const [searchOpen, setSearchOpen] = useState(false);
+
   const searchRef = useRef<HTMLDivElement>(null);
 
-  /* close the challan search on an outside click */
-  useEffect(() => {
-    if (!searchOpen) return;
-    function onDown(event: MouseEvent) {
-      if (!searchRef.current?.contains(event.target as Node)) {
-        setSearchOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [searchOpen]);
   const [session, setSession] = useState<Session | null>(null);
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!lookupError) return;
+    const id = window.setTimeout(() => setLookupError(null), 10000);
+    return () => window.clearTimeout(id);
+  }, [lookupError]);
   const savingRef = useRef(false);
 
   const work = session ? works.find((row) => row.id === session.workId) ?? null : null;
@@ -335,6 +330,7 @@ export function QualityCheckDesk({
     }
     openWork(found);
   }
+
 
   function patchRoll(id: string, decision: RollDecision) {
     setSession((prev) =>
@@ -406,7 +402,48 @@ export function QualityCheckDesk({
         </div>
       ) : null}
 
-      {/* Three lists, one at a time, with the challan search folded in. This
+      {/* A lookup message used to render as a block between the blocks and
+          the table, so every message shifted the table down. It floats now
+          and clears itself after ten seconds. */}
+      {lookupError ? (
+        <div className="gb-toast-wrap" role="alert" aria-live="assertive">
+          <div className="gb-toast" data-tone="warn">
+            <span className="gb-toast-text">{lookupError}</span>
+            <button
+              type="button"
+              className="gb-toast-close"
+              onClick={() => setLookupError(null)}
+              aria-label="Dismiss message"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* The worker's whole job starts here: type a challan number, find the
+          work. One row, label and field and action on a single line, before
+          anything else on the page. */}
+      <div className="qc-lookup" ref={searchRef}>
+        <span className="qc-lookup-label">Knitter Challan No.</span>
+        <input
+          className="qc-lookup-input"
+          aria-label="Knitter Challan No."
+          placeholder="Type the challan number"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") searchChallan();
+            if (event.key === "Escape") setSearch("");
+          }}
+        />
+        <button type="button" className="qc-lookup-find" onClick={searchChallan}>
+          <Search className="h-4 w-4" />
+          Find
+        </button>
+      </div>
+
+      {/* Three lists, one at a time. This
           screen is worked on standing up, so the blocks and the row actions
           are deliberately larger than on the office desks. */}
       <div className="qc-switch">
@@ -441,47 +478,7 @@ export function QualityCheckDesk({
           <span className="qc-tab-count tabular-nums">{withoutQc.length}</span>
         </button>
 
-        <div className="qc-pop-wrap" ref={searchRef}>
-          <button
-            type="button"
-            className={`qc-icon-btn${searchOpen || search ? " is-on" : ""}`}
-            aria-label="Search knitter challan"
-            aria-expanded={searchOpen}
-            onClick={() => setSearchOpen((open) => !open)}
-          >
-            <Search className="h-5 w-5" />
-          </button>
-          {searchOpen ? (
-            <div className="qc-pop">
-              <input
-                autoFocus
-                aria-label="Knitter Challan No."
-                placeholder="Knitter Challan No."
-                className={inputClass}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") searchChallan();
-                  if (event.key === "Escape") setSearchOpen(false);
-                }}
-              />
-              <button
-                type="button"
-                className={buttonClass}
-                onClick={searchChallan}
-              >
-                Search
-              </button>
-            </div>
-          ) : null}
-        </div>
       </div>
-
-      {lookupError ? (
-        <p className="qc-lookup-error" role="alert">
-          {lookupError}
-        </p>
-      ) : null}
 
       {tab === "pending" ? (
       <Panel flush className="qc-panel qc-pending">

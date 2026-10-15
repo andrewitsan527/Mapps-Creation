@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Factory, Plus, Send, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Factory, Plus, Search, Send, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
@@ -55,6 +55,16 @@ type Program = {
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
+}
+
+/** shift a YYYY-MM-DD date by whole days */
+function shiftIso(iso: string, days: number) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const next = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
+  next.setUTCDate(next.getUTCDate() + days);
+  const mm = String(next.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(next.getUTCDate()).padStart(2, "0");
+  return `${next.getUTCFullYear()}-${mm}-${dd}`;
 }
 
 function todayIso() {
@@ -332,6 +342,125 @@ export function MillProgramDesk({
 }) {
   const [rows, setRows] = useState<Program[]>(() => padPrograms(programs.map(toProgram)));
   const [tab, setTab] = useState<"programs" | "grey">("programs");
+  const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "custom">("custom");
+  const [customFrom, setCustomFrom] = useState(() => shiftIso(todayIso(), -30));
+  const [customTo, setCustomTo] = useState(() => todayIso());
+  const [customOpen, setCustomOpen] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!customOpen) return;
+    function onDown(event: MouseEvent) {
+      if (!barRef.current?.contains(event.target as Node)) setCustomOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [customOpen]);
+
+  const bar = (
+    <div className="aw-bar" ref={barRef}>
+      {/* the field sits in the row itself, with its icon on the right */}
+      <label className="aw-search">
+        <span className="sr-only">Search programmes</span>
+        <input
+          value={search}
+          placeholder="Search sr no / mill / knitter / item"
+          onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setSearch("");
+          }}
+        />
+        {search ? (
+          <button
+            type="button"
+            className="aw-search-clear"
+            aria-label="Clear search"
+            onClick={() => setSearch("")}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        ) : (
+          <Search className="aw-search-icon h-3.5 w-3.5" aria-hidden />
+        )}
+      </label>
+
+      <button
+        type="button"
+        className={`aw-chip${dateFilter === "today" ? " is-on" : ""}`}
+        onClick={() => {
+          setDateFilter("today");
+          setCustomOpen(false);
+        }}
+      >
+        Today
+      </button>
+      <button
+        type="button"
+        className={`aw-chip${dateFilter === "yesterday" ? " is-on" : ""}`}
+        onClick={() => {
+          setDateFilter("yesterday");
+          setCustomOpen(false);
+        }}
+      >
+        Yesterday
+      </button>
+
+      <div className="aw-pop-wrap">
+        <button
+          type="button"
+          className={`aw-chip${dateFilter === "custom" ? " is-on" : ""}`}
+          aria-expanded={customOpen}
+          onClick={() => setCustomOpen((open) => !open)}
+        >
+          Custom
+        </button>
+        {customOpen ? (
+          <div className="aw-pop aw-pop-range">
+            <label>
+              <span>From</span>
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(event) => setCustomFrom(event.target.value)}
+              />
+            </label>
+            <label>
+              <span>To</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(event) => setCustomTo(event.target.value)}
+              />
+            </label>
+            <div className="aw-pop-actions">
+              <button
+                type="button"
+                className="aw-pop-clear"
+                onClick={() => {
+                  setCustomFrom(shiftIso(todayIso(), -30));
+                  setCustomTo(todayIso());
+                }}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="aw-pop-apply"
+                onClick={() => {
+                  setDateFilter("custom");
+                  setCustomOpen(false);
+                }}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+
   const [draft, setDraft] = useState<Program | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -351,6 +480,26 @@ export function MillProgramDesk({
     }
     return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [draft?.mill, draft?.millId, sources]);
+
+  const matches = useCallback(
+    (date: string, text: string) => {
+      const today = todayIso();
+      const inRange =
+        dateFilter === "today"
+          ? date === today
+          : dateFilter === "yesterday"
+            ? date === shiftIso(today, -1)
+            : date >= customFrom && date <= customTo;
+      if (!inRange) return false;
+      const q = search.trim().toLowerCase();
+      return !q || text.toLowerCase().includes(q);
+    },
+    [dateFilter, customFrom, customTo, search],
+  );
+
+  const rowsShown = rows.filter((row) =>
+    matches(row.date, [row.srNo, row.mill, row.item, row.knitter, row.challanNo].join(" ")),
+  );
 
   const availableRows = useMemo(
     () =>
@@ -774,7 +923,8 @@ export function MillProgramDesk({
 
       {tab === "programs" ? (
       <Panel flush className="mp-panel mp-primary">
-        {rows.length === 0 ? (
+        {bar}
+        {rowsShown.length === 0 ? (
           <div className="mp-empty">
             <EmptyState
               icon={Factory}
@@ -811,7 +961,7 @@ export function MillProgramDesk({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {rowsShown.map((row) => (
                   <tr
                     key={row.id}
                     tabIndex={0}
@@ -886,6 +1036,7 @@ export function MillProgramDesk({
       </Panel>
       ) : (
       <Panel flush className="mp-panel mp-secondary">
+        {bar}
         {availableRows.length === 0 ? (
           <div className="mp-empty">
             <EmptyState text="No mill inward rolls available to program." />
@@ -912,7 +1063,14 @@ export function MillProgramDesk({
                 </tr>
               </thead>
               <tbody>
-                {availableRows.map((row) => (
+                {availableRows
+                  .filter((row) =>
+                    matches(
+                      row.inward.dateOfIssue ?? todayIso(),
+                      [row.inward.srNo, row.inward.mill, row.inward.item, row.inward.knitter, row.inward.challanNo].join(" "),
+                    ),
+                  )
+                  .map((row) => (
                   <tr key={row.inward.id}>
                     <td>{row.inward.mill}</td>
                     <td>{row.inward.item}</td>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, Plus, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDownToLine, Plus, Search, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
@@ -74,6 +74,14 @@ type Inward = {
   sentAt?: string | null;
   returnLines?: ReturnLine[];
 };
+
+/** shift a YYYY-MM-DD date by whole days */
+function shiftIso(iso: string, days: number) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const next = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
+  next.setUTCDate(next.getUTCDate() + days);
+  return `${next.getUTCFullYear()}-${pad2(next.getUTCMonth() + 1)}-${pad2(next.getUTCDate())}`;
+}
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -508,6 +516,27 @@ export function MillInwardDesk({
   const [draft, setDraft] = useState<Inward | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "done">("pending");
+  const [search, setSearch] = useState("");
+  /* "custom" by default, spanning the last month: the registers are dated a
+     day apart going back, so a "today" default would show a single row */
+  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "custom">(
+    "custom",
+  );
+  const [customFrom, setCustomFrom] = useState(() => shiftIso(todayIso(), -30));
+  const [customTo, setCustomTo] = useState(() => todayIso());
+  const [customOpen, setCustomOpen] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!customOpen) return;
+    function onDown(event: MouseEvent) {
+      if (!barRef.current?.contains(event.target as Node)) {
+        setCustomOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [customOpen]);
 
   useEffect(() => {
     if (!notice) return;
@@ -529,6 +558,133 @@ export function MillInwardDesk({
       (isQcReturn(row) && row.status === "SENT"),
   );
   const todayCount = rows.filter((row) => row.date === todayIso()).length;
+
+  /* one filter, applied to whichever block is open */
+  const matches = useCallback(
+    (row: Inward) => {
+      const today = todayIso();
+      const inRange =
+        dateFilter === "today"
+          ? row.date === today
+          : dateFilter === "yesterday"
+            ? row.date === shiftIso(today, -1)
+            : row.date >= customFrom && row.date <= customTo;
+      if (!inRange) return false;
+      const q = search.trim().toLowerCase();
+      if (!q) return true;
+      return [row.srNo, row.mill, row.knitter, row.item, row.challanNo ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    },
+    [dateFilter, customFrom, customTo, search],
+  );
+
+  const pendingShown = pending.filter(matches);
+  const settledShown = settled.filter(matches);
+
+  const bar = (
+    <div className="aw-bar" ref={barRef}>
+      {/* the field sits in the row itself, with its icon on the right */}
+      <label className="aw-search">
+        <span className="sr-only">Search inwards</span>
+        <input
+          value={search}
+          placeholder="Search sr no / mill / knitter / item"
+          onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setSearch("");
+          }}
+        />
+        {search ? (
+          <button
+            type="button"
+            className="aw-search-clear"
+            aria-label="Clear search"
+            onClick={() => setSearch("")}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        ) : (
+          <Search className="aw-search-icon h-3.5 w-3.5" aria-hidden />
+        )}
+      </label>
+
+      <button
+        type="button"
+        className={`aw-chip${dateFilter === "today" ? " is-on" : ""}`}
+        onClick={() => {
+          setDateFilter("today");
+          setCustomOpen(false);
+        }}
+      >
+        Today
+      </button>
+      <button
+        type="button"
+        className={`aw-chip${dateFilter === "yesterday" ? " is-on" : ""}`}
+        onClick={() => {
+          setDateFilter("yesterday");
+          setCustomOpen(false);
+        }}
+      >
+        Yesterday
+      </button>
+
+      <div className="aw-pop-wrap">
+        <button
+          type="button"
+          className={`aw-chip${dateFilter === "custom" ? " is-on" : ""}`}
+          aria-expanded={customOpen}
+          onClick={() => setCustomOpen((open) => !open)}
+        >
+          Custom
+        </button>
+        {customOpen ? (
+          <div className="aw-pop aw-pop-range">
+            <label>
+              <span>From</span>
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(event) => setCustomFrom(event.target.value)}
+              />
+            </label>
+            <label>
+              <span>To</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(event) => setCustomTo(event.target.value)}
+              />
+            </label>
+            <div className="aw-pop-actions">
+              <button
+                type="button"
+                className="aw-pop-clear"
+                onClick={() => {
+                  setCustomFrom(shiftIso(todayIso(), -30));
+                  setCustomTo(todayIso());
+                }}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="aw-pop-apply"
+                onClick={() => {
+                  setDateFilter("custom");
+                  setCustomOpen(false);
+                }}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
   const readOnly = mode === "completed";
 
   const draftStats = useMemo(
@@ -784,7 +940,8 @@ export function MillInwardDesk({
 
       {tab === "pending" ? (
       <Panel flush className="mi-panel mi-pending">
-        {pending.length === 0 ? (
+        {bar}
+        {pendingShown.length === 0 ? (
           <div className="mi-empty">
             <EmptyState
               icon={ArrowDownToLine}
@@ -827,7 +984,7 @@ export function MillInwardDesk({
                 </tr>
               </thead>
               <tbody>
-                {pending.map((row) => {
+                {pendingShown.map((row) => {
                   const qcReturn = isQcReturn(row);
                   return (
                     <tr
@@ -899,7 +1056,8 @@ export function MillInwardDesk({
       </Panel>
       ) : (
       <Panel flush className="mi-panel mi-done">
-        {settled.length === 0 ? (
+        {bar}
+        {settledShown.length === 0 ? (
           <div className="mi-empty">
             <EmptyState text="No completed inward yet." />
           </div>
@@ -937,7 +1095,7 @@ export function MillInwardDesk({
                 </tr>
               </thead>
               <tbody>
-                {settled.map((row) => {
+                {settledShown.map((row) => {
                   const qcReturn = isQcReturn(row);
                   return (
                     <tr
