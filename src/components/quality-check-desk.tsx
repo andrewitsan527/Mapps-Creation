@@ -160,9 +160,9 @@ function qcSrNo(index: number, iso: string) {
   return `${String(index + 1).padStart(3, "0")}-${dd}${mm}${yyyy}`;
 }
 
-/** Pending finished work, with every physical roll the sheet will inspect. */
-function padWorks(_real: QualityCheckWork[]): QualityCheckWork[] {
-  return QC_SPECS.map((spec, index) => {
+/** Saved finished work comes first. The sample rows stay underneath. */
+function padWorks(real: QualityCheckWork[]): QualityCheckWork[] {
+  const samples = QC_SPECS.map((spec, index) => {
     const iso = qcIso(index);
     const greyKg = spec.rolls * 25;
     const finishedKg = Math.round(spec.rolls * spec.finishedPerRoll * 1000) / 1000;
@@ -196,14 +196,15 @@ function padWorks(_real: QualityCheckWork[]): QualityCheckWork[] {
       draft: null,
     } satisfies QualityCheckWork;
   });
+  return [...real, ...samples];
 }
 
 /** Submitted QC records, a mix of pass, fail and mixed results. */
-function padRecords(_real: QualityCheckRecord[]): QualityCheckRecord[] {
+function padRecords(real: QualityCheckRecord[]): QualityCheckRecord[] {
   const results: QualityCheckResult[] = ["pass", "pass", "mixed", "pass", "fail", "pass"];
   const grades: (QualityCheckGrade | "")[] = ["A", "A", "B", "A", "C", "B"];
   const defects: (QualityCheckDefect | "")[] = ["", "", "MINOR", "", "DYEING", "MILL"];
-  return QC_SPECS.map((spec, index) => {
+  const samples = QC_SPECS.map((spec, index) => {
     const iso = qcIso(index + 18);
     const result = results[index % results.length];
     return {
@@ -228,11 +229,12 @@ function padRecords(_real: QualityCheckRecord[]): QualityCheckRecord[] {
       status: "submitted" as const,
     } satisfies QualityCheckRecord;
   });
+  return [...real, ...samples];
 }
 
-/** Rolls sitting in stock that never went through QC. */
-function padWithoutQc(_real: WithoutQcGroup[]): WithoutQcGroup[] {
-  return QC_SPECS.map((spec, index) => {
+/** Saved stock that skipped QC comes first. The sample rows stay underneath. */
+function padWithoutQc(real: WithoutQcGroup[]): WithoutQcGroup[] {
+  const samples = QC_SPECS.map((spec, index) => {
     const [codeNo, colour] = spec.colours[0];
     /* a slice of the lot, not the whole thing: these are the leftovers */
     const rolls = Math.max(3, Math.round(spec.rolls / 6));
@@ -249,6 +251,7 @@ function padWithoutQc(_real: WithoutQcGroup[]): WithoutQcGroup[] {
       ),
     } satisfies WithoutQcGroup;
   });
+  return [...real, ...samples];
 }
 
 /* TEMPORARY - presentation build only. See the note on the Grey Purchase

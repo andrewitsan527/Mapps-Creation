@@ -487,9 +487,9 @@ function fwIso(daysAgo: number) {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-/** The register shows the presentation entries and nothing else. */
-function padEntries(_real: Entry[]): Entry[] {
-  return FW_PRESENTATION_SPECS.map((spec, index) => {
+/** Saved entries come first. The sample rows stay underneath. */
+function padEntries(real: Entry[]): Entry[] {
+  const samples = FW_PRESENTATION_SPECS.map((spec, index) => {
     const iso = fwIso(index);
     const [yyyy, mm, dd] = iso.split("-");
     const greyKg = spec.rolls * FW_KG_PER_ROLL;
@@ -539,6 +539,7 @@ function padEntries(_real: Entry[]): Entry[] {
       ],
     } satisfies Entry;
   });
+  return [...real, ...samples];
 }
 
 /* TEMPORARY - presentation build only. See the note on the Grey Purchase

@@ -38,6 +38,7 @@ import {
   attachGreyBillDocument,
   createGreyBill,
   deleteGreyBill,
+  matchGreyBillPurchaseOrder,
   updateGreyBill,
   type GreyBillDocumentLink,
   type GreyBillInput,
@@ -458,13 +459,10 @@ function buildPresentationBills(): GreyBillRecord[] {
   });
 }
 
-/** The register shows the eighteen presentation bills and nothing else.
-
-    Whatever is in the database is ignored here on purpose: the walkthrough
-    needs a fixed, matched set that reads the same every time it is shown.
-    Restore the real list by returning `real`. */
-function padBills(_real: GreyBillRecord[]): GreyBillRecord[] {
-  return buildPresentationBills();
+/** Real saved bills come first, so a purchase-order check can be saved.
+    Sample bills follow, for the walkthrough. */
+function padBills(real: GreyBillRecord[]): GreyBillRecord[] {
+  return [...real, ...buildPresentationBills()];
 }
 
 /* TEMPORARY - presentation build only.
@@ -485,7 +483,7 @@ export function GreyPurchaseDesk({
   knitters,
   mills,
   items,
-  purchaseOrders: _purchaseOrders,
+  purchaseOrders,
   purchaseAgents,
 }: {
   bills: GreyBillRecord[];
@@ -512,6 +510,12 @@ export function GreyPurchaseDesk({
     return () => document.removeEventListener("mousedown", onDown);
   }, [searchOpen]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [matchPoId, setMatchPoId] = useState("");
+  const [matchView, setMatchView] = useState<{
+    purchaseOrderId: string | null;
+    matchStatus: GreyBillRecord["matchStatus"];
+  } | null>(null);
+  const [matching, setMatching] = useState(false);
   const rescued = useRescuedDraft<{ mode: "create" | "edit"; bill: Draft }>(
     RESCUE_KEY,
   );
@@ -638,6 +642,8 @@ export function GreyPurchaseDesk({
     setRollOpen(false);
     setBillWarnings([]);
     setChallanNote(null);
+    setMatchPoId("");
+    setMatchView(null);
   }
 
   function matchMaster(name: string, options: { id: string; label: string }[]) {
@@ -805,6 +811,8 @@ export function GreyPurchaseDesk({
     setBillFile(null);
     setChallanFile(null);
     setRollOpen(false);
+    setMatchPoId("");
+    setMatchView(null);
     setMode("create");
     setDraft(blankDraft(nextSrNo(rows.map((row) => row.srNo), todayIso())));
   }
@@ -815,6 +823,11 @@ export function GreyPurchaseDesk({
     setChallanNote(null);
     setBillFile(null);
     setChallanFile(null);
+    setMatchPoId(row.purchaseOrderId ?? "");
+    setMatchView({
+      purchaseOrderId: row.purchaseOrderId,
+      matchStatus: row.matchStatus,
+    });
     setMode(nextMode);
     setDraft(cloneBill(row));
   }
@@ -947,6 +960,50 @@ export function GreyPurchaseDesk({
       return "Enter bill no., challan no. and knitter.";
     }
     return null;
+  }
+
+  function purchaseOrderLabel(order: PurchaseOrderRecord) {
+    return [order.srNo, order.knitterName, order.quality, `${order.qtyUnits} rolls`]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  async function checkPurchaseOrder(matchStatus: "MATCHED" | "UNMATCHED") {
+    if (!draft || matching) return;
+    if (isPresentationRow(draft.id)) {
+      setError("This sample bill is not saved. Open a real saved bill to check a purchase order.");
+      return;
+    }
+    if (draft.status !== "SAVED") {
+      setError("Save the grey bill before checking a purchase order.");
+      return;
+    }
+    setMatching(true);
+    setError(null);
+    try {
+      const saved = await matchGreyBillPurchaseOrder(draft.id, {
+        matchStatus,
+        purchaseOrderId: matchStatus === "MATCHED" ? matchPoId : null,
+        matchScore: null,
+      });
+      setRows((prev) => prev.map((row) => (row.id === saved.id ? saved : row)));
+      setMatchPoId(saved.purchaseOrderId ?? "");
+      setMatchView({
+        purchaseOrderId: saved.purchaseOrderId,
+        matchStatus: saved.matchStatus,
+      });
+      setNotice({
+        text:
+          matchStatus === "MATCHED"
+            ? "Purchase order matched."
+            : "Marked as not the same purchase order.",
+        tone: "ok",
+      });
+    } catch (err: unknown) {
+      setError(friendlyError(err, "Could not check the purchase order."));
+    } finally {
+      setMatching(false);
+    }
   }
 
   async function persist(status: "DRAFT" | "SAVED") {
@@ -1328,6 +1385,11 @@ export function GreyPurchaseDesk({
                       >
                         {row.status}
                       </span>
+                      {row.matchStatus ? (
+                        <span className="mt-0.5 block text-[10px] text-(--muted)">
+                          {row.matchStatus === "MATCHED" ? "PO matched" : "PO not matched"}
+                        </span>
+                      ) : null}
                     </td>
                     <td>
                       <div className="flex flex-nowrap items-center justify-center gap-1">
@@ -1815,6 +1877,59 @@ export function GreyPurchaseDesk({
             </div>
 
             </div>
+
+            {mode !== "create" && draft.status === "SAVED" ? (
+              <div className="rounded-md border border-(--line) bg-(--panel-sunken) px-3 py-2.5">
+                <p className="text-[12px] font-semibold text-(--ink)">Purchase order check</p>
+                <p className="mt-0.5 text-[12px] text-(--muted)">
+                  {matchView?.matchStatus === "MATCHED"
+                    ? `Matched to ${purchaseOrders.find((order) => order.id === matchView.purchaseOrderId)?.srNo ?? "a purchase order"}.`
+                    : matchView?.matchStatus === "UNMATCHED"
+                      ? "Marked as not the same purchase order."
+                      : "Not checked yet."}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <select
+                    className={`${inputClass} h-8 min-w-56 py-1`}
+                    value={matchPoId}
+                    disabled={matching || isPresentationRow(draft.id)}
+                    onChange={(event) => setMatchPoId(event.target.value)}
+                  >
+                    <option value="">Select purchase order</option>
+                    {purchaseOrders.map((order) => {
+                      const taken = rows.some(
+                        (row) =>
+                          row.id !== draft.id &&
+                          row.matchStatus === "MATCHED" &&
+                          row.purchaseOrderId === order.id,
+                      );
+                      return (
+                        <option key={order.id} value={order.id} disabled={taken}>
+                          {purchaseOrderLabel(order)}
+                          {taken ? " · already matched" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    type="button"
+                    className={buttonClass}
+                    disabled={matching || !matchPoId || isPresentationRow(draft.id)}
+                    onClick={() => void checkPurchaseOrder("MATCHED")}
+                  >
+                    This is the purchase order
+                  </button>
+                  <button
+                    type="button"
+                    className={buttonGhostClass}
+                    disabled={matching || isPresentationRow(draft.id)}
+                    onClick={() => void checkPurchaseOrder("UNMATCHED")}
+                  >
+                    Not this purchase order
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <div className="gb-entry-foot">
               <button

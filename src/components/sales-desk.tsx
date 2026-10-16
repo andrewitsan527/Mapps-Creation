@@ -355,9 +355,9 @@ function slIso(daysAgo: number) {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-/** The register shows the presentation bills and nothing else. */
-function padBills(_real: LocalSaleBill[]): LocalSaleBill[] {
-  return SL_PRESENTATION_SPECS.map((spec, index) => {
+/** Saved bills come first. The sample rows stay underneath. */
+function padBills(real: LocalSaleBill[]): LocalSaleBill[] {
+  const samples = SL_PRESENTATION_SPECS.map((spec, index) => {
     const iso = slIso(index);
     const [yyyy, mm, dd] = iso.split("-");
     const stamp = `${iso}T09:00:00.000Z`;
@@ -438,6 +438,7 @@ function padBills(_real: LocalSaleBill[]): LocalSaleBill[] {
       updatedAt: stamp,
     } as LocalSaleBill;
   });
+  return [...real, ...samples];
 }
 
 function blankBill(billNo: string): LocalSaleBill {

@@ -400,13 +400,10 @@ function buildPresentationRows(): PurchaseOrderRow[] {
   }));
 }
 
-/** The register shows the eighteen presentation orders and nothing else.
-
-    Whatever is in the database is ignored here on purpose: the walkthrough
-    needs a fixed, matched set that reads the same every time it is shown.
-    Restore the real list by returning `real`. */
-function padRows(_real: PurchaseOrderRow[]): PurchaseOrderRow[] {
-  return buildPresentationRows();
+/** Saved orders come first. The sample rows stay underneath so the page
+    still looks full. A new manual entry is a saved order, so it stays. */
+function padRows(real: PurchaseOrderRow[]): PurchaseOrderRow[] {
+  return [...real, ...buildPresentationRows()];
 }
 
 const NARROW = "(max-width: 767px)";
