@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { storeMillInwardPdf } from "@/server/domain/mill-documents";
+import { removeSentDocument, sentDocumentUrl } from "@/server/sent-documents";
 
 export type MillInwardSource = "GREY_PURCHASE" | "MANUAL" | "QC_RETURN";
 export type MillInwardStatus = "pending" | "completed";
@@ -56,6 +58,7 @@ export type MillInwardRecord = {
   qcReturn: MillInwardQcReturn | null;
   items: MillInwardItemRecord[];
   rolls: MillInwardRollRecord[];
+  sentPdfUrl: string;
 };
 
 export type MillInwardItemInput = {
@@ -170,6 +173,11 @@ const includeEntry = {
   },
   rolls: { orderBy: { sortOrder: "asc" as const } },
   returnLines: { orderBy: { sortOrder: "asc" as const } },
+  sentDocuments: {
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+    select: { accessToken: true },
+  },
 };
 
 type EntryRow = {
@@ -217,6 +225,7 @@ type EntryRow = {
     colour: string;
     finishedKg: { toString(): string } | null;
   }[];
+  sentDocuments: { accessToken: string }[];
 };
 
 function itemLabel(items: { itemName: string }[]) {
@@ -287,6 +296,9 @@ function toRecord(row: EntryRow): MillInwardRecord {
       id: roll.id,
       weight: decText(roll.weightKg),
     })),
+    sentPdfUrl: row.sentDocuments[0]
+      ? sentDocumentUrl(row.sentDocuments[0].accessToken)
+      : "",
   };
 }
 
@@ -447,9 +459,51 @@ export async function sendMillInwardEntry(
     throw new Error("This inward is already completed.");
   }
   await assertMasters(input, existing.sourceType === "GREY_PURCHASE");
-  const row = await replaceEntry(id, input, "completed");
-  revalidatePath("/mill-inward");
-  return toRecord(row);
+  await replaceEntry(id, input, "pending");
+
+  const sentAt = new Date();
+  let pdf: Awaited<ReturnType<typeof storeMillInwardPdf>>;
+  try {
+    pdf = await storeMillInwardPdf(id, sentAt);
+  } catch (error) {
+    console.error("Mill inward PDF failed", id, error);
+    revalidatePath("/mill-inward");
+    throw new Error("Could not create the mill inward PDF. The inward is still pending.");
+  }
+
+  try {
+    const row = await prisma.$transaction(async (tx) => {
+      const current = await tx.millInwardEntry.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      if (current?.status === "completed") {
+        throw new Error("This inward is already completed.");
+      }
+      await tx.sentDocument.create({
+        data: {
+          kind: pdf.kind,
+          millInwardEntryId: id,
+          recipient: pdf.recipient,
+          fileName: pdf.fileName,
+          byteSize: pdf.byteSize,
+          storageKey: pdf.storageKey,
+          accessToken: pdf.accessToken,
+          createdAt: sentAt,
+        },
+      });
+      return tx.millInwardEntry.update({
+        where: { id },
+        data: { status: "completed", sentOn: asDate(todayIso()) },
+        include: includeEntry,
+      });
+    });
+    revalidatePath("/mill-inward");
+    return toRecord(row);
+  } catch (error) {
+    await removeSentDocument(pdf.storageKey).catch(() => {});
+    throw error;
+  }
 }
 
 function greyQuantity(

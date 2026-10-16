@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { storeMillProgramPdf } from "@/server/domain/mill-documents";
+import { removeSentDocument, sentDocumentUrl } from "@/server/sent-documents";
 
 export type MillProgramStatus = "draft" | "saved" | "sent";
 
@@ -33,6 +35,12 @@ export type MillProgramRecord = {
   originalRolls: number;
   status: MillProgramStatus;
   sentAt: string | null;
+  sentPdfUrl: string;
+};
+
+export type MillProgramSendResult = {
+  record: MillProgramRecord;
+  error: string | null;
 };
 
 export type MillProgramSource = {
@@ -64,6 +72,8 @@ export type MillProgramInput = {
   status: MillProgramStatus;
   lines: MillProgramLineInput[];
 };
+
+const SEND_ONLY = "Use Send Mill Program to send this program.";
 
 async function requireUser() {
   const user = await getSessionUser();
@@ -185,6 +195,11 @@ const programInclude = {
   mill: { select: { millName: true } },
   lines: { orderBy: { sortOrder: "asc" as const } },
   millInwardEntry: { include: inwardInclude },
+  sentDocuments: {
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+    select: { accessToken: true },
+  },
 };
 
 type ProgramRow = {
@@ -206,6 +221,7 @@ type ProgramRow = {
     codeNo: string;
     colour: string;
   }[];
+  sentDocuments: { accessToken: string }[];
 };
 
 function asStatus(value: string): MillProgramStatus {
@@ -240,6 +256,9 @@ function toRecord(row: ProgramRow): MillProgramRecord {
     originalRolls: inward ? sourceRollCount(inward.rolls, inward.items) : 0,
     status: asStatus(row.status),
     sentAt: row.sentAt ? row.sentAt.toISOString() : null,
+    sentPdfUrl: row.sentDocuments[0]
+      ? sentDocumentUrl(row.sentDocuments[0].accessToken)
+      : "",
   };
 }
 
@@ -388,6 +407,7 @@ export async function createMillProgram(
   input: MillProgramInput,
 ): Promise<MillProgramRecord> {
   await requireUser();
+  if (input.status === "sent") throw new Error(SEND_ONLY);
   if (input.status !== "draft") await assertSaved(input);
   else await assertDraftRefs(input);
   const colors = await resolveColorCodes(input.lines);
@@ -439,9 +459,12 @@ export async function updateMillProgram(
   await requireUser();
   const existing = await prisma.millProgramEntry.findUnique({
     where: { id },
-    select: { id: true, sentAt: true },
+    select: { id: true, sentAt: true, status: true },
   });
   if (!existing) throw new Error("Mill program not found.");
+  if (input.status === "sent" && existing.status !== "sent") {
+    throw new Error(SEND_ONLY);
+  }
   if (input.status !== "draft") await assertSaved(input, id);
   else await assertDraftRefs(input);
   const colors = await resolveColorCodes(input.lines);
@@ -456,4 +479,69 @@ export async function updateMillProgram(
   });
   revalidatePath("/mill-program");
   return toRecord(row);
+}
+
+/**
+ * Saves the program, stores the PDF sent to the mill, then marks it sent.
+ * If the PDF step fails the program stays saved and the error is returned
+ * with the saved record, so a new program keeps its id for the next try.
+ */
+export async function sendMillProgram(
+  id: string | null,
+  input: MillProgramInput,
+): Promise<MillProgramSendResult> {
+  await requireUser();
+  if (id) {
+    const existing = await prisma.millProgramEntry.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!existing) throw new Error("Mill program not found.");
+    if (existing.status === "sent") throw new Error("This program is already sent.");
+  }
+  const toSave = { ...input, status: "saved" as const };
+  const saved = id ? await updateMillProgram(id, toSave) : await createMillProgram(toSave);
+
+  const sentAt = new Date();
+  let pdf: Awaited<ReturnType<typeof storeMillProgramPdf>>;
+  try {
+    pdf = await storeMillProgramPdf(saved.id, sentAt);
+  } catch (error) {
+    console.error("Mill program PDF failed", saved.id, error);
+    return {
+      record: saved,
+      error: "Could not create the mill program PDF. The program is saved, not sent.",
+    };
+  }
+
+  try {
+    const row = await prisma.$transaction(async (tx) => {
+      await tx.sentDocument.create({
+        data: {
+          kind: pdf.kind,
+          millProgramEntryId: saved.id,
+          recipient: pdf.recipient,
+          fileName: pdf.fileName,
+          byteSize: pdf.byteSize,
+          storageKey: pdf.storageKey,
+          accessToken: pdf.accessToken,
+          createdAt: sentAt,
+        },
+      });
+      return tx.millProgramEntry.update({
+        where: { id: saved.id },
+        data: { status: "sent", sentAt },
+        include: programInclude,
+      });
+    });
+    revalidatePath("/mill-program");
+    return { record: toRecord(row), error: null };
+  } catch (error) {
+    console.error("Mill program send failed", saved.id, error);
+    await removeSentDocument(pdf.storageKey).catch(() => {});
+    return {
+      record: saved,
+      error: "Could not mark the mill program as sent. The program is saved, not sent.",
+    };
+  }
 }

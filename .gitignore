@@ -53,4 +53,7 @@ next-env.d.ts
 # Grey Purchase originals kept outside public/
 /storage/grey-documents/
 
+# PDFs sent to mills (Mill Inward / Mill Program), kept as the record of what was sent
+/storage/sent-documents/
+
 tailwindcss-27508.log

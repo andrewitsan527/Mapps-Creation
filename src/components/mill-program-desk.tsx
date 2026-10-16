@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Factory, Plus, Search, Send, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, Factory, Plus, Search, Send, Trash2, X } from "lucide-react";
 import { ErpModal as Overlay } from "@/components/erp-modal";
 import { useUnsavedClose } from "@/components/unsaved-changes";
 import { statusBadge } from "@/lib/format";
@@ -28,6 +28,7 @@ import {
 import { lookupColorCode } from "@/server/actions/color-codes";
 import {
   createMillProgram,
+  sendMillProgram,
   updateMillProgram,
   type MillProgramInput,
   type MillProgramRecord,
@@ -58,6 +59,7 @@ type Program = {
   originalRolls: number;
   status: MillProgramStatus;
   sentAt: string | null;
+  sentPdfUrl?: string;
 };
 
 function pad2(n: number) {
@@ -189,6 +191,7 @@ function toProgram(record: MillProgramRecord): Program {
     originalRolls: record.originalRolls,
     status: record.status,
     sentAt: record.sentAt,
+    sentPdfUrl: record.sentPdfUrl,
   };
 }
 
@@ -289,8 +292,12 @@ function mpIso(daysAgo: number) {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-/** The register shows the presentation programmes and nothing else. */
-function padPrograms(_real: Program[]): Program[] {
+/** Real programmes first, then the presentation programmes. */
+function padPrograms(real: Program[]): Program[] {
+  return [...real, ...presentationPrograms()];
+}
+
+function presentationPrograms(): Program[] {
   return MP_PRESENTATION_SPECS.map((spec, index) => {
     const iso = mpIso(index);
     const [yyyy, mm, dd] = iso.split("-");
@@ -325,8 +332,12 @@ function padPrograms(_real: Program[]): Program[] {
   });
 }
 
-/** The available-grey block shows the matching sources and nothing else. */
-function padSources(_real: MillProgramSource[]): MillProgramSource[] {
+/** Real sources first, then the presentation sources. */
+function padSources(real: MillProgramSource[]): MillProgramSource[] {
+  return [...real, ...presentationSources()];
+}
+
+function presentationSources(): MillProgramSource[] {
   return MP_PRESENTATION_SPECS.map((spec, index) => ({
     id: `mi-p-${index + 1}`,
     srNo: `${String(index + 1).padStart(3, "0")}-${mpIso(index).split("-").reverse().join("")}`,
@@ -893,7 +904,39 @@ export function MillProgramDesk({
       setError(message);
       return;
     }
-    writeProgram("sent", () => "Mill Program sent successfully.");
+    const creating = mode === "create";
+    if (!creating && isPresentationRow(draft.id)) {
+      writeProgram("sent", () => "Mill Program sent successfully.");
+      return;
+    }
+    const snapshot = draft;
+    savingRef.current = true;
+    setError(null);
+    void sendMillProgram(creating ? null : snapshot.id, toInput(snapshot, "saved"))
+      .then(({ record, error: sendError }) => {
+        const saved = toProgram(record);
+        setRows((prev) =>
+          prev.some((row) => row.id === saved.id)
+            ? prev.map((row) => (row.id === saved.id ? saved : row))
+            : [saved, ...prev],
+        );
+        if (sendError) {
+          setDraft(saved);
+          setMode("edit");
+          setError(sendError);
+          return;
+        }
+        clearDraft(RESCUE_KEY);
+        closeModal();
+        setNotice(`Mill Program ${saved.srNo} sent. PDF saved.`);
+      })
+      .catch((err: unknown) => {
+        if (mode) stashDraft(RESCUE_KEY, { mode, program: snapshot });
+        setError(friendlyError(err, "Could not send the mill program."));
+      })
+      .finally(() => {
+        savingRef.current = false;
+      });
   }
 
   return (
@@ -1016,7 +1059,7 @@ export function MillProgramDesk({
                 <col className="w-[6.5rem]" />
                 <col className="w-[7rem]" />
                 <col className="w-[9.5rem]" />
-                <col className="w-[4.5rem]" />
+                <col className="w-[7.25rem]" />
               </colgroup>
               <thead>
                 <tr>
@@ -1088,16 +1131,31 @@ export function MillProgramDesk({
                       ) : null}
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className={`${buttonTinyClass} mp-open`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(row);
-                        }}
-                      >
-                        Open
-                      </button>
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          className={`${buttonTinyClass} mp-open`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(row);
+                          }}
+                        >
+                          Open
+                        </button>
+                        {row.sentPdfUrl ? (
+                          <a
+                            href={`${row.sentPdfUrl}?download=1`}
+                            className={buttonTinyClass}
+                            title="Download the PDF sent to the mill"
+                            aria-label={`Download sent PDF for ${row.srNo}`}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                          >
+                            <ArrowDownToLine className="h-3 w-3" />
+                            PDF
+                          </a>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1481,6 +1539,18 @@ export function MillProgramDesk({
               >
                 Cancel
               </button>
+              {draft.status === "sent" && draft.sentPdfUrl ? (
+                <a
+                  href={draft.sentPdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={buttonGhostClass}
+                  title="Open the PDF sent to the mill"
+                >
+                  <ArrowDownToLine className="h-3 w-3" />
+                  Sent PDF
+                </a>
+              ) : null}
               <button
                 type="button"
                 className={buttonGhostClass}

@@ -80,6 +80,7 @@ type Inward = {
   sendNote?: string;
   sentAt?: string | null;
   returnLines?: ReturnLine[];
+  sentPdfUrl?: string;
 };
 
 /** shift a YYYY-MM-DD date by whole days */
@@ -231,6 +232,7 @@ function toInward(record: MillInwardRecord): Inward {
     sourceType: record.sourceType === "QC_RETURN" ? "MANUAL" : record.sourceType,
     sourceId: record.greyBillId || null,
     type: "NORMAL",
+    sentPdfUrl: record.sentPdfUrl,
   };
   if (record.sourceType === "QC_RETURN" && record.qcReturn) {
     const qc = record.qcReturn;
@@ -497,9 +499,10 @@ function buildPresentationInwards(
   });
 }
 
-/** The desk shows the presentation inwards and nothing else. */
-function padInwards(_real: Inward[]): Inward[] {
+/** Real inwards first, then the presentation inwards. */
+function padInwards(real: Inward[]): Inward[] {
   return [
+    ...real,
     ...buildPresentationInwards("pending", 0),
     ...buildPresentationInwards("completed", 20),
   ];
@@ -763,8 +766,9 @@ export function MillInwardDesk({
      "mi-c-1") exist nowhere in the database, so every write threw "Mill
      inward not found." from the server action. While the desk runs on
      presentation data these rows are saved in state instead, which keeps the
-     demo clickable end to end. Delete this helper and the three branches
-     that call it when padInwards() goes back to returning the real list. */
+     demo clickable end to end. Real rows are listed first and still go to
+     the server. Delete this helper and the two branches that call it when
+     padInwards() stops adding presentation rows. */
   function isPresentationRow(id: string) {
     return id.startsWith("mi-p-") || id.startsWith("mi-c-");
   }
@@ -895,7 +899,7 @@ export function MillInwardDesk({
         setRows((prev) => prev.map((row) => (row.id === snapshot.id ? saved : row)));
         clearDraft(RESCUE_KEY);
         closeModal();
-        showNotice(`${saved.srNo} sent to mill.`);
+        showNotice(`${saved.srNo} sent to mill. PDF saved.`);
       })
       .catch((err: unknown) => {
         if (mode && draft) stashDraft(RESCUE_KEY, { mode, inward: draft });
@@ -922,18 +926,6 @@ export function MillInwardDesk({
       sourceType: "MANUAL",
       sourceId: null,
     });
-    if (rows.some((row) => isPresentationRow(row.id))) {
-      const made: Inward = {
-        ...snapshot,
-        id: `mi-p-new-${crypto.randomUUID()}`,
-        status: "pending",
-      };
-      setRows((prev) => [made, ...prev]);
-      clearDraft(RESCUE_KEY);
-      closeModal();
-      showNotice(`${made.srNo} added to pending inward.`);
-      return;
-    }
     savingRef.current = true;
     setError(null);
     void createMillInwardEntry(toInput(snapshot))
@@ -1183,7 +1175,7 @@ export function MillInwardDesk({
                 <col />
                 <col className="w-[5rem]" />
                 <col className="w-[5rem]" />
-                <col className="w-[3.75rem]" />
+                <col className="w-[7.25rem]" />
               </colgroup>
               <thead>
                 <tr>
@@ -1259,16 +1251,31 @@ export function MillInwardDesk({
                         )}
                       </td>
                       <td className="!text-center">
-                        <button
-                          type="button"
-                          className={`${buttonTinyClass} mi-view`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openCompleted(row);
-                          }}
-                        >
-                          View
-                        </button>
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            className={`${buttonTinyClass} mi-view`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openCompleted(row);
+                            }}
+                          >
+                            View
+                          </button>
+                          {row.sentPdfUrl ? (
+                            <a
+                              href={`${row.sentPdfUrl}?download=1`}
+                              className={buttonTinyClass}
+                              title="Download the PDF sent to the mill"
+                              aria-label={`Download sent PDF for ${row.srNo}`}
+                              onClick={(event) => event.stopPropagation()}
+                              onKeyDown={(event) => event.stopPropagation()}
+                            >
+                              <ArrowDownToLine className="h-3 w-3" />
+                              PDF
+                            </a>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1584,6 +1591,18 @@ export function MillInwardDesk({
               >
                 {readOnly ? "Close" : "Cancel"}
               </button>
+              {mode === "completed" && draft.sentPdfUrl ? (
+                <a
+                  href={draft.sentPdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={buttonClass}
+                  title="Open the PDF sent to the mill"
+                >
+                  <ArrowDownToLine className="h-3.5 w-3.5" />
+                  Sent PDF
+                </a>
+              ) : null}
               {mode === "pending" ? (
                 <>
                   <button

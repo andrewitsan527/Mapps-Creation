@@ -1132,6 +1132,7 @@ model MillInwardEntry {
   rolls MillInwardEntryRoll[]
   returnLines MillInwardEntryReturnLine[]
   millPrograms MillProgramEntry[]
+  sentDocuments SentDocument[]
 
   @@index([knitterId])
   @@index([millId])
@@ -1181,9 +1182,29 @@ model MillProgramEntry {
   lines MillProgramEntryLine[]
   finishedWorks FinishedWorkEntry[]
   qualityChecks QualityCheckEntry[]
+  sentDocuments SentDocument[]
 
   @@index([millId])
   @@index([millInwardEntryId])
+}
+
+/// PDF exactly as it was sent for a Mill Inward or Mill Program. Never regenerated: it is the record of what was sent.
+model SentDocument {
+  id                 String            @id @default(cuid())
+  kind               String
+  millInwardEntryId  String?
+  millInwardEntry    MillInwardEntry?  @relation(fields: [millInwardEntryId], references: [id], onDelete: Restrict)
+  millProgramEntryId String?
+  millProgramEntry   MillProgramEntry? @relation(fields: [millProgramEntryId], references: [id], onDelete: Restrict)
+  recipient          String            @default("")
+  fileName           String
+  byteSize           Int
+  storageKey         String
+  accessToken        String            @unique
+  createdAt          DateTime          @default(now())
+
+  @@index([millInwardEntryId])
+  @@index([millProgramEntryId])
 }
 
 /// New Finished Work desk at /finished-work. Linked to the new Mill Program, not the older program flow.
